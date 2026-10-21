@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Escuela de Inglés y Fonética Clínica Jotavalenzuela | por el Prof. Juan Valenzuela M.</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -1433,7 +1434,15 @@
 /* ============================================================
    CONSTANTES
    ============================================================ */
-const ADMIN_CODE = "JV2026A";
+/* ============================================================
+   SUPABASE CLIENT
+   ============================================================ */
+const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOi...TU-ANON-KEY-COMPLETA...";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Prueba rápida (opcional, para verificar conexión):
+// supabase.from('students').select('*').then(r => console.log(r));
+ const ADMIN_CODE = "JV2026A";
 const STORAGE_KEY = "jv2026_state_v19";
 const MAX_AUDIO_SIZE = 2 * 1024 * 1024;
 const MAX_IMG_SIZE = 2 * 1024 * 1024;
