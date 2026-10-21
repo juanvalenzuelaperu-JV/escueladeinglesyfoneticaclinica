@@ -1437,8 +1437,8 @@
 /* ============================================================
    SUPABASE CLIENT
    ============================================================ */
-const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOi...TU-ANON-KEY-COMPLETA...";
+const SUPABASE_URL = "https://clkbwhyqpuiegwnpcntn.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2J3aHlxcHVpZWd3bnBjbnRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDE5NTIsImV4cCI6MjEwODE3Nzk1Mn0.ZqWG7CyS75sTS6NZanVFIJxhQINiz_9yLebwCoz8s0w";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Prueba rápida (opcional, para verificar conexión):
 // supabase.from('students').select('*').then(r => console.log(r));
@@ -1546,43 +1546,101 @@ let currentRcData = null;
 /* ============================================================
    PERSISTENCIA
    ============================================================ */
-function loadState() {
+/* ============================================================
+   PERSISTENCIA (Supabase + localStorage cache)
+   ============================================================ */
+function backfillState(parsed) {
+  if (!parsed.examResults) parsed.examResults = {};
+  if (!parsed.registrations) parsed.registrations = [];
+  if (!parsed.citas) parsed.citas = [];
+  if (!parsed.signatures) parsed.signatures = {};
+  if (!parsed.reportCards) parsed.reportCards = [];
+  if (parsed.letterhead === undefined) parsed.letterhead = "";
+  if (parsed.founderPhoto === undefined) parsed.founderPhoto = "";
+  if (!parsed.marketingPhotos) parsed.marketingPhotos = [];
+  if (!parsed.courses) parsed.courses = JSON.parse(JSON.stringify(DEFAULT_STATE.courses));
+  if (!parsed.oficinaImagenes) parsed.oficinaImagenes = { marketing: { sello: "", membrete: "" }, contabilidad: { sello: "", membrete: "" }, direccion: { sello: "", membrete: "" } };
+  else {
+    if (!parsed.oficinaImagenes.marketing) parsed.oficinaImagenes.marketing = { sello: "", membrete: "" };
+    if (!parsed.oficinaImagenes.contabilidad) parsed.oficinaImagenes.contabilidad = { sello: "", membrete: "" };
+    if (!parsed.oficinaImagenes.direccion) parsed.oficinaImagenes.direccion = { sello: "", membrete: "" };
+  }
+  Object.keys(parsed.teachers || {}).forEach(k => { if (parsed.teachers[k].pagoHora === undefined) parsed.teachers[k].pagoHora = 0; });
+  (parsed.groups || []).forEach(g => {
+    if (g.programa === undefined) g.programa = g.nombre || "";
+    if (g.frecuencia === undefined) g.frecuencia = "";
+    if (g.horario === undefined) g.horario = "";
+    if (g.totalHoras === undefined) g.totalHoras = 0;
+  });
+  return parsed;
+}
+
+async function loadState() {
+  // 1) Intentar cargar desde Supabase
+  try {
+    const { data, error } = await supabase
+      .from('app_state')
+      .select('data')
+      .eq('id', 'main')
+      .maybeSingle();
+    if (error) throw error;
+    if (data && data.data) {
+      console.log("☁️ Estado cargado desde Supabase");
+      return backfillState(data.data);
+    }
+  } catch (e) {
+    console.warn("⚠️ No se pudo leer Supabase, usando fallback local:", e);
+  }
+
+  // 2) Migración inicial: si Supabase está vacío pero hay localStorage, subirlo
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (!parsed.examResults) parsed.examResults = {};
-      if (!parsed.registrations) parsed.registrations = [];
-      if (!parsed.citas) parsed.citas = [];
-      if (!parsed.signatures) parsed.signatures = {};
-      if (!parsed.reportCards) parsed.reportCards = [];
-      if (parsed.letterhead === undefined) parsed.letterhead = "";
-      if (parsed.founderPhoto === undefined) parsed.founderPhoto = "";
-      if (!parsed.marketingPhotos) parsed.marketingPhotos = [];
-      if (!parsed.courses) parsed.courses = JSON.parse(JSON.stringify(DEFAULT_STATE.courses));
-      if (!parsed.oficinaImagenes) parsed.oficinaImagenes = { marketing: { sello: "", membrete: "" }, contabilidad: { sello: "", membrete: "" }, direccion: { sello: "", membrete: "" } };
-      else {
-        if (!parsed.oficinaImagenes.marketing) parsed.oficinaImagenes.marketing = { sello: "", membrete: "" };
-        if (!parsed.oficinaImagenes.contabilidad) parsed.oficinaImagenes.contabilidad = { sello: "", membrete: "" };
-        if (!parsed.oficinaImagenes.direccion) parsed.oficinaImagenes.direccion = { sello: "", membrete: "" };
-      }
-      Object.keys(parsed.teachers || {}).forEach(k => { if (parsed.teachers[k].pagoHora === undefined) parsed.teachers[k].pagoHora = 0; });
-      (parsed.groups || []).forEach(g => {
-        if (g.programa === undefined) g.programa = g.nombre || "";
-        if (g.frecuencia === undefined) g.frecuencia = "";
-        if (g.horario === undefined) g.horario = "";
-        if (g.totalHoras === undefined) g.totalHoras = 0;
-      });
+      console.log("📦 Migrando datos locales existentes a Supabase...");
+      const parsed = backfillState(JSON.parse(raw));
+      await saveStateRaw(parsed);
       return parsed;
     }
   } catch (e) {}
-  if (memoriaFallback) return memoriaFallback;
+
+  // 3) Estado por defecto
+  console.log("🌱 Inicializando estado por defecto");
   const clon = JSON.parse(JSON.stringify(DEFAULT_STATE));
-  saveStateRaw(clon);
+  await saveStateRaw(clon);
   return clon;
 }
-function saveStateRaw(s) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) { memoriaFallback = s; } }
-function saveState() { saveStateRaw(state); refreshAll(); }
+
+async function saveStateRaw(s) {
+  // Guardar copia local (modo offline / fallback)
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) { memoriaFallback = s; }
+
+  // Guardar en Supabase
+  try {
+    const jsonStr = JSON.stringify(s);
+    const sizeMB = jsonStr.length / (1024 * 1024);
+    if (sizeMB > 5) console.warn(`⚠️ El estado pesa ${sizeMB.toFixed(1)} MB. Considera migrar imágenes a Storage.`);
+    if (sizeMB > 20) { console.error("❌ Estado >20MB, no se guardará en Supabase."); return; }
+
+    const { error } = await supabase
+      .from('app_state')
+      .upsert({ id: 'main', data: s, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    console.log("☁️ Estado guardado en Supabase (" + sizeMB.toFixed(2) + " MB)");
+  } catch (e) {
+    console.error("❌ Error guardando en Supabase:", e);
+  }
+}
+
+let _saveDebounce = null;
+function saveState() {
+  // Actualiza la UI de inmediato (optimista)
+  refreshAll();
+  // Debounce del guardado (300ms) para no saturar la API
+  if (_saveDebounce) clearTimeout(_saveDebounce);
+  _saveDebounce = setTimeout(() => {
+    saveStateRaw(state).catch(err => console.error(err));
+  }, 300);
+}
 
 /* ============================================================
    UTILIDADES
@@ -2764,15 +2822,18 @@ navLinks.querySelectorAll("a").forEach(a => a.addEventListener("click", () => { 
 /* ============================================================
    INICIALIZAR
    ============================================================ */
-state = loadState();
-renderHorariosTable();
-renderFounderPhoto();
-renderPublicGallery();
-refreshAdminTeacherSelects();
-refreshAdminExamGroups();
-renderOficinaImagenes("marketing");
-renderOficinaImagenes("contabilidad");
-renderOficinaImagenes("direccion");
+(async () => {
+  state = await loadState();
+  renderHorariosTable();
+  renderFounderPhoto();
+  renderPublicGallery();
+  refreshAdminTeacherSelects();
+  refreshAdminExamGroups();
+  renderOficinaImagenes("marketing");
+  renderOficinaImagenes("contabilidad");
+  renderOficinaImagenes("direccion");
+  console.log("🚀 App lista. Datos sincronizados con Supabase.");
+})();
 </script>
 </body>
 </html>
