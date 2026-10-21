@@ -4,24 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Escuela de Inglés y Fonética Clínica Jotavalenzuela | por el Prof. Juan Valenzuela M.</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
-    --azul: #004A8F; 
-    --azul-medio: #0066CC; 
-    --azul-claro: #E6F0FA;
-    --acento: #FDB913; 
-    --verde: #4CAF50; 
-    --rojo: #D62828; 
-    --morado: #7c3aed; 
-    --slate: #1e293b; 
-    --slate-medio: #475569;
-    --texto: #1f2937; 
-    --gris: #6b7280;
-    --fondo: #f8fafc; 
-    --blanco: #ffffff; 
-    --borde: #e5e7eb;
-    --radio: 14px;
+    --azul: #004A8F; --azul-medio: #0066CC; --azul-claro: #E6F0FA;
+    --acento: #FDB913; --verde: #4CAF50; --rojo: #D62828;
+    --morado: #7c3aed; --rosa: #ec4899; --slate: #1e293b; --slate-medio: #475569;
+    --texto: #1f2937; --gris: #6b7280; --fondo: #f8fafc; --blanco: #ffffff;
+    --borde: #e5e7eb; --radio: 14px;
     --sombra: 0 4px 24px rgba(15, 23, 42, .08);
     --sombra-hover: 0 12px 32px rgba(15, 23, 42, .14);
   }
@@ -45,6 +36,8 @@
   .btn-morado:hover { background: #6d28d9; transform: translateY(-2px); }
   .btn-slate { background: var(--slate); color: #fff; }
   .btn-slate:hover { background: var(--slate-medio); transform: translateY(-2px); }
+  .btn-rosa { background: var(--rosa); color: #fff; }
+  .btn-rosa:hover { background: #db2777; transform: translateY(-2px); }
   .btn-rojo { background: #fee2e2; color: #b91c1c; }
   .btn-rojo:hover { background: #fecaca; }
   .btn-mini { padding: 8px 16px; font-size: .83rem; }
@@ -85,7 +78,8 @@
   .seccion-cabecera p { color: var(--gris); font-size: 1.03rem; }
 
   .fundador-card { display: flex; gap: 40px; background: #fff; border-radius: 20px; box-shadow: var(--sombra); padding: 40px; align-items: flex-start; flex-wrap: wrap; border-left: 6px solid var(--acento); }
-  .fundador-foto { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--azul-medio), var(--azul)); color: #fff; display: grid; place-items: center; font-size: 3.5rem; flex-shrink: 0; border: 4px solid var(--acento); }
+  .fundador-foto { width: 160px; height: 160px; border-radius: 50%; background: linear-gradient(135deg, var(--azul-medio), var(--azul)); color: #fff; display: grid; place-items: center; font-size: 4rem; flex-shrink: 0; border: 4px solid var(--acento); overflow: hidden; }
+  .fundador-foto img { width: 100%; height: 100%; object-fit: cover; }
   .fundador-info { flex: 1; min-width: 280px; }
   .fundador-info h3 { font-size: 1.8rem; color: var(--azul); margin-bottom: 6px; }
   .fundador-info h4 { font-size: 1.05rem; color: var(--acento); font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: .04em; }
@@ -119,21 +113,31 @@
   td strong { color: var(--azul); }
   .table-slate thead th { background: var(--slate); }
 
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .gallery-item { position: relative; border-radius: 14px; overflow: hidden; box-shadow: var(--sombra); aspect-ratio: 4/3; background: #f1f5f9; transition: transform .3s, box-shadow .3s; }
+  .gallery-item:hover { transform: translateY(-4px) scale(1.02); box-shadow: var(--sombra-hover); }
+  .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gallery-item-caption { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); color: #fff; padding: 20px 16px 12px; font-weight: 600; font-size: .92rem; }
+  .gallery-empty { text-align: center; padding: 40px 20px; color: var(--gris); background: #f9fafb; border-radius: 14px; border: 2px dashed #cbd5e1; }
+
   #portal { background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%); }
-  .portal-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1040px; margin: 0 auto; }
+  .portal-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; max-width: 1140px; margin: 0 auto; }
   .portal-card { border-radius: 20px; padding: 38px 24px; text-align: center; background: #fff; box-shadow: var(--sombra); border: 2px solid transparent; transition: all .3s ease; position: relative; overflow: hidden; }
   .portal-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px; }
   .portal-alumno::before { background: linear-gradient(90deg, var(--azul-medio), var(--azul)); }
   .portal-docente::before { background: linear-gradient(90deg, #a78bfa, var(--morado)); }
   .portal-admin::before { background: linear-gradient(90deg, #64748b, var(--slate)); }
+  .portal-marketing::before { background: linear-gradient(90deg, #f472b6, var(--rosa)); }
   .portal-card:hover { transform: translateY(-8px); box-shadow: var(--sombra-hover); }
   .portal-icon { width: 80px; height: 80px; border-radius: 22px; margin: 0 auto 20px; display: grid; place-items: center; font-size: 2.4rem; }
   .portal-alumno .portal-icon { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
   .portal-docente .portal-icon { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
   .portal-admin .portal-icon { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); }
+  .portal-marketing .portal-icon { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
   .portal-card h3 { color: var(--azul); margin-bottom: 10px; font-size: 1.15rem; font-weight: 800; }
   .portal-docente h3 { color: var(--morado); }
   .portal-admin h3 { color: var(--slate); }
+  .portal-marketing h3 { color: var(--rosa); }
   .portal-card p { color: var(--gris); font-size: .88rem; margin-bottom: 22px; min-height: 60px; }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .75); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
@@ -146,16 +150,19 @@
   .modal-icon.alumno { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
   .modal-icon.docente { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
   .modal-icon.admin { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); }
+  .modal-icon.marketing { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
   .modal-box h3 { color: var(--azul); font-size: 1.3rem; margin-bottom: 6px; font-weight: 800; }
   .modal-box.docente h3 { color: var(--morado); }
   .modal-box.admin h3 { color: var(--slate); }
+  .modal-box.marketing h3 { color: var(--rosa); }
   .modal-box .modal-sub { color: var(--gris); font-size: .9rem; margin-bottom: 22px; display: block; }
   .modal-box form { display: flex; flex-direction: column; gap: 10px; }
   .modal-box input { padding: 13px 16px; border: 2px solid var(--borde); border-radius: 12px; font-family: inherit; font-size: .98rem; text-align: center; font-weight: 700; letter-spacing: .1em; transition: border-color .2s, box-shadow .2s; }
-  .modal-box input[name="username"], .modal-box input[name="password"] { text-align: left; letter-spacing: normal; }
+  .modal-box input[type="text"], .modal-box input[type="password"] { text-align: left; letter-spacing: normal; }
   .modal-box input:focus { outline: none; border-color: var(--azul-medio); box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
   .modal-box.docente input:focus { border-color: var(--morado); box-shadow: 0 0 0 4px rgba(124,58,237,.12); }
   .modal-box.admin input:focus { border-color: var(--slate); box-shadow: 0 0 0 4px rgba(30,41,59,.12); }
+  .modal-box.marketing input:focus { border-color: var(--rosa); box-shadow: 0 0 0 4px rgba(236,72,153,.12); }
   .modal-error { display: none; color: var(--rojo); font-weight: 600; font-size: .87rem; background: #fef2f2; border: 1px solid #fecaca; padding: 10px 14px; border-radius: 10px; margin-top: 12px; }
   .modal-error.visible { display: block; }
 
@@ -165,8 +172,10 @@
   .dash-top.alumno { background: linear-gradient(120deg, var(--azul) 0%, var(--azul-medio) 100%); }
   .dash-top.docente { background: linear-gradient(120deg, var(--morado) 0%, #a78bfa 100%); }
   .dash-top.admin { background: linear-gradient(120deg, var(--slate) 0%, var(--slate-medio) 100%); }
+  .dash-top.marketing { background: linear-gradient(120deg, var(--rosa) 0%, #f472b6 100%); }
   .dash-user { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  .dash-avatar { width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; border: 2px solid rgba(255,255,255,.4); }
+  .dash-avatar { width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; border: 2px solid rgba(255,255,255,.4); overflow: hidden; }
+  .dash-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .dash-user h3 { font-size: 1.15rem; font-weight: 800; line-height: 1.2; }
   .dash-user p { font-size: .82rem; color: rgba(255,255,255,.85); }
   .dash-group-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.22); padding: 4px 12px; border-radius: 50px; font-size: .76rem; font-weight: 700; margin: 4px 4px 0 0; border: 1px solid rgba(255,255,255,.35); }
@@ -182,6 +191,8 @@
   .dash-tab.activo { color: var(--azul); border-bottom-color: var(--azul); }
   .dash-admin-tabs .dash-tab:hover { color: var(--slate); }
   .dash-admin-tabs .dash-tab.activo { color: var(--slate); border-bottom-color: var(--slate); }
+  .dash-mkt-tabs .dash-tab:hover, .dash-mkt-tabs .dash-tab.activo { color: var(--rosa); }
+  .dash-mkt-tabs .dash-tab.activo { border-bottom-color: var(--rosa); }
   .dash-contenido { padding: 30px 32px 38px; background: #fff; }
   .panel { display: none; animation: fadeIn .3s ease; }
   .panel.activo { display: block; }
@@ -282,7 +293,6 @@
   .test-resultado .nota-detalle { color: var(--gris); font-size: .95rem; margin-bottom: 8px; }
   .test-resultado .nota-msg { font-size: .98rem; color: #374151; margin-top: 10px; }
 
-  /* ESTADOS DE ASISTENCIA ACTUALIZADOS */
   .estado { display: inline-block; padding: 4px 12px; border-radius: 50px; font-size: .78rem; font-weight: 700; text-transform: capitalize; }
   .estado-present { background: #dcfce7; color: #15803d; }
   .estado-late { background: #fef3c7; color: #b45309; }
@@ -342,6 +352,7 @@
   .asg-grading input[type="number"]:focus { outline: none; border-color: var(--azul-medio); }
 
   .aviso-tiempo-real { display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; color: #065f46; font-size: .8rem; font-weight: 700; padding: 6px 14px; border-radius: 50px; margin-bottom: 18px; }
+  .aviso-mkt { background: #fdf2f8; color: #9d174d; }
 
   .group-nivel { display: inline-block; padding: 4px 12px; border-radius: 50px; font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
   .group-nivel.basico { background: #dcfce7; color: #15803d; }
@@ -394,11 +405,68 @@
   footer ul a:hover { color: var(--acento); }
   .footer-bottom { border-top: 1px solid #1e293b; padding-top: 24px; text-align: center; font-size: .85rem; color: #64748b; }
 
-  @media (max-width: 900px) { .portal-cards { grid-template-columns: 1fr; max-width: 420px; } .portal-card p { min-height: auto; } }
+  .firma-preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #fff; margin-top: 16px; min-height: 200px; }
+  .firma-preview-box img { max-width: 300px; max-height: 150px; object-fit: contain; }
+  .letterhead-preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #fff; margin-top: 16px; min-height: 200px; }
+  .letterhead-preview-box img { max-width: 100%; max-height: 150px; object-fit: contain; }
+  .founder-preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #fff; margin-top: 16px; min-height: 200px; }
+  .founder-preview-box img { max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 50%; border: 4px solid var(--acento); }
+  .teacher-photo-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #fff; margin-top: 16px; min-height: 200px; }
+  .teacher-photo-preview img { max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 8px; border: 4px solid var(--morado); }
+
+  /* ============ REPORT CARD Y MEMBRETE ============ */
+  .rc-preview-container { background: #fff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-top: 20px; display: none; }
+  .rc-preview-container.visible { display: block; }
+  
+  /* MEJORA: Membrete a todo el ancho (cubre márgenes) y centrado */
+  .rc-letterhead { 
+    text-align: center; 
+    margin: 0 0 20px 0; 
+    padding: 0; 
+    width: 100%; 
+    display: block; 
+  }
+  .rc-letterhead img { 
+    width: 100%; 
+    max-height: 120px; 
+    object-fit: contain; 
+    display: block; 
+    margin: 0 auto; 
+    background: #fff; 
+  }
+
+  .rc-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+  .rc-header h2 { color: var(--azul); font-size: 1.5rem; margin-bottom: 5px; }
+  .rc-header p { color: var(--gris); font-size: 0.9rem; }
+  .rc-student-info { margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid var(--acento); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rc-student-info p { margin-bottom: 0; font-size: 0.95rem; }
+  .rc-chart-box { margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05), 0 10px 20px rgba(0,0,0,0.1); }
+  .rc-comment-box { background: #f0fdf4; padding: 20px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 30px; }
+  .rc-comment-box h4 { color: #166534; margin-bottom: 10px; font-size: 1rem; }
+  .rc-comment-box p { font-style: italic; color: #374151; }
+  .rc-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+  .rc-signature { text-align: center; }
+  .rc-signature img { max-height: 80px; object-fit: contain; display: block; margin: 0 auto 10px; }
+  .rc-signature p { font-size: 0.85rem; color: var(--gris); border-top: 1px solid #9ca3af; padding-top: 5px; width: 200px; }
+
+  @media print {
+    body * { visibility: hidden; }
+    .rc-preview-container, .rc-preview-container * { visibility: visible; }
+    .rc-preview-container { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; padding: 0; margin: 0; }
+    .rc-actions-print { display: none !important; }
+    .dash-tabs, .dash-top, .aviso-tiempo-real { display: none !important; }
+    .rc-chart-box { box-shadow: none; border: 1px solid #ccc; }
+    /* MEJORA: Imprimir membrete a todo el ancho */
+    .rc-letterhead { margin: 0 0 20px 0; padding: 0; width: 100%; }
+    .rc-letterhead img { width: 100%; max-height: 120px; object-fit: contain; display: block; margin: 0 auto; }
+  }
+
+  @media (max-width: 900px) { .portal-cards { grid-template-columns: 1fr 1fr; max-width: 640px; } .portal-card p { min-height: auto; } }
   @media (max-width: 860px) {
     .footer-grid { grid-template-columns: 1fr 1fr; }
     .footer-grid > div:first-child { grid-column: 1 / -1; }
     .calif-summary { grid-template-columns: 1fr; }
+    .rc-student-info { grid-template-columns: 1fr; }
   }
   @media (max-width: 768px) {
     .menu-btn { display: block; }
@@ -422,6 +490,8 @@
     .opciones { padding-left: 0; }
     .test-item { flex-direction: column; align-items: flex-start; }
     .modal-box { padding: 36px 22px; }
+    .portal-cards { grid-template-columns: 1fr; max-width: 420px; }
+    .gallery-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -436,6 +506,7 @@
       </a>
       <ul class="nav-links" id="navLinks">
         <li><a href="#fundador">Fundador</a></li>
+        <li><a href="#galeria">Galería</a></li>
         <li><a href="#cursos">Programas</a></li>
         <li><a href="#horarios">Horarios</a></li>
         <li><a href="#portal" class="destacado">Portales</a></li>
@@ -473,24 +544,33 @@
       <p>Conoce al visionario detrás de Jotavalenzuela</p>
     </div>
     <div class="fundador-card">
-      <div class="fundador-foto">👨‍🏫</div>
+      <div class="fundador-foto" id="fundadorFoto">👨‍🏫</div>
       <div class="fundador-info">
         <h3>Juan Valenzuela Mejía</h3>
         <h4>Director, Investigador y Docente</h4>
-        <p>Profesor de inglés con <strong>16 años de experiencia</strong> en educación básica regular, secundaria y superior. Certificado ESL y TESOL en metodología para niños y adultos.</p>
-        <p>Es investigador y especialista en <strong>análisis de voz inglesa por espectrograma</strong>, y autor del coursebook de fonética IPA y articulación <em>MyFirstPhonics Kids</em>. También incursionó en la ciencia y filosofía con su libro <em>El Viaje Cósmico de la Gracia de Dios</em> (2025).</p>
+        <p>Profesor de inglés con más de 16 años de experiencia en educación básica regular, secundaria y superior. Certificado ESL y TESOL en metodología para niños y adultos.</p>
+        <p>Es investigador y especialista en análisis de voz inglesa por espectrograma, y autor del coursebook de fonética IPA y articulación <em>MyFirstPhonics Kids</em>. También incursionó en la ciencia y filosofía con su libro <em>El Viaje Cósmico de la Gracia de Dios</em> (2025).</p>
         <p>Ha dirigido campañas de promoción de cursos de inglés en Lima y provincias (Chincha Alta, El Agustino), implementado programas fonológicos y logopédicos en cursos ESL, y capacitado a profesores de América y Europa en fonética articulatoria.</p>
         <ul>
-          <li>Director en Escuela de Inglés y Fonética Clínica EIRL (2020–2025)</li>
+          <li>Director en Escuela de Inglés y Fonética Clínica EIRL (2020 – a la fecha)</li>
           <li>Especialista en Terapia del Lenguaje (AECCYS, 2018)</li>
-          
         </ul>
       </div>
     </div>
   </div>
 </section>
 
-<section id="cursos" class="seccion">
+<section id="galeria" class="seccion">
+  <div class="contenedor">
+    <div class="seccion-cabecera">
+      <h2>Nuestra Escuela en Imágenes</h2>
+      <p>Conoce nuestros espacios, actividades y momentos destacados</p>
+    </div>
+    <div id="publicGallery" class="gallery-grid"></div>
+  </div>
+</section>
+
+<section id="cursos" class="seccion seccion-blanca">
   <div class="contenedor">
     <div class="seccion-cabecera"><h2>Nuestros Programas</h2><p>Especializaciones diseñadas para potenciar tu desarrollo profesional y académico.</p></div>
     <div class="grid-cursos">
@@ -498,87 +578,41 @@
         <span class="nivel-badge">Kids & Teens</span>
         <h3>Inglés Teens</h3>
         <p>Programa dinámico diseñado para adolescentes, enfocado en fluidez, vocabulario y confianza.</p>
-        <ul>
-          <li>Metodología activa y comunicativa</li>
-          <li>Uso de plataformas digitales</li>
-          <li>Preparación para exámenes escolares</li>
-        </ul>
+        <ul><li>Metodología activa y comunicativa</li><li>Uso de plataformas digitales</li><li>Preparación para exámenes escolares</li></ul>
       </article>
       <article class="tarjeta-curso clinica">
         <span class="nivel-badge">Especialización</span>
         <h3>Fonética y Espectrometría</h3>
         <p>Análisis acústico del habla mediante espectrogramas para una pronunciación precisa.</p>
-        <ul>
-          <li>Transcripción fonética IPA</li>
-          <li>Análisis de espectrogramas</li>
-          <li>Corrección de voz y articulación</li>
-        </ul>
+        <ul><li>Transcripción fonética IPA</li><li>Análisis de espectrogramas</li><li>Corrección de voz y articulación</li></ul>
       </article>
       <article class="tarjeta-curso">
         <span class="nivel-badge">Certificación</span>
         <h3>FCE y CAE</h3>
         <p>Preparación intensiva para las certificaciones internacionales de Cambridge.</p>
-        <ul>
-          <li>Práctica de Reading, Writing, Listening y Speaking</li>
-          <li>Simulacros de examen</li>
-          <li>Estrategias de tiempo y puntaje</li>
-        </ul>
+        <ul><li>Práctica de Reading, Writing, Listening y Speaking</li><li>Simulacros de examen</li><li>Estrategias de tiempo y puntaje</li></ul>
       </article>
       <article class="tarjeta-curso clinica">
         <span class="nivel-badge">Clínica</span>
         <h3>Terapia del Lenguaje y Habla</h3>
         <p>Formación en evaluación e intervención de dificultades fonológicas y del habla.</p>
-        <ul>
-          <li>Evaluación de trastornos del habla</li>
-          <li>Planes de intervención logopédica</li>
-          <li>Casos clínicos y seguimiento</li>
-        </ul>
+        <ul><li>Evaluación de trastornos del habla</li><li>Planes de intervención logopédica</li><li>Casos clínicos y seguimiento</li></ul>
       </article>
     </div>
   </div>
 </section>
 
-<section id="horarios" class="seccion seccion-blanca">
+<section id="horarios" class="seccion">
   <div class="contenedor">
-    <div class="seccion-cabecera"><h2>Horarios disponibles</h2><p>Elige el turno que mejor se adapte a tu rutina. Clases 100% Online. Cupos limitados a 12 estudiantes por grupo.</p></div>
+    <div class="seccion-cabecera"><h2>Horarios disponibles</h2><p>Elige el turno que mejor se adapte a tu rutina. Cupos limitados por grupo.</p></div>
     <div class="tabla-wrap">
       <table>
         <thead>
           <tr>
-            <th>Programa</th>
-            <th>Días</th>
-            <th>Horario</th>
-            <th>Modalidad</th>
-            <th>Matriculados</th>
-            <th>Acción</th>
+            <th>Programa</th><th>Días</th><th>Horario</th><th>Modalidad</th><th>Matriculados</th><th>Acción</th>
           </tr>
         </thead>
-        <tbody id="tablaHorarios">
-          <tr data-sch="sch_basic">
-            <td><strong>Basic</strong></td>
-            <td>Jueves</td>
-            <td>19:00 a 21:00 pm.</td>
-            <td>Online</td>
-            <td><strong class="count-display">0</strong> / 12</td>
-            <td><button class="btn btn-primario btn-mini btn-inscribirse" data-sch="sch_basic" data-prog="Basic">Inscribirse</button></td>
-          </tr>
-          <tr data-sch="sch_int">
-            <td><strong>Intermedio</strong></td>
-            <td>Martes y jueves</td>
-            <td>21:00 a 23:00 pm.</td>
-            <td>Online</td>
-            <td><strong class="count-display">0</strong> / 12</td>
-            <td><button class="btn btn-primario btn-mini btn-inscribirse" data-sch="sch_int" data-prog="Intermedio">Inscribirse</button></td>
-          </tr>
-          <tr data-sch="sch_teens">
-            <td><strong>Teens</strong></td>
-            <td>Jueves</td>
-            <td>16:00 a 18:20 pm.</td>
-            <td>Online</td>
-            <td><strong class="count-display">0</strong> / 12</td>
-            <td><button class="btn btn-primario btn-mini btn-inscribirse" data-sch="sch_teens" data-prog="Teens">Inscribirse</button></td>
-          </tr>
-        </tbody>
+        <tbody id="tablaHorarios"></tbody>
       </table>
     </div>
   </div>
@@ -588,27 +622,33 @@
   <div class="contenedor">
     <div class="seccion-cabecera">
       <h2>Bienvenido a Portales</h2>
-      <p>Alumno, Docente y Administrativo. Los exámenes se crean internamente con calificación automática y registro inmediato.</p>
+      <p>Alumno, Docente, Administrativo y Marketing. Todo conectado en tiempo real.</p>
     </div>
 
     <div class="portal-cards" id="portalCards">
       <div class="portal-card portal-alumno">
         <div class="portal-icon">🎓</div>
         <h3>Portal del Alumno</h3>
-        <p>Calificaciones por criterio, exámenes online con nota automática y asistencia.</p>
+        <p>Calificaciones, exámenes online, asistencia y Report Cards.</p>
         <button class="btn btn-azul" data-open-modal="alumno">Ingresar</button>
       </div>
       <div class="portal-card portal-docente">
         <div class="portal-icon">👨‍🏫</div>
         <h3>Portal del Docente</h3>
-        <p>Gestiona tus grupos, asignaciones, calificaciones y asistencia.</p>
+        <p>Gestiona grupos, asignaciones, calificaciones, firma, foto y Report Cards.</p>
         <button class="btn btn-morado" data-open-modal="docente">Ingresar</button>
       </div>
       <div class="portal-card portal-admin">
         <div class="portal-icon">⚙️</div>
         <h3>Portal Administrativo</h3>
-        <p>Crea cuentas, grupos, revisa matrículas y crea exámenes.</p>
+        <p>Cuentas, grupos, cursos, matrículas, exámenes, membrete y fundador.</p>
         <button class="btn btn-slate" data-open-modal="admin">Ingresar</button>
+      </div>
+      <div class="portal-card portal-marketing">
+        <div class="portal-icon">📣</div>
+        <h3>Portal de Marketing</h3>
+        <p>Sube fotos de la escuela que aparecerán en la página principal.</p>
+        <button class="btn btn-rosa" data-open-modal="marketing">Ingresar</button>
       </div>
     </div>
 
@@ -630,6 +670,7 @@
         <button class="dash-tab activo" data-atab="calificaciones">📊 Mis calificaciones</button>
         <button class="dash-tab" data-atab="examenes">📝 Exámenes online</button>
         <button class="dash-tab" data-atab="asistencia">📅 Mi asistencia</button>
+        <button class="dash-tab" data-atab="reportcard">📄 Recojo de Report Card</button>
       </div>
       <div class="dash-contenido">
         <div class="resumen-grid">
@@ -638,7 +679,6 @@
           <div class="resumen-card morado"><div class="et">Exámenes completados</div><div class="val" id="resumenExamsA">—</div></div>
           <div class="resumen-card amarillo"><div class="et">Actualización</div><div class="val" id="resumenActA" style="font-size:1.05rem;">--:--:--</div></div>
         </div>
-
         <div class="panel activo" id="panel-calificaciones">
           <div class="calif-summary">
             <div class="calif-summary-item"><span class="calif-label">Promedio general</span><span class="calif-promedio" id="califPromedioA">—</span></div>
@@ -649,16 +689,11 @@
           <h4 style="color:var(--azul);font-size:1rem;font-weight:800;margin-bottom:16px;">Detalle de evaluaciones por criterio</h4>
           <div id="detalleCriteriosA"></div>
         </div>
-
         <div class="panel" id="panel-examenes">
-          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">ℹ️ Los exámenes son creados por el área administrativa. Al enviar tus respuestas, la nota se calcula automáticamente y se registra en tu evaluación.</p>
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">ℹ️ Los exámenes son creados por el área administrativa.</p>
           <div id="studentExamsLista"></div>
-
           <div class="test-runner" id="studentExamRunner">
-            <div class="runner-cabecera">
-              <h3 id="runnerTituloA">Examen</h3>
-              <div class="runner-progreso" id="runnerProgresoA"></div>
-            </div>
+            <div class="runner-cabecera"><h3 id="runnerTituloA">Examen</h3><div class="runner-progreso" id="runnerProgresoA"></div></div>
             <form id="runnerFormA">
               <div id="runnerPreguntasA"></div>
               <div class="runner-acciones">
@@ -674,7 +709,6 @@
             </div>
           </div>
         </div>
-
         <div class="panel" id="panel-asistencia">
           <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
             <table style="min-width:520px;">
@@ -683,6 +717,10 @@
             </table>
           </div>
         </div>
+        <div class="panel" id="panel-reportcard">
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">ℹ️ Aquí puedes ver y descargar los Report Cards generados por tu docente.</p>
+          <div id="studentReportCardsList"></div>
+        </div>
       </div>
     </div>
 
@@ -690,31 +728,26 @@
     <div class="dashboard" id="dashboardDocente">
       <div class="dash-top docente">
         <div class="dash-user">
-          <div class="dash-avatar">PR</div>
-          <div>
-            <h3 id="dashNombreD">Portal Docente</h3>
-            <p id="dashAreaD">Gestión académica</p>
-          </div>
+          <div class="dash-avatar" id="dashAvatarD">PR</div>
+          <div><h3 id="dashNombreD">Portal Docente</h3><p id="dashAreaD">Gestión académica</p></div>
         </div>
         <div class="dash-live"><span class="punto-live"></span><span>En vivo · <span id="relojD">--:--:--</span></span></div>
         <button class="dash-salir" id="btnSalirD">Cerrar sesión</button>
       </div>
       <div class="dash-tabs">
-        <button class="dash-tab activo" data-dtab="alumnos">👥 Mis grupos y alumnos</button>
+        <button class="dash-tab activo" data-dtab="alumnos">👥 Mis grupos</button>
         <button class="dash-tab" data-dtab="evaluaciones">📊 Evaluaciones</button>
         <button class="dash-tab" data-dtab="asistencia">📅 Asistencia</button>
         <button class="dash-tab" data-dtab="examenes">📝 Exámenes</button>
+        <button class="dash-tab" data-dtab="firma">✍️ Mi Firma</button>
+        <button class="dash-tab" data-dtab="foto">📸 Mi Foto</button>
+        <button class="dash-tab" data-dtab="reportcard">📄 Generar Report Card</button>
       </div>
       <div class="dash-contenido">
-        <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo ves los grupos y alumnos que el administrador te asignó. Los cambios se sincronizan en tiempo real.</div>
-
+        <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo ves los grupos y alumnos que el administrador te asignó.</div>
         <div class="panel activo" id="dpanel-alumnos">
-          <div class="teacher-groups-section">
-            <h4>📚 Mis grupos asignados</h4>
-            <div id="dMisGrupos"></div>
-          </div>
+          <div class="teacher-groups-section"><h4>📚 Mis grupos asignados</h4><div id="dMisGrupos"></div></div>
           <h4 style="color:var(--azul);margin:14px 0;font-size:1rem;font-weight:800;">👥 Mis alumnos</h4>
-          <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">ℹ️ Solo aparecen los alumnos que pertenecen a tus grupos.</p>
           <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
             <table style="min-width:760px;">
               <thead><tr><th>Usuario</th><th>Nombre</th><th>Grupo</th><th>Programa</th><th>Promedio</th><th>Estado</th><th>Asistencia</th></tr></thead>
@@ -722,7 +755,6 @@
             </table>
           </div>
         </div>
-
         <div class="panel" id="dpanel-evaluaciones">
           <div class="tform">
             <h4>➕ Crear nueva asignación por criterio</h4>
@@ -738,39 +770,102 @@
                   <option value="final_exam">Final Exam</option>
                 </select>
               </div>
-              <div class="campo"><label>Nombre de la asignación <span class="req">*</span></label><input type="text" id="dAsgNombre" placeholder="Ej: Oral Presentation Unit 3" required></div>
-              <div class="campo"><label>Fecha de inicio <span class="req">*</span></label><input type="date" id="dAsgInicio" required></div>
-              <div class="campo"><label>Fecha de fin / entrega <span class="req">*</span></label><input type="date" id="dAsgFin" required></div>
+              <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="dAsgNombre" placeholder="Ej: Oral Presentation" required></div>
+              <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="dAsgInicio" required></div>
+              <div class="campo"><label>Fecha fin <span class="req">*</span></label><input type="date" id="dAsgFin" required></div>
               <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-verde btn-mini">Crear asignación</button></div></div>
             </form>
           </div>
           <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">Asignaciones creadas</h4>
           <div id="dAsignacionesLista"></div>
         </div>
-
-        <!-- ACTUALIZADO: PANEL ASISTENCIA DOCENTE -->
         <div class="panel" id="dpanel-asistencia">
           <div class="tform">
             <h4>📅 Pasar asistencia</h4>
             <div class="tform-grid">
-              <div class="campo">
-                <label>Grupo <span class="req">*</span></label>
-                <select id="dAsisGrupo" required>
-                  <option value="">Selecciona un grupo...</option>
-                </select>
-              </div>
+              <div class="campo"><label>Grupo <span class="req">*</span></label><select id="dAsisGrupo" required><option value="">Selecciona un grupo...</option></select></div>
               <div class="campo"><label>Fecha</label><input type="date" id="dAsisFecha"></div>
             </div>
           </div>
           <div id="dAsisLista" style="border:1px solid var(--borde);border-radius:12px;background:#fff;margin-bottom:16px;"></div>
           <button class="btn btn-verde btn-mini" id="dBtnGuardarAsistencia" disabled>Guardar asistencia</button>
-          <div class="mensaje-exito" id="dAsisMsg">✅ Asistencia guardada y sincronizada</div>
+          <div class="mensaje-exito" id="dAsisMsg">✅ Asistencia guardada</div>
         </div>
-
         <div class="panel" id="dpanel-examenes">
-          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📝 Exámenes online publicados por administración</h4>
-          <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">ℹ️ Solo lectura. Los exámenes se crean desde el portal administrativo. Los resultados de tus alumnos se muestran aquí.</p>
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
           <div id="dExamenesLista"></div>
+        </div>
+        <div class="panel" id="dpanel-firma">
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">✍️ Mi Firma Digital</h4>
+          <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Sube una imagen de tu firma. Se incluirá en los Report Cards.</p>
+          <div class="tform">
+            <div class="campo"><label>Seleccionar imagen</label><input type="file" id="teacherSignatureFile" accept="image/*"></div>
+            <div class="tform-acciones"><button class="btn btn-verde btn-mini" id="btnSaveSignature">Guardar Firma</button></div>
+            <div class="mensaje-exito" id="signatureMsg">✅ Firma guardada.</div>
+          </div>
+          <div class="firma-preview-box" id="signaturePreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No has subido una firma aún.</p></div>
+        </div>
+        <div class="panel" id="dpanel-foto">
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📸 Mi Foto Formal</h4>
+          <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Sube una foto formal tamaño carné. Será visible en tu perfil.</p>
+          <div class="tform">
+            <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="teacherPhotoFile" accept="image/*"></div>
+            <div class="tform-acciones"><button class="btn btn-verde btn-mini" id="btnSavePhoto">Guardar Foto</button></div>
+            <div class="mensaje-exito" id="photoMsg">✅ Foto guardada.</div>
+          </div>
+          <div class="teacher-photo-preview" id="teacherPhotoPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No has subido una foto aún.</p></div>
+        </div>
+        <div class="panel" id="dpanel-reportcard">
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📄 Generar Report Card</h4>
+          <div class="tform">
+            <h4>Paso 1: Seleccionar Alumno</h4>
+            <div class="tform-grid">
+              <div class="campo"><label>Grupo</label><select id="rcGroupSelect"><option value="">Selecciona un grupo...</option></select></div>
+              <div class="campo"><label>Alumno</label><select id="rcStudentSelect"><option value="">Selecciona un alumno...</option></select></div>
+            </div>
+          </div>
+          <div class="tform">
+            <h4>Paso 2: Teacher's Comment</h4>
+            <div class="campo"><textarea id="rcComment" placeholder="Comentario sobre la participación del alumno..." style="min-height: 120px;"></textarea></div>
+            <div class="tform-acciones"><button class="btn btn-azul btn-mini" id="btnGenerateRC">Generar RC</button></div>
+          </div>
+          <div class="rc-preview-container" id="rcPreviewContainer">
+            <div id="rcPrintableArea">
+              <div class="rc-letterhead" id="rcLetterheadContainer"><img id="rcLetterheadImg" style="display:none;"></div>
+              <div class="rc-header">
+                <div>
+                  <h2>Report Card</h2>
+                  <p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
+                  <p>Por el Prof. Juan Valenzuela M.</p>
+                </div>
+                <div style="text-align:right;"><p><strong>Fecha:</strong></p><p id="rcDate">--/--/----</p></div>
+              </div>
+              <div class="rc-student-info">
+                <p><strong>Alumno:</strong> <span id="rcStudentName">---</span></p>
+                <p><strong>Usuario:</strong> <span id="rcStudentUser">---</span></p>
+                <p><strong>Grupo:</strong> <span id="rcStudentGroup">---</span></p>
+                <p><strong>Programa:</strong> <span id="rcStudentProgram">---</span></p>
+                <p><strong>Docente:</strong> <span id="rcTeacherName">---</span></p>
+              </div>
+              <div class="rc-chart-box"><canvas id="rcChart" width="400" height="200"></canvas></div>
+              <div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:20px;">
+                <table style="min-width:100%;">
+                  <thead><tr><th>Criterio</th><th style="text-align:right;">Nota</th></tr></thead>
+                  <tbody id="rcGradesBody"></tbody>
+                  <tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;" id="rcAverage">—</td></tr></tfoot>
+                </table>
+              </div>
+              <div class="rc-comment-box"><h4>Teacher's Comment</h4><p id="rcCommentDisplay">---</p></div>
+              <div class="rc-footer">
+                <div></div>
+                <div class="rc-signature"><img id="rcSignatureImg" style="display:none;"><p id="rcTeacherSignatureName">Firma del Docente</p></div>
+              </div>
+            </div>
+            <div class="tform-acciones rc-actions-print" style="margin-top: 30px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+              <button class="btn btn-verde" id="btnConfirmSendRC">Confirmar envío al Alumno</button>
+              <button class="btn btn-slate" id="btnDownloadRC">Descargar RC</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -780,10 +875,7 @@
       <div class="dash-top admin">
         <div class="dash-user">
           <div class="dash-avatar">⚙️</div>
-          <div>
-            <h3>Portal Administrativo</h3>
-            <p>Gestión de cuentas, grupos y exámenes · Jotavalenzuela</p>
-          </div>
+          <div><h3>Portal Administrativo</h3><p>Gestión general · Jotavalenzuela</p></div>
         </div>
         <div class="dash-live"><span class="punto-live"></span><span>En vivo · <span id="relojAdm">--:--:--</span></span></div>
         <button class="dash-salir" id="btnSalirAdm">Cerrar sesión</button>
@@ -793,13 +885,17 @@
         <button class="dash-tab" data-admtab="docentes">👨‍🏫 Docentes</button>
         <button class="dash-tab" data-admtab="grupos">📚 Grupos</button>
         <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
+        <button class="dash-tab" data-admtab="programacion">🗓️ Programación</button>
         <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
-        <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button> <!-- NUEVO TAB -->
+        <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
+        <button class="dash-tab" data-admtab="membrete">🖼️ Membrete</button>
+        <button class="dash-tab" data-admtab="fundador">👤 Foto Fundador</button>
         <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
       </div>
       <div class="dash-contenido">
-        <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo el administrador crea cuentas, grupos y exámenes. Los cambios se sincronizan en tiempo real.</div>
+        <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo el administrador crea cuentas, grupos, cursos y exámenes.</div>
 
+        <!-- ADMIN ALUMNOS -->
         <div class="panel activo" id="adm-panel-alumnos">
           <div class="tform admin-form">
             <h4>➕ Crear nueva cuenta de alumno</h4>
@@ -808,152 +904,219 @@
               <div class="campo"><label>Email</label><input type="email" id="admAlumnoEmail" placeholder="maria@escuela.com"></div>
               <div class="campo"><label>Programa</label><input type="text" id="admAlumnoPrograma" placeholder="Ej: Inglés Basic"></div>
               <div class="campo"><label>Grupo (opcional)</label><select id="admAlumnoGrupo"><option value="">Sin grupo</option></select></div>
+              <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
+              <div class="campo">
+                <label>Mes de ingreso <span class="req">*</span></label>
+                <select id="admAlumnoMonth" required>
+                  <option value="">Selecciona mes</option>
+                  <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                  <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                  <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+                  <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+              </div>
+              <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoDay" placeholder="Ej: 15" min="1" max="31" required></div>
+              <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admAlumnoDni" placeholder="Ej: 45513532" maxlength="8" required></div>
+              
+              <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
+
               <div class="campo">
                 <label>Usuario <span class="req">*</span></label>
-                <div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Ej: MARIA01" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div>
+                <div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div>
               </div>
               <div class="campo">
                 <label>Contraseña <span class="req">*</span></label>
-                <div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Contraseña" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div>
+                <div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div>
               </div>
-              <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta de alumno</button></div></div>
+              <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
             </form>
             <div class="cred-box" id="credAlumno">
-              <strong>✅ Cuenta creada. Comparte estas credenciales:</strong>
-              <div class="cred-row"><span>Usuario:</span><code id="credUserAlumno">—</code><button data-copy="credUserAlumno">📋 Copiar</button></div>
-              <div class="cred-row"><span>Contraseña:</span><code id="credPassAlumno">—</code><button data-copy="credPassAlumno">📋 Copiar</button></div>
+              <strong>✅ Cuenta creada:</strong>
+              <div class="cred-row"><span>Usuario:</span><code id="credUserAlumno">—</code><button data-copy="credUserAlumno">📋</button></div>
+              <div class="cred-row"><span>Contraseña:</span><code id="credPassAlumno">—</code><button data-copy="credPassAlumno">📋</button></div>
             </div>
           </div>
-
           <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Alumnos registrados</h4>
           <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-            <table class="admin-table" style="min-width:920px;">
-              <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Grupo</th><th>Programa</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+            <table class="admin-table" style="min-width:1200px;">
+              <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Grupo</th><th>Programa</th><th>Año</th><th>Mes</th><th>Día</th><th>DNI</th><th>Evidencia</th><th>Contraseña</th><th>Acciones</th></tr></thead>
               <tbody id="admAlumnosBody"></tbody>
             </table>
           </div>
         </div>
 
+        <!-- ADMIN DOCENTES -->
         <div class="panel" id="adm-panel-docentes">
           <div class="tform admin-form">
             <h4>➕ Crear nueva cuenta de docente</h4>
             <form id="admNewDocenteForm" class="tform-grid">
               <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admDocenteNombre" placeholder="Ej: Laura Chen" required></div>
               <div class="campo"><label>Email</label><input type="email" id="admDocenteEmail" placeholder="laura@escuela.com"></div>
-              <div class="campo completo"><label>Área / especialidad</label><input type="text" id="admDocenteArea" placeholder="Ej: Fonética clínica"></div>
+              <div class="campo completo"><label>Área</label><input type="text" id="admDocenteArea" placeholder="Ej: Fonética clínica"></div>
+              <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admDocenteYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
+              <div class="campo">
+                <label>Mes de ingreso <span class="req">*</span></label>
+                <select id="admDocenteMonth" required>
+                  <option value="">Selecciona mes</option>
+                  <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                  <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                  <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+                  <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+              </div>
+              <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admDocenteDay" placeholder="Ej: 15" min="1" max="31" required></div>
+              <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admDocenteDni" placeholder="Ej: 45513532" maxlength="8" required></div>
+              
+              <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admDocenteDniFile" accept="image/*" required></div>
+
               <div class="campo">
                 <label>Usuario <span class="req">*</span></label>
-                <div class="input-with-btn"><input type="text" id="admDocenteUser" placeholder="Ej: PROF01" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="docente">🎲</button></div>
+                <div class="input-with-btn"><input type="text" id="admDocenteUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="docente">🎲</button></div>
               </div>
               <div class="campo">
                 <label>Contraseña <span class="req">*</span></label>
-                <div class="input-with-btn"><input type="text" id="admDocentePass" placeholder="Contraseña" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="docente">🎲</button></div>
+                <div class="input-with-btn"><input type="text" id="admDocentePass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="docente">🎲</button></div>
               </div>
-              <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta de docente</button></div></div>
+              <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
             </form>
             <div class="cred-box" id="credDocente">
-              <strong>✅ Cuenta creada. Comparte estas credenciales:</strong>
-              <div class="cred-row"><span>Usuario:</span><code id="credUserDocente">—</code><button data-copy="credUserDocente">📋 Copiar</button></div>
-              <div class="cred-row"><span>Contraseña:</span><code id="credPassDocente">—</code><button data-copy="credPassDocente">📋 Copiar</button></div>
+              <strong>✅ Cuenta creada:</strong>
+              <div class="cred-row"><span>Usuario:</span><code id="credUserDocente">—</code><button data-copy="credUserDocente">📋</button></div>
+              <div class="cred-row"><span>Contraseña:</span><code id="credPassDocente">—</code><button data-copy="credPassDocente">📋</button></div>
             </div>
           </div>
-
           <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Docentes registrados</h4>
           <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-            <table class="admin-table" style="min-width:820px;">
-              <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Área</th><th>Grupos asignados</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+            <table class="admin-table" style="min-width:1100px;">
+              <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Área</th><th>Grupos</th><th>Año</th><th>Mes</th><th>Día</th><th>DNI</th><th>Evidencia</th><th>Contraseña</th><th>Acciones</th></tr></thead>
               <tbody id="admDocentesBody"></tbody>
             </table>
           </div>
         </div>
 
+        <!-- ADMIN GRUPOS -->
         <div class="panel" id="adm-panel-grupos">
           <div class="tform admin-form">
             <h4>➕ Crear nuevo grupo</h4>
             <form id="admNewGroupForm" class="tform-grid">
               <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A" required></div>
-              <div class="campo">
-                <label>Nivel <span class="req">*</span></label>
-                <select id="admGroupNivel" required>
-                  <option value="">Selecciona nivel</option>
-                  <option value="basico">Básico</option>
-                  <option value="intermedio">Intermedio</option>
-                  <option value="teens">Teens</option>
-                </select>
+              <div class="campo"><label>Nivel <span class="req">*</span></label>
+                <select id="admGroupNivel" required><option value="">Selecciona nivel</option><option value="basico">Básico</option><option value="intermedio">Intermedio</option><option value="teens">Teens</option></select>
               </div>
-              <div class="campo">
-                <label>Docente asignado <span class="req">*</span></label>
-                <select id="admGroupTeacher" required><option value="">Selecciona docente</option></select>
-              </div>
+              <div class="campo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
               <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
             </form>
           </div>
           <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Grupos creados</h4>
-          <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Cambia el docente desde el selector. Agrega o retira alumnos desde cada tarjeta.</p>
           <div id="admGroupsLista"></div>
         </div>
 
-        <!-- PANEL MATRICULAS -->
+        <!-- ADMIN MATRICULAS -->
         <div class="panel" id="adm-panel-matriculas">
-          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📋 Registro de Matrículas</h4>
-          <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Aquí se almacenan los datos de las personas que se inscribieron desde la página web. Los cupos máximos son de 12 por grupo.</p>
+          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📋 Registro de Matrículas y Citas</h4>
           <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
             <table class="admin-table" style="min-width:640px;">
-              <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Programa / Horario</th><th>Fecha</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>Tipo</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Programa / Fecha</th><th>Acciones</th></tr></thead>
               <tbody id="admMatriculasBody"></tbody>
             </table>
           </div>
         </div>
 
-        <div class="panel" id="adm-panel-examenes">
+        <!-- ADMIN PROGRAMACION -->
+        <div class="panel" id="adm-panel-programacion">
+          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">🗓️ Programación de Cursos y Horarios</h4>
+          <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Los cursos que crees aquí aparecerán automáticamente en la tabla pública de Horarios.</p>
           <div class="tform admin-form">
-            <h4>➕ Crear nuevo examen online</h4>
-            <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">
-              Construye el examen con preguntas de marcación múltiple. Cada pregunta tiene un validador de respuesta. Puedes añadir audio (subiendo archivo ≤ 2 MB o pegando URL) o un enlace web externo como recurso.
-            </p>
-            <form id="admNewExamForm" class="tform-grid">
-              <div class="campo"><label>Nombre del examen <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética – Unidad 3" required></div>
+            <h4>➕ Crear nuevo curso / horario</h4>
+            <form id="admNewCourseForm" class="tform-grid">
+              <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admCoursePrograma" placeholder="Ej: Basic" required></div>
+              <div class="campo"><label>Día(s)</label><input type="text" id="admCourseDia" placeholder="Ej: Jueves"></div>
+              <div class="campo"><label>Horario</label><input type="text" id="admCourseHorario" placeholder="Ej: 19:00 a 21:00"></div>
               <div class="campo">
-                <label>Grupo destino <span class="req">*</span></label>
-                <select id="admExamGroup" required>
-                  <option value="">Selecciona grupo destino</option>
+                <label>Modalidad</label>
+                <select id="admCourseModalidad">
+                  <option value="Online">Online</option>
+                  <option value="Presencial">Presencial</option>
+                  <option value="Híbrido">Híbrido</option>
                 </select>
               </div>
+              <div class="campo">
+                <label>Tipo</label>
+                <select id="admCourseTipo">
+                  <option value="matricula">Matrícula con cupo</option>
+                  <option value="cita">Cita (sin cupo)</option>
+                </select>
+              </div>
+              <div class="campo"><label>Cupo máximo (si aplica)</label><input type="number" id="admCourseMax" value="12" min="1" max="100"></div>
+              <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear curso</button></div></div>
+            </form>
+          </div>
+          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Cursos registrados</h4>
+          <div id="admCoursesList" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"></div>
+        </div>
+
+        <!-- ADMIN EXÁMENES -->
+        <div class="panel" id="adm-panel-examenes">
+          <div class="tform admin-form">
+            <h4>➕ Crear nuevo examen</h4>
+            <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
+            <form id="admNewExamForm" class="tform-grid">
+              <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
+              <div class="campo"><label>Grupo destino <span class="req">*</span></label><select id="admExamGroup" required><option value="">Selecciona grupo</option></select></div>
               <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
-              <div class="campo"><label>Fecha de publicación</label><input type="date" id="admExamFechaPub"></div>
-              <div class="campo"><label>Fecha límite de entrega</label><input type="date" id="admExamFechaFin"></div>
+              <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
+              <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
               <div class="campo completo">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
-                  <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas del examen</h5>
+                  <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
                   <button type="button" class="btn btn-mini btn-azul" id="admBtnAddPregunta">+ Agregar pregunta</button>
                 </div>
                 <div id="admExamPreguntas"></div>
               </div>
               <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
             </form>
-            <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado. Los alumnos del grupo destino ya pueden rendirlo y su nota se registrará automáticamente.</div>
+            <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
           </div>
-
           <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
           <div id="admExamsLista"></div>
         </div>
 
-        <!-- ACTUALIZADO: PANEL ASISTENCIA ADMIN -->
+        <!-- ADMIN ASISTENCIA -->
         <div class="panel" id="adm-panel-asistencia">
           <div class="tform admin-form">
-            <h4>📅 Resumen de Asistencia por Grupo</h4>
-            <div class="campo">
-              <label>Selecciona el grupo a revisar</label>
-              <select id="admAsisGrupo">
-                <option value="">Selecciona un grupo...</option>
-              </select>
-            </div>
+            <h4>📅 Resumen de Asistencia</h4>
+            <div class="campo"><label>Selecciona el grupo</label><select id="admAsisGrupo"><option value="">Selecciona un grupo...</option></select></div>
           </div>
           <div id="admAsisResumen" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-            <p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo para ver el resumen de asistencia.</p>
+            <p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo.</p>
           </div>
         </div>
 
+        <!-- ADMIN MEMBRETE -->
+        <div class="panel" id="adm-panel-membrete">
+          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">🖼️ Membrete Institucional</h4>
+          <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Sube la imagen del membrete. Se usará en el Report Card y en el Portal del Alumno.</p>
+          <div class="tform admin-form">
+            <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminLetterheadFile" accept="image/*"></div>
+            <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveLetterhead">Guardar Membrete</button></div>
+            <div class="mensaje-exito" id="letterheadMsg">✅ Membrete guardado.</div>
+          </div>
+          <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
+        </div>
+
+        <!-- ADMIN FUNDADOR -->
+        <div class="panel" id="adm-panel-fundador">
+          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">👤 Foto del Fundador</h4>
+          <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Sube una foto del fundador. Se mostrará al lado de su descripción en la página principal.</p>
+          <div class="tform admin-form">
+            <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminFounderFile" accept="image/*"></div>
+            <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveFounder">Guardar Foto</button></div>
+            <div class="mensaje-exito" id="founderMsg">✅ Foto guardada.</div>
+          </div>
+          <div class="founder-preview-box" id="founderPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay foto cargada.</p></div>
+        </div>
+
+        <!-- ADMIN RESUMEN -->
         <div class="panel" id="adm-panel-resumen">
           <div class="resumen-grid">
             <div class="resumen-card slate"><div class="et">Alumnos</div><div class="val" id="admStatAlumnos">—</div></div>
@@ -964,13 +1127,42 @@
           </div>
           <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Grupos por nivel</h4>
           <div class="resumen-grid" id="admGruposPorNivel"></div>
-          <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Resumen de calificaciones por alumno</h4>
+          <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Resumen de calificaciones</h4>
           <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
             <table class="table-slate" style="min-width:640px;">
               <thead><tr><th>Alumno</th><th>Grupo</th><th>Promedio</th><th>Estado</th><th>Asistencia</th></tr></thead>
               <tbody id="admResumenBody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD MARKETING -->
+    <div class="dashboard" id="dashboardMarketing">
+      <div class="dash-top marketing">
+        <div class="dash-user">
+          <div class="dash-avatar">📣</div>
+          <div><h3>Portal de Marketing</h3><p>Galería institucional · Jotavalenzuela</p></div>
+        </div>
+        <div class="dash-live"><span class="punto-live"></span><span>En vivo · <span id="relojMkt">--:--:--</span></span></div>
+        <button class="dash-salir" id="btnSalirMkt">Cerrar sesión</button>
+      </div>
+      <div class="dash-tabs dash-mkt-tabs">
+        <button class="dash-tab activo" data-mktab="galeria">🖼️ Galería de Fotos</button>
+      </div>
+      <div class="dash-contenido">
+        <div class="aviso-tiempo-real aviso-mkt"><span class="punto-live" style="background:#ec4899;"></span> Las fotos se mostrarán automáticamente en la página principal de la escuela.</div>
+        <div class="panel activo" id="mkt-panel-galeria">
+          <div class="tform">
+            <h4>➕ Subir nuevas fotos (máx. 3 a la vez)</h4>
+            <div class="campo"><label>Título / Descripción (opcional)</label><input type="text" id="mktPhotoTitle" placeholder="Ej: Clases de fonética"></div>
+            <div class="campo"><label>Seleccionar imágenes (JPG/PNG, máx. 2MB c/u)</label><input type="file" id="mktPhotoFile" accept="image/*" multiple></div>
+            <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnUploadPhoto">Subir Fotos</button></div>
+            <div class="mensaje-exito" id="mktPhotoMsg">✅ Fotos subidas.</div>
+          </div>
+          <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📸 Fotos en la galería</h4>
+          <div id="mktGalleryGrid" class="gallery-grid"></div>
         </div>
       </div>
     </div>
@@ -986,11 +1178,14 @@
       </div>
       <div>
         <h4>Navegación</h4>
-        <ul><li><a href="#fundador">Fundador</a></li><li><a href="#cursos">Programas</a></li><li><a href="#horarios">Horarios</a></li><li><a href="#portal">Portales</a></li></ul>
+        <ul><li><a href="#fundador">Fundador</a></li><li><a href="#galeria">Galería</a></li><li><a href="#cursos">Programas</a></li><li><a href="#horarios">Horarios</a></li><li><a href="#portal">Portales</a></li></ul>
       </div>
       <div>
         <h4>Contacto</h4>
-        <ul><li><a href="mailto:info@jvphonetics.com">info@jvphonetics.com</a></li><li><a href="tel:+51999999999">+51 999 999 999</a></li><li><a href="#">Lima, Perú</a></li></ul>
+        <ul>
+          <li><a href="https://facebook.com/inglesmasfonetica" target="_blank">Facebook: inglesmasfonetica</a></li>
+          <li>Lima, Perú</li>
+        </ul>
       </div>
     </div>
     <div class="footer-bottom">© 2026 Escuela de Inglés y Fonética Clínica Jotavalenzuela. Todos los derechos reservados.</div>
@@ -1005,8 +1200,8 @@
     <h3>Portal del Alumno</h3>
     <span class="modal-sub">Ingresa tu usuario y contraseña</span>
     <form id="loginFormAlumno">
-      <input type="text" id="userAlumno" placeholder="Usuario" autocomplete="username" required>
-      <input type="password" id="passAlumno" placeholder="Contraseña" autocomplete="current-password" required>
+      <input type="text" id="userAlumno" placeholder="Usuario" required>
+      <input type="password" id="passAlumno" placeholder="Contraseña" required>
       <button type="submit" class="btn btn-azul">Entrar</button>
     </form>
     <div class="modal-error" id="errorAlumno">Usuario o contraseña incorrectos.</div>
@@ -1020,8 +1215,8 @@
     <h3>Portal del Docente</h3>
     <span class="modal-sub">Ingresa tu usuario y contraseña</span>
     <form id="loginFormDocente">
-      <input type="text" id="userDocente" placeholder="Usuario" autocomplete="username" required>
-      <input type="password" id="passDocente" placeholder="Contraseña" autocomplete="current-password" required>
+      <input type="text" id="userDocente" placeholder="Usuario" required>
+      <input type="password" id="passDocente" placeholder="Contraseña" required>
       <button type="submit" class="btn btn-morado">Entrar</button>
     </form>
     <div class="modal-error" id="errorDocente">Usuario o contraseña incorrectos.</div>
@@ -1035,20 +1230,34 @@
     <h3>Portal Administrativo</h3>
     <span class="modal-sub">Ingresa el código de administrador</span>
     <form id="loginFormAdmin">
-      <input type="password" id="codigoAdmin" placeholder="CÓDIGO" autocomplete="off" required>
+      <input type="password" id="codigoAdmin" placeholder="CÓDIGO" required>
       <button type="submit" class="btn btn-slate">Entrar</button>
     </form>
-    <div class="modal-error" id="errorAdmin">Código incorrecto. Verifica e intenta de nuevo.</div>
+    <div class="modal-error" id="errorAdmin">Código incorrecto.</div>
   </div>
 </div>
 
-<!-- MODAL DE MATRÍCULA (PÚBLICO) -->
+<div class="modal-overlay" id="modalMarketing">
+  <div class="modal-box marketing">
+    <button class="modal-close" data-close-modal="marketing">✕</button>
+    <div class="modal-icon marketing">📣</div>
+    <h3>Portal de Marketing</h3>
+    <span class="modal-sub">Ingresa el código de acceso</span>
+    <form id="loginFormMarketing">
+      <input type="password" id="codigoMarketing" placeholder="CÓDIGO" required>
+      <button type="submit" class="btn btn-rosa">Entrar</button>
+    </form>
+    <div class="modal-error" id="errorMarketing">Código incorrecto.</div>
+  </div>
+</div>
+
+<!-- MODAL DE MATRÍCULA -->
 <div class="modal-overlay" id="modalMatricula">
   <div class="modal-box">
     <button class="modal-close" id="btnCerrarMatricula">✕</button>
     <div class="modal-icon" style="background:linear-gradient(135deg, #fef3c7, #fde68a);">📝</div>
     <h3>Formulario de Matrícula</h3>
-    <span class="modal-sub">Completa tus datos para reservar tu cupo</span>
+    <span class="modal-sub">Completa tus datos</span>
     <form id="formMatricula">
       <input type="hidden" id="matSchId">
       <input type="text" id="matNombre" placeholder="Nombre completo" required style="text-align:left; letter-spacing:normal;">
@@ -1060,7 +1269,35 @@
       </div>
       <button type="submit" class="btn btn-primario">Confirmar Matrícula</button>
     </form>
-    <div class="mensaje-exito" id="matMsg">✅ ¡Matrícula exitosa! Nos pondremos en contacto contigo.</div>
+    <div class="mensaje-exito" id="matMsg">✅ ¡Matrícula exitosa!</div>
+  </div>
+</div>
+
+<!-- MODAL DE CITA -->
+<div class="modal-overlay" id="modalCita">
+  <div class="modal-box">
+    <button class="modal-close" id="btnCerrarCita">✕</button>
+    <div class="modal-icon" style="background:linear-gradient(135deg, #fce7f3, #fbcfe8);">🩺</div>
+    <h3>Separe su cita</h3>
+    <span class="modal-sub">Terapia del Lenguaje / Voz / Habla</span>
+    <form id="formCita">
+      <input type="text" id="citaNombre" placeholder="Nombre completo" required style="text-align:left; letter-spacing:normal;">
+      <input type="email" id="citaEmail" placeholder="Correo electrónico" required style="text-align:left; letter-spacing:normal;">
+      <input type="tel" id="citaTelefono" placeholder="Teléfono / WhatsApp" required style="text-align:left; letter-spacing:normal;">
+      <input type="date" id="citaFecha" required style="text-align:left;">
+      <textarea id="citaMensaje" placeholder="Motivo de la consulta..." style="text-align:left; padding:13px 16px; border:2px solid var(--borde); border-radius:12px; font-family:inherit; min-height:80px;"></textarea>
+      <button type="submit" class="btn btn-primario">Solicitar Cita</button>
+    </form>
+    <div class="mensaje-exito" id="citaMsg">✅ ¡Cita solicitada!</div>
+  </div>
+</div>
+
+<!-- MODAL VISOR DE IMAGEN -->
+<div class="modal-overlay" id="modalImageViewer">
+  <div class="modal-box" style="max-width:800px; padding:20px; text-align:center;">
+    <button class="modal-close" onclick="document.getElementById('modalImageViewer').classList.remove('visible')">✕</button>
+    <h3 style="margin-bottom:20px;">Evidencia de Identidad</h3>
+    <img id="imageViewerImg" src="" style="max-width:100%; max-height:70vh; border-radius:12px; box-shadow:var(--sombra);">
   </div>
 </div>
 
@@ -1069,8 +1306,10 @@
    CONSTANTES
    ============================================================ */
 const ADMIN_CODE = "JV2026A";
-const STORAGE_KEY = "jv2026_state_v11"; // v11 para actualizar los datos semilla con las nuevas etiquetas de asistencia
-const MAX_AUDIO_SIZE = 2 * 1024 * 1024; // 2 MB (seguro para localStorage)
+const MARKETING_CODE = "JV2026M";
+const STORAGE_KEY = "jv2026_state_v17";
+const MAX_AUDIO_SIZE = 2 * 1024 * 1024;
+const MAX_IMG_SIZE = 2 * 1024 * 1024;
 
 const NIVELES = [
   { id: "basico",     nombre: "Básico",     clase: "basico" },
@@ -1079,33 +1318,37 @@ const NIVELES = [
 ];
 
 const CRITERIOS = [
-  { id: "class_participation", nombre: "Class Participation" },
-  { id: "online_workbook",     nombre: "Online Workbook" },
-  { id: "speaking",            nombre: "Speaking" },
-  { id: "readers",             nombre: "Readers" },
-  { id: "final_exam",          nombre: "Final Exam" }
+  { id: "class_participation", nombre: "Class Participation", color: "#FF6384" },
+  { id: "online_workbook",     nombre: "Online Workbook",     color: "#36A2EB" },
+  { id: "speaking",            nombre: "Speaking",            color: "#FFCE56" },
+  { id: "readers",             nombre: "Readers",             color: "#4BC0C0" },
+  { id: "final_exam",          nombre: "Final Exam",          color: "#9966FF" }
 ];
-
-const ATTENDANCE_OPTIONS = ["Present", "Late", "Absent"];
 
 /* ============================================================
    ESTADO INICIAL
    ============================================================ */
 const DEFAULT_STATE = {
   students: {
-    "JV2026":   { password: "jv2026",   nombre: "Alumno JV2026",    email: "jv2026@escuela.com",   programa: "Basic" },
-    "MARIA01":  { password: "maria01",  nombre: "María López",      email: "maria@escuela.com",    programa: "Intermedio" },
-    "CARLOS02": { password: "carlos02", nombre: "Carlos Ruiz",      email: "carlos@escuela.com",   programa: "Intermedio" },
-    "LUCIA03":  { password: "lucia03",  nombre: "Lucía Fernández",  email: "lucia@escuela.com",    programa: "Teens" }
+    "JV2026":   { password: "jv2026",   nombre: "Alumno JV2026",    email: "jv2026@escuela.com",   programa: "Basic",       year: 2026, month: 3,  day: 1,  dni: "45513532", dniPhoto: null },
+    "MARIA01":  { password: "maria01",  nombre: "María López",      email: "maria@escuela.com",    programa: "Intermedio",  year: 2025, month: 8,  day: 15, dni: "12345678", dniPhoto: null },
+    "CARLOS02": { password: "carlos02", nombre: "Carlos Ruiz",      email: "carlos@escuela.com",   programa: "Intermedio",  year: 2025, month: 9,  day: 10, dni: "87654321", dniPhoto: null },
+    "LUCIA03":  { password: "lucia03",  nombre: "Lucía Fernández",  email: "lucia@escuela.com",    programa: "Teens",       year: 2026, month: 1,  day: 20, dni: "11223344", dniPhoto: null }
   },
   teachers: {
-    "PROF01": { password: "prof01", nombre: "Profesor Demo", email: "prof@escuela.com", area: "Inglés general" },
-    "PROF02": { password: "prof02", nombre: "Laura Chen",    email: "laura@escuela.com", area: "Fonética clínica" }
+    "PROF01": { password: "prof01", nombre: "Profesor Demo", email: "prof@escuela.com", area: "Inglés general", year: 2024, month: 5, day: 10, dni: "99887766", dniPhoto: null, formalPhoto: null },
+    "PROF02": { password: "prof02", nombre: "Laura Chen",    email: "laura@escuela.com", area: "Fonética clínica", year: 2023, month: 11, day: 5, dni: "55443322", dniPhoto: null, formalPhoto: null }
   },
   groups: [
     { id: "grp_bas_1",   nombre: "Basic A",     nivel: "basico",     teacherCode: "PROF01", studentCodes: ["JV2026"] },
     { id: "grp_int_1",   nombre: "Intermedio A", nivel: "intermedio", teacherCode: "PROF01", studentCodes: ["MARIA01", "CARLOS02"] },
     { id: "grp_teens_1", nombre: "Teens A",      nivel: "teens",      teacherCode: "PROF02", studentCodes: ["LUCIA03"] }
+  ],
+  courses: [
+    { id: "sch_basic",   programa: "Basic",     dia: "Jueves",          horario: "19:00 a 21:00 pm.", modalidad: "Online", tipo: "matricula", max: 12 },
+    { id: "sch_int",     programa: "Intermedio", dia: "Martes y jueves", horario: "21:00 a 23:00 pm.", modalidad: "Online", tipo: "matricula", max: 12 },
+    { id: "sch_teens",   programa: "Teens",     dia: "Jueves",          horario: "16:00 a 18:20 pm.", modalidad: "Online", tipo: "matricula", max: 12 },
+    { id: "sch_terapia", programa: "Terapia del Lenguaje/voz/habla", dia: "—", horario: "—", modalidad: "Presencial", tipo: "cita" }
   ],
   assignments: [
     { id: "asg_par_1", criterio: "class_participation", nombre: "Participación Semanas 1-2", fechaInicio: "2026-03-01", fechaFin: "2026-03-15" },
@@ -1126,47 +1369,32 @@ const DEFAULT_STATE = {
     { fecha: "2026-03-05", clase: "Basic – Unidad 2", studentCode: "JV2026", estado: "Present" },
     { fecha: "2026-03-10", clase: "Basic – Unidad 3", studentCode: "JV2026", estado: "Late" },
     { fecha: "2026-03-03", clase: "Intermedio – Unidad 1", studentCode: "MARIA01", estado: "Present" },
-    { fecha: "2026-03-03", clase: "Intermedio – Unidad 1", studentCode: "CARLOS02", estado: "Absent" },
-    { fecha: "2026-03-05", clase: "Intermedio – Unidad 2", studentCode: "MARIA01", estado: "Late" },
-    { fecha: "2026-03-05", clase: "Intermedio – Unidad 2", studentCode: "CARLOS02", estado: "Present" }
+    { fecha: "2026-03-03", clase: "Intermedio – Unidad 1", studentCode: "CARLOS02", estado: "Absent" }
   ],
   exams: [
     {
-      id: "exam_demo_1",
-      nombre: "Quiz de fonética – Diptongos",
+      id: "exam_demo_1", nombre: "Quiz de fonética – Diptongos",
       descripcion: "Evaluación de identificación auditiva de diptongos en inglés",
-      grupoId: "grp_bas_1",
-      assignmentId: "asg_exam_demo_1",
-      fechaPublicacion: "2026-03-20",
-      fechaFin: "2026-04-15",
+      grupoId: "grp_bas_1", assignmentId: "asg_exam_demo_1",
+      fechaPublicacion: "2026-03-20", fechaFin: "2026-04-15",
       preguntas: [
-        {
-          enunciado: "¿Cuál es el diptongo en la palabra 'house'?",
-          opciones: ["/aʊ/", "/eɪ/", "/ɪə/", "/ɔɪ/"],
-          correcta: 0,
-          mediaUrl: "",
-          mediaArchivo: null,
-          mediaType: null,
-          mediaNombre: ""
-        },
-        {
-          enunciado: "Selecciona el símbolo IPA del diptongo en 'boy'",
-          opciones: ["/aɪ/", "/ɔɪ/", "/aʊ/", "/eɪ/"],
-          correcta: 1,
-          mediaUrl: "",
-          mediaArchivo: null,
-          mediaType: null,
-          mediaNombre: ""
-        }
+        { enunciado: "¿Cuál es el diptongo en la palabra 'house'?", opciones: ["/aʊ/", "/eɪ/", "/ɪə/", "/ɔɪ/"], correcta: 0, mediaUrl: "", mediaArchivo: null, mediaType: null, mediaNombre: "" },
+        { enunciado: "Selecciona el símbolo IPA del diptongo en 'boy'", opciones: ["/aɪ/", "/ɔɪ/", "/aʊ/", "/eɪ/"], correcta: 1, mediaUrl: "", mediaArchivo: null, mediaType: null, mediaNombre: "" }
       ]
     }
   ],
   examResults: {},
-  registrations: []
+  registrations: [],
+  citas: [],
+  signatures: {},
+  reportCards: [],
+  letterhead: "",
+  founderPhoto: "",
+  marketingPhotos: []
 };
 
 /* ============================================================
-   ESTADO
+   ESTADO GLOBAL
    ============================================================ */
 let state = null;
 let currentStudentCode = null;
@@ -1174,8 +1402,11 @@ let currentStudent = null;
 let currentTeacherCode = null;
 let currentTeacher = null;
 let adminLoggedIn = false;
+let marketingLoggedIn = false;
 let testActual = null;
 let memoriaFallback = null;
+let rcChartInstance = null;
+let currentRcData = null;
 
 /* ============================================================
    PERSISTENCIA
@@ -1187,6 +1418,13 @@ function loadState() {
       const parsed = JSON.parse(raw);
       if (!parsed.examResults) parsed.examResults = {};
       if (!parsed.registrations) parsed.registrations = [];
+      if (!parsed.citas) parsed.citas = [];
+      if (!parsed.signatures) parsed.signatures = {};
+      if (!parsed.reportCards) parsed.reportCards = [];
+      if (parsed.letterhead === undefined) parsed.letterhead = "";
+      if (parsed.founderPhoto === undefined) parsed.founderPhoto = "";
+      if (!parsed.marketingPhotos) parsed.marketingPhotos = [];
+      if (!parsed.courses) parsed.courses = JSON.parse(JSON.stringify(DEFAULT_STATE.courses));
       return parsed;
     }
   } catch (e) {}
@@ -1230,7 +1468,6 @@ function porcentajeAsistencia(regs) {
   const p = regs.filter(r => r.estado === "Present" || r.estado === "Late").length;
   return Math.round((p / regs.length) * 100);
 }
-
 function promedioGeneral(code) {
   const grades = state.grades[code] || {};
   const valores = Object.values(grades).filter(v => v !== null && v !== undefined && !isNaN(v));
@@ -1255,7 +1492,6 @@ function estadoCurso(code) {
   if (prom >= 14.00) return { texto: "Aprobado", clase: "aprobado" };
   return { texto: "Desaprobado", clase: "desaprobado" };
 }
-
 function getNivelInfo(nivelId) { return NIVELES.find(n => n.id === nivelId) || { id: nivelId, nombre: nivelId, clase: "" }; }
 function getStudentGroups(code) { return state.groups.filter(g => g.studentCodes.includes(code)); }
 function getTeacherGroups(teacherCode) { return state.groups.filter(g => g.teacherCode === teacherCode); }
@@ -1265,22 +1501,18 @@ function getTeacherStudents(teacherCode) {
   groups.forEach(g => g.studentCodes.forEach(c => codes.add(c)));
   return [...codes].filter(c => state.students[c]);
 }
-
-function refreshAll() {
-  updateHorariosCounters();
-  if (currentStudentCode) refreshStudentView();
-  if (currentTeacherCode) refreshTeacherView();
-  if (adminLoggedIn) refreshAdminView();
-}
-
-function genUsername(nombre, existing, prefix) {
-  let base = prefix || "USR";
-  if (nombre && nombre.trim()) {
-    const candidate = nombre.trim().split(" ")[0].normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6);
-    if (candidate) base = candidate;
+function genUsernameByDate(year, month, day, existing) {
+  if (!year || !month || !day) return "";
+  const y = String(year).padStart(4, '0');
+  const m = String(month).padStart(2, '0');
+  const d = String(day).padStart(2, '0');
+  let base = `${y}${m}${d}`;
+  let code = base;
+  let attempts = 0;
+  while (existing[code] && attempts < 30) {
+    code = base + String(Math.floor(10 + Math.random() * 90));
+    attempts++;
   }
-  let code, attempts = 0;
-  do { code = base + String(Math.floor(1000 + Math.random() * 9000)); attempts++; } while (existing[code] && attempts < 30);
   return code;
 }
 function genPassword() {
@@ -1292,46 +1524,113 @@ function genPassword() {
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
 /* ============================================================
-   MATRÍCULAS Y CONTADOR
+   RENDER: HORARIOS DINÁMICOS
    ============================================================ */
-function updateHorariosCounters() {
-  const schs = ['sch_basic', 'sch_int', 'sch_teens'];
-  schs.forEach(schId => {
-    const count = state.registrations.filter(r => r.scheduleId === schId).length;
-    const row = document.querySelector(`tr[data-sch="${schId}"]`);
-    if(row) {
-      row.querySelector('.count-display').textContent = count;
-      const btn = row.querySelector('.btn-inscribirse');
-      if(count >= 12) {
-        btn.textContent = 'Cupo Lleno';
-        btn.disabled = true;
-        btn.classList.replace('btn-primario', 'btn-rojo');
-      } else {
-        btn.textContent = 'Inscribirse';
-        btn.disabled = false;
-        btn.classList.replace('btn-rojo', 'btn-primario');
-      }
+function renderHorariosTable() {
+  const tbody = document.getElementById('tablaHorarios');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  state.courses.forEach(course => {
+    const tr = document.createElement('tr');
+    tr.dataset.sch = course.id;
+    if (course.tipo === 'cita') {
+      tr.innerHTML = `
+        <td><strong>${course.programa}</strong></td>
+        <td>${course.dia || '—'}</td>
+        <td>${course.horario || '—'}</td>
+        <td>${course.modalidad}</td>
+        <td>—</td>
+        <td><button class="btn btn-primario btn-mini btn-cita">Separe su cita ahora</button></td>
+      `;
+    } else {
+      const count = state.registrations.filter(r => r.scheduleId === course.id).length;
+      const max = course.max || 12;
+      const isFull = count >= max;
+      tr.innerHTML = `
+        <td><strong>${course.programa}</strong></td>
+        <td>${course.dia || '—'}</td>
+        <td>${course.horario || '—'}</td>
+        <td>${course.modalidad}</td>
+        <td><strong class="count-display">${count}</strong> / ${max}</td>
+        <td><button class="btn ${isFull ? 'btn-rojo' : 'btn-primario'} btn-mini btn-inscribirse" data-sch="${course.id}" ${isFull ? 'disabled' : ''}>${isFull ? 'Cupo Lleno' : 'Inscribirse'}</button></td>
+      `;
     }
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.btn-inscribirse').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const course = state.courses.find(c => c.id === btn.dataset.sch);
+      if (!course) return;
+      document.getElementById('matSchId').value = course.id;
+      document.getElementById('matPrograma').value = course.programa;
+      document.getElementById('modalMatricula').classList.add('visible');
+    });
+  });
+  tbody.querySelectorAll('.btn-cita').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('modalCita').classList.add('visible');
+    });
   });
 }
 
-document.querySelectorAll('.btn-inscribirse').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const schId = btn.dataset.sch;
-    const prog = btn.dataset.prog;
-    document.getElementById('matSchId').value = schId;
-    document.getElementById('matPrograma').value = prog;
-    document.getElementById('modalMatricula').classList.add('visible');
-  });
-});
+/* ============================================================
+   RENDER: FUNDADOR, GALERÍA PÚBLICA
+   ============================================================ */
+function renderFounderPhoto() {
+  const container = document.getElementById('fundadorFoto');
+  if (state.founderPhoto) {
+    container.innerHTML = `<img src="${state.founderPhoto}" alt="Fundador">`;
+    container.style.padding = '0';
+    container.style.overflow = 'hidden';
+  } else {
+    container.innerHTML = '👨‍🏫';
+    container.style.padding = '';
+  }
+}
 
+function renderPublicGallery() {
+  const container = document.getElementById('publicGallery');
+  if (!container) return;
+  container.innerHTML = '';
+  const photos = state.marketingPhotos || [];
+  if (!photos.length) {
+    container.innerHTML = `<div class="gallery-empty" style="grid-column: 1 / -1;">📸 Aún no hay fotos publicadas. El equipo de marketing las subirá pronto.</div>`;
+    return;
+  }
+  photos.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.innerHTML = `
+      <img src="${p.src}" alt="${p.title || 'Foto de la escuela'}">
+      ${p.title ? `<div class="gallery-item-caption">${p.title}</div>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+/* ============================================================
+   REFRESH GLOBAL
+   ============================================================ */
+function refreshAll() {
+  renderHorariosTable();
+  renderFounderPhoto();
+  renderPublicGallery();
+  if (currentStudentCode) refreshStudentView();
+  if (currentTeacherCode) refreshTeacherView();
+  if (adminLoggedIn) refreshAdminView();
+  if (marketingLoggedIn) renderMarketingGallery();
+}
+
+/* ============================================================
+   MATRÍCULAS Y CITAS
+   ============================================================ */
 document.getElementById('btnCerrarMatricula').addEventListener('click', () => {
   document.getElementById('modalMatricula').classList.remove('visible');
   document.getElementById('matMsg').classList.remove('visible');
@@ -1349,21 +1648,20 @@ document.getElementById('formMatricula').addEventListener('submit', (e) => {
   if (!nombre || !email || !telefono) { alert("Completa todos los campos."); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Correo inválido."); return; }
 
+  const course = state.courses.find(c => c.id === schId);
+  if (!course) return;
   const count = state.registrations.filter(r => r.scheduleId === schId).length;
-  if (count >= 12) { alert("Lo sentimos, el cupo se llenó."); return; }
+  const max = course.max || 12;
+  if (count >= max) { alert("Lo sentimos, el cupo se llenó."); return; }
 
   state.registrations.push({
     id: "reg_" + Date.now(),
-    scheduleId: schId,
-    programa: prog,
-    nombre,
-    email,
-    telefono,
-    fecha: new Date().toISOString().slice(0, 10)
+    scheduleId: schId, programa: prog, nombre, email, telefono,
+    fecha: new Date().toISOString().slice(0, 10),
+    tipo: "matricula"
   });
 
   saveState();
-  
   document.getElementById('matMsg').classList.add('visible');
   setTimeout(() => {
     document.getElementById('modalMatricula').classList.remove('visible');
@@ -1372,16 +1670,56 @@ document.getElementById('formMatricula').addEventListener('submit', (e) => {
   }, 2500);
 });
 
+document.getElementById('btnCerrarCita').addEventListener('click', () => {
+  document.getElementById('modalCita').classList.remove('visible');
+  document.getElementById('citaMsg').classList.remove('visible');
+  document.getElementById('formCita').reset();
+});
+
+document.getElementById('formCita').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const nombre = document.getElementById('citaNombre').value.trim();
+  const email = document.getElementById('citaEmail').value.trim();
+  const telefono = document.getElementById('citaTelefono').value.trim();
+  const fecha = document.getElementById('citaFecha').value;
+  const mensaje = document.getElementById('citaMensaje').value.trim();
+
+  if (!nombre || !email || !telefono || !fecha) { alert("Completa todos los campos."); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Correo inválido."); return; }
+
+  state.registrations.push({
+    id: "cita_" + Date.now(),
+    scheduleId: "sch_terapia", programa: "Terapia del Lenguaje/voz/habla",
+    nombre, email, telefono, fecha, mensaje, tipo: "cita",
+    fechaRegistro: new Date().toISOString().slice(0, 10)
+  });
+  saveState();
+  document.getElementById('citaMsg').classList.add('visible');
+  setTimeout(() => {
+    document.getElementById('modalCita').classList.remove('visible');
+    document.getElementById('citaMsg').classList.remove('visible');
+    document.getElementById('formCita').reset();
+  }, 3000);
+});
+
 /* ============================================================
-   MODALES DE LOGIN
+   MODALES
    ============================================================ */
 document.querySelectorAll("[data-open-modal]").forEach(btn => {
   btn.addEventListener("click", () => {
     const tipo = btn.dataset.openModal;
-    const modal = document.getElementById(tipo === "alumno" ? "modalAlumno" : tipo === "docente" ? "modalDocente" : "modalAdmin");
+    const modal = document.getElementById(
+      tipo === "alumno" ? "modalAlumno" :
+      tipo === "docente" ? "modalDocente" :
+      tipo === "admin" ? "modalAdmin" : "modalMarketing"
+    );
     modal.classList.add("visible");
     setTimeout(() => {
-      const input = document.getElementById(tipo === "alumno" ? "userAlumno" : tipo === "docente" ? "userDocente" : "codigoAdmin");
+      const input = document.getElementById(
+        tipo === "alumno" ? "userAlumno" :
+        tipo === "docente" ? "userDocente" :
+        tipo === "admin" ? "codigoAdmin" : "codigoMarketing"
+      );
       if (input) input.focus();
     }, 100);
   });
@@ -1389,7 +1727,11 @@ document.querySelectorAll("[data-open-modal]").forEach(btn => {
 document.querySelectorAll("[data-close-modal]").forEach(btn => {
   btn.addEventListener("click", () => {
     const tipo = btn.dataset.closeModal;
-    const modal = document.getElementById(tipo === "alumno" ? "modalAlumno" : tipo === "docente" ? "modalDocente" : "modalAdmin");
+    const modal = document.getElementById(
+      tipo === "alumno" ? "modalAlumno" :
+      tipo === "docente" ? "modalDocente" :
+      tipo === "admin" ? "modalAdmin" : "modalMarketing"
+    );
     modal.classList.remove("visible");
     modal.querySelectorAll("input").forEach(i => i.value = "");
     modal.querySelectorAll(".modal-error").forEach(e => e.classList.remove("visible"));
@@ -1447,16 +1789,28 @@ document.getElementById("loginFormAdmin").addEventListener("submit", (e) => {
   loginAdmin();
 });
 
+document.getElementById("loginFormMarketing").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const code = document.getElementById("codigoMarketing").value;
+  const error = document.getElementById("errorMarketing");
+  error.classList.remove("visible");
+  if (code !== MARKETING_CODE) { error.classList.add("visible"); document.getElementById("codigoMarketing").value = ""; return; }
+  document.getElementById("modalMarketing").classList.remove("visible");
+  document.getElementById("codigoMarketing").value = "";
+  loginMarketing();
+});
+
 /* ============================================================
    LOGIN / LOGOUT
    ============================================================ */
 function loginStudent(code) {
   currentStudentCode = code;
   currentStudent = state.students[code];
-  currentTeacherCode = null; currentTeacher = null; adminLoggedIn = false;
+  currentTeacherCode = null; currentTeacher = null; adminLoggedIn = false; marketingLoggedIn = false;
   document.getElementById("portalCards").style.display = "none";
   document.getElementById("dashboardDocente").classList.remove("visible");
   document.getElementById("dashboardAdmin").classList.remove("visible");
+  document.getElementById("dashboardMarketing").classList.remove("visible");
   document.getElementById("dashboardAlumno").classList.add("visible");
   document.getElementById("dashNombreA").textContent = currentStudent.nombre;
   document.getElementById("dashProgramaA").textContent = "Programa: " + (currentStudent.programa || "—");
@@ -1482,24 +1836,36 @@ function renderStudentGroups() {
 function loginTeacher(code) {
   currentTeacherCode = code;
   currentTeacher = state.teachers[code];
-  currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
+  currentStudentCode = null; currentStudent = null; adminLoggedIn = false; marketingLoggedIn = false;
   document.getElementById("portalCards").style.display = "none";
   document.getElementById("dashboardAlumno").classList.remove("visible");
   document.getElementById("dashboardAdmin").classList.remove("visible");
+  document.getElementById("dashboardMarketing").classList.remove("visible");
   document.getElementById("dashboardDocente").classList.add("visible");
   document.getElementById("dashNombreD").textContent = currentTeacher.nombre;
   document.getElementById("dashAreaD").textContent = currentTeacher.area || "Docente";
   
-  // Inicializar select de grupos del docente
+  const avatar = document.getElementById("dashAvatarD");
+  if (currentTeacher.formalPhoto) {
+    avatar.innerHTML = `<img src="${currentTeacher.formalPhoto}" alt="Foto">`;
+    avatar.style.padding = '0';
+  } else {
+    avatar.textContent = "PR";
+    avatar.style.padding = '';
+  }
+
   const selAsis = document.getElementById("dAsisGrupo");
   selAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
   getTeacherGroups(currentTeacherCode).forEach(g => {
-    const opt = document.createElement("option");
-    opt.value = g.id;
-    opt.textContent = g.nombre;
-    selAsis.appendChild(opt);
+    const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAsis.appendChild(opt);
   });
-  
+  const selRcGroup = document.getElementById("rcGroupSelect");
+  selRcGroup.innerHTML = '<option value="">Selecciona un grupo...</option>';
+  getTeacherGroups(currentTeacherCode).forEach(g => {
+    const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selRcGroup.appendChild(opt);
+  });
+  renderTeacherSignature();
+  renderTeacherPhoto();
   refreshTeacherView();
   document.getElementById("relojD").textContent = horaActual();
 }
@@ -1507,24 +1873,35 @@ function loginTeacher(code) {
 function loginAdmin() {
   adminLoggedIn = true;
   currentStudentCode = null; currentStudent = null;
-  currentTeacherCode = null; currentTeacher = null;
+  currentTeacherCode = null; currentTeacher = null; marketingLoggedIn = false;
   document.getElementById("portalCards").style.display = "none";
   document.getElementById("dashboardAlumno").classList.remove("visible");
   document.getElementById("dashboardDocente").classList.remove("visible");
+  document.getElementById("dashboardMarketing").classList.remove("visible");
   document.getElementById("dashboardAdmin").classList.add("visible");
-  
-  // Inicializar select de grupos del admin (Asistencia)
   const selAdmAsis = document.getElementById("admAsisGrupo");
   selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
   state.groups.forEach(g => {
-    const opt = document.createElement("option");
-    opt.value = g.id;
-    opt.textContent = g.nombre;
-    selAdmAsis.appendChild(opt);
+    const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAdmAsis.appendChild(opt);
   });
-  
+  renderAdminLetterhead();
+  renderAdminFounder();
+  renderAdminCourses();
   refreshAdminView();
   document.getElementById("relojAdm").textContent = horaActual();
+}
+
+function loginMarketing() {
+  marketingLoggedIn = true;
+  currentStudentCode = null; currentStudent = null;
+  currentTeacherCode = null; currentTeacher = null; adminLoggedIn = false;
+  document.getElementById("portalCards").style.display = "none";
+  document.getElementById("dashboardAlumno").classList.remove("visible");
+  document.getElementById("dashboardDocente").classList.remove("visible");
+  document.getElementById("dashboardAdmin").classList.remove("visible");
+  document.getElementById("dashboardMarketing").classList.add("visible");
+  renderMarketingGallery();
+  document.getElementById("relojMkt").textContent = horaActual();
 }
 
 document.getElementById("btnSalirA").addEventListener("click", () => {
@@ -1540,6 +1917,11 @@ document.getElementById("btnSalirD").addEventListener("click", () => {
 document.getElementById("btnSalirAdm").addEventListener("click", () => {
   adminLoggedIn = false;
   document.getElementById("dashboardAdmin").classList.remove("visible");
+  document.getElementById("portalCards").style.display = "grid";
+});
+document.getElementById("btnSalirMkt").addEventListener("click", () => {
+  marketingLoggedIn = false;
+  document.getElementById("dashboardMarketing").classList.remove("visible");
   document.getElementById("portalCards").style.display = "grid";
 });
 
@@ -1570,8 +1952,25 @@ document.querySelectorAll("#dashboardAdmin .dash-tab").forEach(tab => {
     document.getElementById("adm-panel-" + tab.dataset.admtab).classList.add("activo");
     if (tab.dataset.admtab === "grupos") refreshAdminTeacherSelects();
     if (tab.dataset.admtab === "examenes") refreshAdminExamGroups();
+    if (tab.dataset.admtab === "programacion") renderAdminCourses();
   });
 });
+document.querySelectorAll("#dashboardMarketing .dash-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll("#dashboardMarketing .dash-tab").forEach(t => t.classList.remove("activo"));
+    document.querySelectorAll("#dashboardMarketing .panel").forEach(p => p.classList.remove("activo"));
+    tab.classList.add("activo");
+    document.getElementById("mkt-panel-" + tab.dataset.mktab).classList.add("activo");
+  });
+});
+
+/* ============================================================
+   VISOR DE IMAGEN
+   ============================================================ */
+function showImageViewer(src) {
+  document.getElementById('imageViewerImg').src = src;
+  document.getElementById('modalImageViewer').classList.add('visible');
+}
 
 /* ============================================================
    VISTA ALUMNO
@@ -1582,22 +1981,19 @@ function refreshStudentView() {
   renderStudentCalificaciones();
   renderStudentExams();
   renderStudentAsistencia();
+  renderStudentReportCards();
 }
-
 function renderStudentResumen() {
   const prom = promedioGeneral(currentStudentCode);
   document.getElementById("resumenPromA").textContent = prom !== null ? prom.toFixed(2) : "—";
   const asis = porcentajeAsistencia(asistenciaDe(currentStudentCode));
   document.getElementById("resumenAsisA").textContent = asis !== null ? asis + "%" : "—";
-  
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
   const exs = (state.exams || []).filter(ex => !ex.grupoId || myGroups.includes(ex.grupoId));
   const completados = exs.filter(ex => state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode]).length;
-  
   document.getElementById("resumenExamsA").textContent = `${completados}/${exs.length}`;
   document.getElementById("resumenActA").textContent = horaActual();
 }
-
 function renderStudentCalificaciones() {
   const prom = promedioGeneral(currentStudentCode);
   document.getElementById("califPromedioA").textContent = prom !== null ? prom.toFixed(2) : "—";
@@ -1605,7 +2001,6 @@ function renderStudentCalificaciones() {
   const estadoEl = document.getElementById("califEstadoA");
   estadoEl.className = "calif-estado " + estado.clase;
   estadoEl.textContent = estado.texto;
-
   const grid = document.getElementById("criteriaGridA");
   grid.innerHTML = "";
   CRITERIOS.forEach(c => {
@@ -1614,14 +2009,9 @@ function renderStudentCalificaciones() {
     const total = state.assignments.filter(a => a.criterio === c.id).length;
     const div = document.createElement("div");
     div.className = "criterion-card " + c.id;
-    div.innerHTML = `
-      <div class="c-label">${c.nombre}</div>
-      <div class="c-valor ${promC === null ? 'vacio' : ''}">${promC !== null ? promC.toFixed(2) : '—'}</div>
-      <div class="c-count">${count}/${total} evaluaciones</div>
-    `;
+    div.innerHTML = `<div class="c-label">${c.nombre}</div><div class="c-valor ${promC === null ? 'vacio' : ''}">${promC !== null ? promC.toFixed(2) : '—'}</div><div class="c-count">${count}/${total} evaluaciones</div>`;
     grid.appendChild(div);
   });
-
   const detalle = document.getElementById("detalleCriteriosA");
   detalle.innerHTML = "";
   let hay = false;
@@ -1634,86 +2024,45 @@ function renderStudentCalificaciones() {
     const block = document.createElement("div");
     block.className = "criterion-detail";
     block.innerHTML = `
-      <div class="criterion-detail-header">
-        <h5>${c.nombre}</h5>
-        <span class="c-prom">Promedio: ${promC !== null ? promC.toFixed(2) : '—'}</span>
-      </div>
-      <div>
-        ${asgs.map(a => {
-          const v = grades[a.id];
-          const tiene = v !== null && v !== undefined && !isNaN(v);
-          return `
-            <div class="assignment-row">
-              <div class="assignment-info">
-                <strong>${a.nombre} ${a.esExamen ? '<span style="font-size:.72rem;color:var(--morado);font-weight:700;">📝 Examen online</span>' : ''}</strong>
-                <small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small>
-              </div>
-              <div class="assignment-nota ${tiene ? claseNota(v) : 'pending'}">${tiene ? v : 'Pendiente'}</div>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    `;
+      <div class="criterion-detail-header"><h5>${c.nombre}</h5><span class="c-prom">Promedio: ${promC !== null ? promC.toFixed(2) : '—'}</span></div>
+      <div>${asgs.map(a => {
+        const v = grades[a.id];
+        const tiene = v !== null && v !== undefined && !isNaN(v);
+        return `<div class="assignment-row"><div class="assignment-info"><strong>${a.nombre} ${a.esExamen ? '<span style="font-size:.72rem;color:var(--morado);font-weight:700;">📝 Examen</span>' : ''}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="assignment-nota ${tiene ? claseNota(v) : 'pending'}">${tiene ? v : 'Pendiente'}</div></div>`;
+      }).join("")}</div>`;
     detalle.appendChild(block);
   });
-  if (!hay) detalle.innerHTML = `<p style="color:var(--gris);padding:16px;">Aún no hay evaluaciones registradas.</p>`;
+  if (!hay) detalle.innerHTML = `<p style="color:var(--gris);padding:16px;">Aún no hay evaluaciones.</p>`;
 }
-
 function renderStudentExams() {
   const cont = document.getElementById("studentExamsLista");
   cont.innerHTML = "";
   cont.style.display = "block";
-  
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
   const exams = (state.exams || []).filter(ex => !ex.grupoId || myGroups.includes(ex.grupoId));
-
-  if (!exams.length) {
-    cont.innerHTML = `<div class="empty-state">📭 No hay exámenes disponibles para tu grupo actualmente.</div>`;
-    return;
-  }
-  
+  if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 No hay exámenes disponibles.</div>`; return; }
   [...exams].sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
     const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
     const completado = !!result;
     const grupoNombre = state.groups.find(g => g.id === ex.grupoId)?.nombre || "Todos";
-    
     const card = document.createElement("div");
     card.className = "exam-link-card";
     card.innerHTML = `
-      <div class="exam-link-info">
-        <h4>📝 ${ex.nombre}</h4>
-        <p>${ex.descripcion || "Sin descripción"}</p>
-        <small>
-          📅 Publicado: ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong>
-        </small>
-      </div>
-      <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
-        ${completado
-          ? `<div style="text-align:right;">
-              <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
-              <div style="font-size:1.4rem;font-weight:800;color:var(--azul);line-height:1.1;">${result.nota} / 20</div>
-              <div style="font-size:.72rem;color:var(--gris);margin-bottom:6px;">${formatearFecha(result.fecha)}</div>
-              <button class="btn btn-mini btn-azul" data-retake-exam="${ex.id}">🔄 Reintentar</button>
-            </div>`
-          : `<button class="btn btn-mini btn-verde" data-start-exam="${ex.id}">▶️ Iniciar examen</button>`
-        }
-      </div>
-    `;
+      <div class="exam-link-info"><h4>📝 ${ex.nombre}</h4><p>${ex.descripcion || "Sin descripción"}</p><small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong></small></div>
+      <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">${completado
+        ? `<div style="text-align:right;"><div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div><div style="font-size:1.4rem;font-weight:800;color:var(--azul);line-height:1.1;">${result.nota} / 20</div><div style="font-size:.72rem;color:var(--gris);margin-bottom:6px;">${formatearFecha(result.fecha)}</div><button class="btn btn-mini btn-azul" data-retake-exam="${ex.id}">🔄 Reintentar</button></div>`
+        : `<button class="btn btn-mini btn-verde" data-start-exam="${ex.id}">▶️ Iniciar examen</button>`}</div>`;
     cont.appendChild(card);
   });
-  
   cont.querySelectorAll("[data-start-exam]").forEach(btn => {
     btn.addEventListener("click", () => iniciarExamen(btn.dataset.startExam));
   });
   cont.querySelectorAll("[data-retake-exam]").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (confirm("Ya completaste este examen. ¿Quieres intentarlo de nuevo? Tu nota anterior será reemplazada.")) {
-        iniciarExamen(btn.dataset.retakeExam);
-      }
+      if (confirm("¿Reintentar? Tu nota anterior será reemplazada.")) iniciarExamen(btn.dataset.retakeExam);
     });
   });
 }
-
 function iniciarExamen(examId) {
   const exam = state.exams.find(e => e.id === examId);
   if (!exam) return;
@@ -1724,31 +2073,21 @@ function iniciarExamen(examId) {
   document.getElementById("testResultadoA").classList.remove("visible");
   document.getElementById("runnerTituloA").textContent = exam.nombre;
   document.getElementById("runnerProgresoA").textContent = exam.preguntas.length + " preguntas";
-
   const cont = document.getElementById("runnerPreguntasA");
   cont.innerHTML = "";
-
   exam.preguntas.forEach((p, i) => {
     const div = document.createElement("div");
     div.className = "pregunta";
     let mediaHtml = "";
     if (p.mediaArchivo && p.mediaType) {
-      mediaHtml = `<audio controls preload="metadata"><source src="data:${p.mediaType};base64,${p.mediaArchivo}">Tu navegador no soporta audio.</audio>`;
+      mediaHtml = `<audio controls preload="metadata"><source src="data:${p.mediaType};base64,${p.mediaArchivo}"></audio>`;
       if (p.mediaNombre) mediaHtml += `<div style="font-size:.78rem;color:var(--gris);margin-bottom:6px;">🎵 ${p.mediaNombre}</div>`;
     } else if (p.mediaUrl) {
       const isAudio = /\.(mp3|wav|ogg|m4a|aac|webm)$/i.test(p.mediaUrl);
-      if (isAudio) {
-        mediaHtml = `<audio controls preload="metadata" src="${p.mediaUrl}"></audio>`;
-      } else {
-        mediaHtml = `<div style="margin:10px 0;"><a href="${p.mediaUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-mini btn-azul">🔗 Abrir recurso externo</a></div>`;
-      }
+      if (isAudio) mediaHtml = `<audio controls preload="metadata" src="${p.mediaUrl}"></audio>`;
+      else mediaHtml = `<div style="margin:10px 0;"><a href="${p.mediaUrl}" target="_blank" class="btn btn-mini btn-azul">🔗 Abrir recurso</a></div>`;
     }
-
-    div.innerHTML = `
-      <p class="enunciado"><span class="num">${i + 1}</span>${p.enunciado}</p>
-      ${mediaHtml}
-    `;
-
+    div.innerHTML = `<p class="enunciado"><span class="num">${i + 1}</span>${p.enunciado}</p>${mediaHtml}`;
     const ops = document.createElement("div");
     ops.className = "opciones";
     p.opciones.forEach((op, j) => {
@@ -1760,64 +2099,43 @@ function iniciarExamen(examId) {
     div.appendChild(ops);
     cont.appendChild(div);
   });
-
   runner.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 document.getElementById("btnCancelarTestA").addEventListener("click", () => {
   document.getElementById("studentExamRunner").classList.remove("visible");
   document.getElementById("studentExamsLista").style.display = "block";
   document.getElementById("testResultadoA").classList.remove("visible");
   testActual = null;
 });
-
 document.getElementById("runnerFormA").addEventListener("submit", (e) => {
   e.preventDefault();
   if (!testActual || !currentStudent) return;
-
   let correctas = 0, sinResp = 0;
   testActual.preguntas.forEach((p, i) => {
     const sel = document.querySelector(`input[name="rp${i}"]:checked`);
     const inputs = document.querySelectorAll(`input[name="rp${i}"]`);
     inputs.forEach(inp => inp.closest(".opcion").classList.remove("correcta", "incorrecta"));
-    if (!sel) {
-      sinResp++;
-      inputs[p.correcta].closest(".opcion").classList.add("correcta");
-      return;
-    }
+    if (!sel) { sinResp++; inputs[p.correcta].closest(".opcion").classList.add("correcta"); return; }
     const v = Number(sel.value);
     if (v === p.correcta) { correctas++; sel.closest(".opcion").classList.add("correcta"); }
     else { sel.closest(".opcion").classList.add("incorrecta"); inputs[p.correcta].closest(".opcion").classList.add("correcta"); }
   });
   document.querySelectorAll("#runnerPreguntasA .opcion").forEach(o => o.classList.add("bloqueada"));
-
   const total = testActual.preguntas.length;
   const nota = Math.round((correctas / total) * 20);
   const aprobado = nota >= 14;
-
   document.getElementById("resDetalleA").textContent = `Acertaste ${correctas} de ${total} preguntas${sinResp ? ` (${sinResp} sin responder)` : ""}`;
   document.getElementById("resNotaA").textContent = nota + " / 20";
-  
-  document.getElementById("resMsgA").innerHTML = aprobado
-    ? `✅ <strong>Aprobado</strong> (mínimo 14.00) — Tu nota se registró automáticamente en tu evaluación de Final Exam.`
-    : `❌ <strong>Desaprobado</strong> (mínimo 14.00) — Tu nota se registró automáticamente en tu evaluación de Final Exam.`;
+  document.getElementById("resMsgA").innerHTML = aprobado ? `✅ <strong>Aprobado</strong> — Nota registrada en Final Exam.` : `❌ <strong>Desaprobado</strong> — Nota registrada en Final Exam.`;
   document.getElementById("testResultadoA").classList.add("visible");
-
   if (!state.grades[currentStudentCode]) state.grades[currentStudentCode] = {};
-  if (testActual.assignmentId) {
-    state.grades[currentStudentCode][testActual.assignmentId] = nota;
-  }
-
+  if (testActual.assignmentId) state.grades[currentStudentCode][testActual.assignmentId] = nota;
   if (!state.examResults) state.examResults = {};
   if (!state.examResults[testActual.id]) state.examResults[testActual.id] = {};
-  state.examResults[testActual.id][currentStudentCode] = {
-    nota, correctas, total, sinResp, fecha: new Date().toISOString().slice(0, 10)
-  };
-
+  state.examResults[testActual.id][currentStudentCode] = { nota, correctas, total, sinResp, fecha: new Date().toISOString().slice(0, 10) };
   saveState();
   document.getElementById("testResultadoA").scrollIntoView({ behavior: "smooth", block: "center" });
 });
-
 document.getElementById("btnVolverTestsA").addEventListener("click", () => {
   document.getElementById("studentExamRunner").classList.remove("visible");
   document.getElementById("studentExamsLista").style.display = "block";
@@ -1825,17 +2143,134 @@ document.getElementById("btnVolverTestsA").addEventListener("click", () => {
   testActual = null;
   renderStudentExams();
 });
-
 function renderStudentAsistencia() {
   const body = document.getElementById("asistenciaBodyA");
   body.innerHTML = "";
   const regs = asistenciaDe(currentStudentCode);
-  if (!regs.length) { body.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#6b7280;">Sin registros todavía.</td></tr>`; return; }
+  if (!regs.length) { body.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#6b7280;">Sin registros.</td></tr>`; return; }
   [...regs].sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(a => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${formatearFecha(a.fecha)}</td><td>${a.clase}</td><td><span class="estado ${claseEstadoAsistencia(a.estado)}">${a.estado}</span></td>`;
     body.appendChild(tr);
   });
+}
+function renderStudentReportCards() {
+  const cont = document.getElementById("studentReportCardsList");
+  cont.innerHTML = "";
+  const myRCs = state.reportCards.filter(rc => rc.studentCode === currentStudentCode);
+  if (!myRCs.length) { cont.innerHTML = `<div class="empty-state">📭 Aún no tienes Report Cards.</div>`; return; }
+  myRCs.sort((a, b) => b.date.localeCompare(a.date)).forEach(rc => {
+    const card = document.createElement("div");
+    card.className = "exam-link-card";
+    card.style.alignItems = "center";
+    card.innerHTML = `
+      <div class="exam-link-info"><h4>📄 Report Card - ${formatearFecha(rc.date)}</h4><p>Docente: ${state.teachers[rc.teacherCode]?.nombre || rc.teacherCode}</p><small>Comentario: ${rc.comment.substring(0, 50)}...</small></div>
+      <div class="exam-link-actions"><button class="btn btn-mini btn-azul" data-view-rc="${rc.id}">👁️ Ver</button><button class="btn btn-mini btn-slate" data-print-rc="${rc.id}">🖨️ Imprimir / Descargar</button></div>`;
+    cont.appendChild(card);
+  });
+  cont.querySelectorAll("[data-view-rc]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rc = state.reportCards.find(r => r.id === btn.dataset.viewRc);
+      if (rc) mostrarReportCardModal(rc);
+    });
+  });
+  cont.querySelectorAll("[data-print-rc]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rc = state.reportCards.find(r => r.id === btn.dataset.printRc);
+      if (rc) imprimirReportCard(rc);
+    });
+  });
+}
+
+/* ============================================================
+   REPORT CARD - HELPERS
+   ============================================================ */
+function buildReportCardHTML(rc) {
+  const student = state.students[rc.studentCode];
+  const teacher = state.teachers[rc.teacherCode];
+  const groups = getStudentGroups(rc.studentCode).map(g => g.nombre).join(", ") || "Sin grupo";
+  let gradesHtml = "";
+  CRITERIOS.forEach(c => {
+    const promC = rc.grades[c.id] !== undefined ? rc.grades[c.id] : "—";
+    gradesHtml += `<tr><td>${c.nombre}</td><td style="text-align:right;"><strong>${promC}</strong></td></tr>`;
+  });
+  let letterheadHtml = "";
+  if (state.letterhead) {
+    // MEJORA: Clase aplicada para que el membrete cubra el ancho y esté centrado
+    letterheadHtml = `<div class="rc-letterhead"><img src="${state.letterhead}"></div>`;
+  }
+  return `
+    ${letterheadHtml}
+    <div class="rc-header">
+      <div><h2>Report Card</h2><p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p><p>Por el Prof. Juan Valenzuela M.</p></div>
+      <div style="text-align:right;"><p><strong>Fecha:</strong></p><p>${formatearFecha(rc.date)}</p></div>
+    </div>
+    <div class="rc-student-info">
+      <p><strong>Alumno:</strong> ${student.nombre}</p>
+      <p><strong>Usuario:</strong> ${rc.studentCode}</p>
+      <p><strong>Grupo:</strong> ${groups}</p>
+      <p><strong>Programa:</strong> ${student.programa || "—"}</p>
+      <p><strong>Docente:</strong> ${teacher.nombre}</p>
+    </div>
+    <div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:20px;">
+      <table style="min-width:100%;">
+        <thead><tr><th>Criterio</th><th style="text-align:right;">Nota</th></tr></thead>
+        <tbody>${gradesHtml}</tbody>
+        <tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;">${rc.average}</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="rc-comment-box"><h4>Teacher's Comment</h4><p>${rc.comment}</p></div>
+    <div class="rc-footer">
+      <div></div>
+      <div class="rc-signature">${rc.signature ? `<img src="${rc.signature}">` : ""}<p>${teacher.nombre}</p></div>
+    </div>`;
+}
+function mostrarReportCardModal(rc) {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay visible";
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:800px; text-align:left; padding:20px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div class="rc-preview-container visible" style="box-shadow:none; border:none; padding:0; margin:0;">${buildReportCardHTML(rc)}</div>
+      <div style="text-align:right; margin-top:20px;"><button class="btn btn-slate" onclick="this.closest('.modal-overlay').remove()">Cerrar</button></div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function imprimirReportCard(rc) {
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<html><head><title>Report Card</title><style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 20px; color: #1f2937; }
+    /* MEJORA: Membrete a todo el ancho */
+    .rc-letterhead { text-align: center; margin: 0 0 20px 0; padding: 0; width: 100%; display: block; }
+    .rc-letterhead img { width: 100%; max-height: 120px; object-fit: contain; display: block; margin: 0 auto; }
+    .rc-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .rc-header h2 { color: #004A8F; font-size: 1.5rem; margin: 0 0 5px 0; }
+    .rc-header p { color: #6b7280; font-size: 0.9rem; margin: 0; }
+    .rc-student-info { margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #FDB913; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rc-student-info p { margin-bottom: 0; font-size: 0.95rem; }
+    .tabla-wrap { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .tabla-wrap th, .tabla-wrap td { padding: 10px; border: 1px solid #e5e7eb; font-size: 0.9rem; }
+    .tabla-wrap th { background: #004A8F; color: #fff; text-align: left; }
+    .tabla-wrap tfoot tr { background: #f1f5f9; font-weight: 800; }
+    .rc-comment-box { background: #f0fdf4; padding: 20px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 30px; }
+    .rc-comment-box h4 { color: #166534; margin: 0 0 10px 0; font-size: 1rem; }
+    .rc-comment-box p { font-style: italic; color: #374151; margin: 0; }
+    .rc-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+    .rc-signature { text-align: center; }
+    .rc-signature img { max-height: 80px; display: block; margin: 0 auto 10px; }
+    .rc-signature p { font-size: 0.85rem; color: #6b7280; border-top: 1px solid #9ca3af; padding-top: 5px; width: 200px; margin: 0 auto; }
+    @media print { body { padding: 0; } }
+  </style></head><body>${buildReportCardHTML(rc)}</body></html>`);
+  doc.close();
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    document.body.removeChild(iframe);
+  }, 500);
 }
 
 /* ============================================================
@@ -1847,42 +2282,74 @@ function refreshTeacherView() {
   renderTeacherAsignaciones();
   renderTeacherAsistencia();
   renderTeacherExamsReadOnly();
+  renderTeacherPhoto();
 }
+function renderTeacherSignature() {
+  const box = document.getElementById("signaturePreviewBox");
+  const sig = state.signatures[currentTeacherCode];
+  if (sig) box.innerHTML = `<img src="${sig}" alt="Firma">`;
+  else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una firma aún.</p>`;
+}
+document.getElementById("btnSaveSignature").addEventListener("click", async () => {
+  const fileInput = document.getElementById("teacherSignatureFile");
+  if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona una imagen."); return; }
+  const file = fileInput.files[0];
+  if (file.size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
+  try {
+    const base64 = await fileToBase64(file);
+    state.signatures[currentTeacherCode] = base64;
+    saveState(); renderTeacherSignature();
+    const msg = document.getElementById("signatureMsg");
+    msg.classList.add("visible");
+    setTimeout(() => msg.classList.remove("visible"), 3000);
+    fileInput.value = "";
+  } catch (e) { alert("Error al cargar."); }
+});
+
+function renderTeacherPhoto() {
+  const box = document.getElementById("teacherPhotoPreviewBox");
+  const photo = state.teachers[currentTeacherCode]?.formalPhoto;
+  if (photo) box.innerHTML = `<img src="${photo}" alt="Foto Docente">`;
+  else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una foto aún.</p>`;
+}
+document.getElementById("btnSavePhoto").addEventListener("click", async () => {
+  const fileInput = document.getElementById("teacherPhotoFile");
+  if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona una imagen."); return; }
+  const file = fileInput.files[0];
+  if (file.size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
+  try {
+    const base64 = await fileToBase64(file);
+    state.teachers[currentTeacherCode].formalPhoto = base64;
+    saveState();
+    renderTeacherPhoto();
+    const avatar = document.getElementById("dashAvatarD");
+    avatar.innerHTML = `<img src="${base64}" alt="Foto">`;
+    avatar.style.padding = '0';
+    const msg = document.getElementById("photoMsg");
+    msg.classList.add("visible");
+    setTimeout(() => msg.classList.remove("visible"), 3000);
+    fileInput.value = "";
+  } catch (e) { alert("Error al cargar."); }
+});
 
 function renderTeacherGroups() {
   const cont = document.getElementById("dMisGrupos");
   cont.innerHTML = "";
   const groups = getTeacherGroups(currentTeacherCode);
-  if (!groups.length) { cont.innerHTML = `<div class="empty-state">📚 Aún no tienes grupos asignados.</div>`; return; }
+  if (!groups.length) { cont.innerHTML = `<div class="empty-state">📚 Aún no tienes grupos.</div>`; return; }
   groups.forEach(g => {
     const nivel = getNivelInfo(g.nivel);
     const card = document.createElement("div");
     card.className = "group-card";
-    card.innerHTML = `
-      <div class="group-card-head">
-        <div class="group-info">
-          <span class="group-nivel ${nivel.clase}">${nivel.nombre}</span>
-          <strong>${g.nombre}</strong>
-          <small>${g.studentCodes.length} alumno${g.studentCodes.length === 1 ? "" : "s"}</small>
-        </div>
-      </div>
-      <div class="group-card-body">
-        <h5>Alumnos del grupo</h5>
-        <div class="student-chips">
-          ${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>'
-            : g.studentCodes.map(code => { const s = state.students[code]; return s ? `<span class="student-chip">${s.nombre}</span>` : ""; }).join("")}
-        </div>
-      </div>
-    `;
+    card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${nivel.nombre}</span><strong>${g.nombre}</strong><small>${g.studentCodes.length} alumno${g.studentCodes.length === 1 ? "" : "s"}</small></div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; return s ? `<span class="student-chip">${s.nombre}</span>` : ""; }).join("")}</div></div>`;
     cont.appendChild(card);
   });
 }
-
 function renderTeacherAlumnos() {
   const body = document.getElementById("dAlumnosBody");
   body.innerHTML = "";
   const codes = getTeacherStudents(currentTeacherCode);
-  if (!codes.length) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">No tienes alumnos asignados.</td></tr>`; return; }
+  if (!codes.length) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">No tienes alumnos.</td></tr>`; return; }
   codes.forEach(code => {
     const s = state.students[code];
     const groups = getStudentGroups(code).map(g => g.nombre).join(", ") || "—";
@@ -1890,19 +2357,10 @@ function renderTeacherAlumnos() {
     const est = estadoCurso(code);
     const asis = porcentajeAsistencia(asistenciaDe(code));
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><strong>${code}</strong></td>
-      <td>${s.nombre}</td>
-      <td>${groups}</td>
-      <td>${s.programa || "—"}</td>
-      <td>${prom !== null ? prom.toFixed(2) : "—"}</td>
-      <td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td>
-      <td>${asis !== null ? asis + "%" : "—"}</td>
-    `;
+    tr.innerHTML = `<td><strong>${code}</strong></td><td>${s.nombre}</td><td>${groups}</td><td>${s.programa || "—"}</td><td>${prom !== null ? prom.toFixed(2) : "—"}</td><td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td><td>${asis !== null ? asis + "%" : "—"}</td>`;
     body.appendChild(tr);
   });
 }
-
 document.getElementById("dNewAsgForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const criterio = document.getElementById("dAsgCriterio").value;
@@ -1910,12 +2368,11 @@ document.getElementById("dNewAsgForm").addEventListener("submit", (e) => {
   const fechaInicio = document.getElementById("dAsgInicio").value;
   const fechaFin = document.getElementById("dAsgFin").value;
   if (!criterio || !nombre || !fechaInicio || !fechaFin) { alert("Completa todos los campos."); return; }
-  if (fechaFin < fechaInicio) { alert("La fecha de fin debe ser posterior o igual al inicio."); return; }
+  if (fechaFin < fechaInicio) { alert("Fecha fin debe ser >= inicio."); return; }
   state.assignments.push({ id: "asg_" + Date.now(), criterio, nombre, fechaInicio, fechaFin });
   saveState();
   e.target.reset();
 });
-
 function renderTeacherAsignaciones() {
   const cont = document.getElementById("dAsignacionesLista");
   cont.innerHTML = "";
@@ -1928,57 +2385,18 @@ function renderTeacherAsignaciones() {
     h.style.cssText = "color:var(--azul);margin:22px 0 10px;font-size:.9rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;";
     h.textContent = c.nombre;
     cont.appendChild(h);
-
     asgs.forEach(a => {
       const card = document.createElement("div");
       card.className = "asg-card";
-
       if (a.esExamen) {
-        card.innerHTML = `
-          <div class="asg-card-head">
-            <div class="asg-title">
-              <strong><span class="asg-badge ${c.id}">${c.nombre}</span> ${a.nombre} <span style="font-size:.72rem;color:var(--morado);font-weight:700;">(Examen online)</span></strong>
-              <small>📅 Inicio: ${formatearFecha(a.fechaInicio)} · Fin/entrega: ${formatearFecha(a.fechaFin)}</small>
-            </div>
-            <div class="asg-actions"><span style="font-size:.78rem;color:var(--gris);">📊 Nota automática</span></div>
-          </div>
-          <div class="asg-grading visible">
-            ${myStudents.length === 0 ? '<p style="color:var(--gris);font-size:.88rem;">No tienes alumnos.</p>'
-              : myStudents.map(code => {
-                  const s = state.students[code];
-                  const cur = (state.grades[code] || {})[a.id];
-                  const tiene = cur !== undefined && cur !== null;
-                  return `<div class="grade-row"><span>${s.nombre} <small>${code}</small></span><span style="font-weight:800;color:${tiene ? 'var(--azul)' : 'var(--gris)'};">${tiene ? cur + ' / 20' : 'Pendiente'}</span></div>`;
-                }).join("")}
-          </div>
-        `;
+        card.innerHTML = `<div class="asg-card-head"><div class="asg-title"><strong><span class="asg-badge ${c.id}">${c.nombre}</span> ${a.nombre} <span style="font-size:.72rem;color:var(--morado);font-weight:700;">(Examen)</span></strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="asg-actions"><span style="font-size:.78rem;color:var(--gris);">📊 Nota automática</span></div></div><div class="asg-grading visible">${myStudents.length === 0 ? '<p style="color:var(--gris);font-size:.88rem;">No tienes alumnos.</p>' : myStudents.map(code => { const s = state.students[code]; const cur = (state.grades[code] || {})[a.id]; const tiene = cur !== undefined && cur !== null; return `<div class="grade-row"><span>${s.nombre} <small>${code}</small></span><span style="font-weight:800;color:${tiene ? 'var(--azul)' : 'var(--gris)'};">${tiene ? cur + ' / 20' : 'Pendiente'}</span></div>`; }).join("")}</div>`;
       } else {
-        card.innerHTML = `
-          <div class="asg-card-head">
-            <div class="asg-title">
-              <strong><span class="asg-badge ${c.id}">${c.nombre}</span> ${a.nombre}</strong>
-              <small>📅 Inicio: ${formatearFecha(a.fechaInicio)} · Fin/entrega: ${formatearFecha(a.fechaFin)}</small>
-            </div>
-            <div class="asg-actions">
-              <button class="btn btn-mini btn-azul" data-toggle-grade="${a.id}">Calificar</button>
-              <button class="btn btn-mini btn-rojo" data-del-asg="${a.id}">Eliminar</button>
-            </div>
-          </div>
-          <div class="asg-grading" id="grading-${a.id}">
-            ${myStudents.length === 0 ? '<p style="color:var(--gris);font-size:.88rem;padding:8px 0;">No tienes alumnos para calificar.</p>'
-              : myStudents.map(code => {
-                  const s = state.students[code];
-                  const cur = (state.grades[code] || {})[a.id];
-                  return `<div class="grade-row"><span>${s.nombre} <small>${code}</small></span><input type="number" min="0" max="20" step="0.5" placeholder="—" value="${cur !== undefined && cur !== null ? cur : ''}" data-grade-student="${code}" data-grade-asg="${a.id}"></div>`;
-                }).join("")}
-            ${myStudents.length > 0 ? `<div style="margin-top:14px;"><button class="btn btn-mini btn-verde" data-save-grades="${a.id}">Guardar calificaciones</button></div>` : ""}
-          </div>
-        `;
+        card.innerHTML = `<div class="asg-card-head"><div class="asg-title"><strong><span class="asg-badge ${c.id}">${c.nombre}</span> ${a.nombre}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="asg-actions"><button class="btn btn-mini btn-azul" data-toggle-grade="${a.id}">Calificar</button><button class="btn btn-mini btn-rojo" data-del-asg="${a.id}">Eliminar</button></div></div><div class="asg-grading" id="grading-${a.id}">${myStudents.length === 0 ? '<p style="color:var(--gris);font-size:.88rem;padding:8px 0;">No tienes alumnos.</p>' : myStudents.map(code => { const s = state.students[code]; const cur = (state.grades[code] || {})[a.id]; return `<div class="grade-row"><span>${s.nombre} <small>${code}</small></span><input type="number" min="0" max="20" step="0.5" placeholder="—" value="${cur !== undefined && cur !== null ? cur : ''}" data-grade-student="${code}" data-grade-asg="${a.id}"></div>`; }).join("")}${myStudents.length > 0 ? `<div style="margin-top:14px;"><button class="btn btn-mini btn-verde" data-save-grades="${a.id}">Guardar</button></div>` : ""}</div>`;
         card.querySelector(`[data-toggle-grade="${a.id}"]`).addEventListener("click", () => {
           document.getElementById("grading-" + a.id).classList.toggle("visible");
         });
         card.querySelector(`[data-del-asg="${a.id}"]`).addEventListener("click", () => {
-          if (confirm("¿Eliminar esta asignación y sus calificaciones?")) {
+          if (confirm("¿Eliminar esta asignación?")) {
             state.assignments = state.assignments.filter(x => x.id !== a.id);
             Object.keys(state.grades).forEach(code => { delete state.grades[code][a.id]; });
             saveState();
@@ -1992,10 +2410,7 @@ function renderTeacherAsignaciones() {
               const val = inp.value.trim();
               if (!state.grades[sc]) state.grades[sc] = {};
               if (val === "") delete state.grades[sc][a.id];
-              else {
-                const num = parseFloat(val);
-                if (!isNaN(num) && num >= 0 && num <= 20) state.grades[sc][a.id] = num;
-              }
+              else { const num = parseFloat(val); if (!isNaN(num) && num >= 0 && num <= 20) state.grades[sc][a.id] = num; }
             });
             saveState();
             alert("✅ Calificaciones guardadas.");
@@ -2006,94 +2421,58 @@ function renderTeacherAsignaciones() {
     });
   });
 }
-
-/* ACTUALIZADO: ASISTENCIA DOCENTE CON GRUPOS */
 function renderTeacherAsistencia() {
   const groupId = document.getElementById("dAsisGrupo").value;
   const fi = document.getElementById("dAsisFecha");
   if (!fi.value) fi.value = new Date().toISOString().slice(0, 10);
   const fecha = fi.value;
-  
   const lista = document.getElementById("dAsisLista");
   const btnGuardar = document.getElementById("dBtnGuardarAsistencia");
   lista.innerHTML = "";
-  
-  if (!groupId) {
-    lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Selecciona un grupo para cargar la lista de asistencia.</p>`;
-    btnGuardar.disabled = true;
-    return;
-  }
-  
+  if (!groupId) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Selecciona un grupo.</p>`; btnGuardar.disabled = true; return; }
   const group = state.groups.find(g => g.id === groupId);
-  if (!group || group.studentCodes.length === 0) {
-    lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Este grupo no tiene alumnos registrados.</p>`;
-    btnGuardar.disabled = true;
-    return;
-  }
-
+  if (!group || group.studentCodes.length === 0) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Grupo sin alumnos.</p>`; btnGuardar.disabled = true; return; }
   btnGuardar.disabled = false;
-  
   const claseNombre = `${group.nombre} - ${formatearFecha(fecha)}`;
   const existentes = {};
   state.attendance.filter(a => a.fecha === fecha && a.clase.includes(group.nombre)).forEach(a => { existentes[a.studentCode] = a.estado; });
-
   group.studentCodes.forEach(code => {
     const s = state.students[code];
     if (!s) return;
     const actual = existentes[code] || "Present";
     const row = document.createElement("div");
     row.className = "alumno-row";
-    row.innerHTML = `
-      <div class="alumno-info"><strong>${s.nombre}</strong><small>${code}</small></div>
-      <select data-code="${code}">
-        <option value="Present" ${actual === "Present" ? "selected" : ""}>Present</option>
-        <option value="Late" ${actual === "Late" ? "selected" : ""}>Late</option>
-        <option value="Absent" ${actual === "Absent" ? "selected" : ""}>Absent</option>
-      </select>
-    `;
+    row.innerHTML = `<div class="alumno-info"><strong>${s.nombre}</strong><small>${code}</small></div><select data-code="${code}"><option value="Present" ${actual === "Present" ? "selected" : ""}>Present</option><option value="Late" ${actual === "Late" ? "selected" : ""}>Late</option><option value="Absent" ${actual === "Absent" ? "selected" : ""}>Absent</option></select>`;
     lista.appendChild(row);
   });
-  
-  // Guardar el nombre de la clase en un data-attribute del botón para usarlo al guardar
   btnGuardar.dataset.claseNombre = claseNombre;
   btnGuardar.dataset.groupId = groupId;
 }
-
 document.getElementById("dAsisGrupo").addEventListener("change", renderTeacherAsistencia);
 document.getElementById("dAsisFecha").addEventListener("change", renderTeacherAsistencia);
-
 document.getElementById("dBtnGuardarAsistencia").addEventListener("click", () => {
   const btn = document.getElementById("dBtnGuardarAsistencia");
   const groupId = btn.dataset.groupId;
   const claseNombre = btn.dataset.claseNombre;
-  
-  if (!groupId || !claseNombre) { alert("Selecciona un grupo y fecha válidos."); return; }
-  
+  if (!groupId || !claseNombre) { alert("Selecciona grupo y fecha."); return; }
   const fecha = document.getElementById("dAsisFecha").value;
   const group = state.groups.find(g => g.id === groupId);
-  
-  // Filtrar registros previos de esta clase y grupo para no duplicar
   state.attendance = state.attendance.filter(a => !(a.fecha === fecha && a.clase.includes(group.nombre)));
-  
   document.querySelectorAll("#dAsisLista select").forEach(sel => {
     state.attendance.push({ fecha, clase: claseNombre, studentCode: sel.dataset.code, estado: sel.value });
   });
-  
   saveState();
   const msg = document.getElementById("dAsisMsg");
   msg.classList.add("visible");
   setTimeout(() => msg.classList.remove("visible"), 3500);
 });
-
 function renderTeacherExamsReadOnly() {
   const cont = document.getElementById("dExamenesLista");
   cont.innerHTML = "";
   const myGroups = getTeacherGroups(currentTeacherCode).map(g => g.id);
   const exams = (state.exams || []).filter(ex => !ex.grupoId || myGroups.includes(ex.grupoId));
-  
-  if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 Aún no hay exámenes publicados para tus grupos.</div>`; return; }
+  if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 Sin exámenes.</div>`; return; }
   const myStudents = getTeacherStudents(currentTeacherCode);
-
   [...exams].sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
     const results = (state.examResults && state.examResults[ex.id]) || {};
     const myResults = myStudents.filter(code => results[code]);
@@ -2101,39 +2480,112 @@ function renderTeacherExamsReadOnly() {
     const total = myStudents.length;
     const avg = completados > 0 ? (myResults.reduce((s, c) => s + results[c].nota, 0) / completados).toFixed(2) : "—";
     const grupoNombre = state.groups.find(g => g.id === ex.grupoId)?.nombre || "Todos";
-
     const card = document.createElement("div");
     card.className = "exam-link-card";
-    card.innerHTML = `
-      <div class="exam-link-info">
-        <h4>📝 ${ex.nombre}</h4>
-        <p>${ex.descripcion || "Sin descripción"}</p>
-        <small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong></small>
-        <div style="margin-top:10px;padding:10px 12px;background:#f1f5f9;border-radius:8px;font-size:.85rem;color:var(--slate);">
-          <strong>${completados}/${total}</strong> alumnos completaron · Promedio: <strong>${avg}</strong>
-        </div>
-      </div>
-      <div class="exam-link-actions">
-        ${completados > 0 ? `<button class="btn btn-mini btn-morado" data-view-exam-results="${ex.id}">👁️ Ver notas</button>` : `<span style="font-size:.82rem;color:var(--gris);">Sin entregas</span>`}
-      </div>
-    `;
+    card.innerHTML = `<div class="exam-link-info"><h4>📝 ${ex.nombre}</h4><p>${ex.descripcion || "Sin descripción"}</p><small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong></small><div style="margin-top:10px;padding:10px 12px;background:#f1f5f9;border-radius:8px;font-size:.85rem;color:var(--slate);"><strong>${completados}/${total}</strong> completaron · Promedio: <strong>${avg}</strong></div></div><div class="exam-link-actions">${completados > 0 ? `<button class="btn btn-mini btn-morado" data-view-exam-results="${ex.id}">👁️ Ver notas</button>` : `<span style="font-size:.82rem;color:var(--gris);">Sin entregas</span>`}</div>`;
     cont.appendChild(card);
   });
-
   cont.querySelectorAll("[data-view-exam-results]").forEach(btn => {
     btn.addEventListener("click", () => {
       const examId = btn.dataset.viewExamResults;
       const results = (state.examResults[examId]) || {};
       const myStudents = getTeacherStudents(currentTeacherCode);
       const lines = myStudents.map(code => {
-        const r = results[code];
-        const s = state.students[code];
+        const r = results[code]; const s = state.students[code];
         return r ? `${s.nombre}: ${r.nota}/20 (${formatearFecha(r.fecha)})` : `${s.nombre}: pendiente`;
       }).join("\n");
-      alert(`Resultados del examen:\n\n${lines}`);
+      alert(`Resultados:\n\n${lines}`);
     });
   });
 }
+
+/* ============================================================
+   REPORT CARD - GENERAR (DOCENTE)
+   ============================================================ */
+document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
+  const groupId = e.target.value;
+  const selStudent = document.getElementById("rcStudentSelect");
+  selStudent.innerHTML = '<option value="">Selecciona un alumno...</option>';
+  if (!groupId) return;
+  const group = state.groups.find(g => g.id === groupId);
+  if (!group) return;
+  group.studentCodes.forEach(code => {
+    const s = state.students[code];
+    if (s) { const opt = document.createElement("option"); opt.value = code; opt.textContent = s.nombre; selStudent.appendChild(opt); }
+  });
+});
+document.getElementById("btnGenerateRC").addEventListener("click", () => {
+  const groupId = document.getElementById("rcGroupSelect").value;
+  const studentCode = document.getElementById("rcStudentSelect").value;
+  const comment = document.getElementById("rcComment").value.trim();
+  const signature = state.signatures[currentTeacherCode];
+  if (!groupId || !studentCode) { alert("Selecciona grupo y alumno."); return; }
+  if (!comment) { alert("Escribe un comentario."); return; }
+  if (!signature) { alert("⚠️ Sube tu firma primero en el tab 'Mi Firma'."); return; }
+  const student = state.students[studentCode];
+  const teacher = state.teachers[currentTeacherCode];
+  const gradesObj = {};
+  let sum = 0, cnt = 0;
+  CRITERIOS.forEach(c => {
+    const promC = promedioCriterio(studentCode, c.id);
+    if (promC !== null) { gradesObj[c.id] = promC; sum += promC; cnt++; }
+    else gradesObj[c.id] = "—";
+  });
+  const average = cnt > 0 ? (sum / cnt).toFixed(2) : "—";
+  const date = new Date().toISOString().slice(0, 10);
+  currentRcData = { id: "rc_" + Date.now(), studentCode, teacherCode: currentTeacherCode, date, comment, grades: gradesObj, average, signature };
+  const preview = document.getElementById("rcPreviewContainer");
+  preview.classList.add("visible");
+  const letterheadImg = document.getElementById("rcLetterheadImg");
+  if (state.letterhead) { letterheadImg.src = state.letterhead; letterheadImg.style.display = "inline-block"; }
+  else letterheadImg.style.display = "none";
+  document.getElementById("rcDate").textContent = formatearFecha(date);
+  document.getElementById("rcStudentName").textContent = student.nombre;
+  document.getElementById("rcStudentUser").textContent = studentCode;
+  document.getElementById("rcStudentGroup").textContent = getStudentGroups(studentCode).map(g => g.nombre).join(", ") || "—";
+  document.getElementById("rcStudentProgram").textContent = student.programa || "—";
+  document.getElementById("rcTeacherName").textContent = teacher.nombre;
+  document.getElementById("rcCommentDisplay").textContent = comment;
+  document.getElementById("rcSignatureImg").src = signature;
+  document.getElementById("rcSignatureImg").style.display = "block";
+  document.getElementById("rcTeacherSignatureName").textContent = teacher.nombre;
+  document.getElementById("rcAverage").textContent = average;
+  const tbody = document.getElementById("rcGradesBody");
+  tbody.innerHTML = "";
+  CRITERIOS.forEach(c => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${c.nombre}</td><td style="text-align:right;"><strong>${gradesObj[c.id]}</strong></td>`;
+    tbody.appendChild(tr);
+  });
+  const ctx = document.getElementById("rcChart").getContext('2d');
+  if (rcChartInstance) rcChartInstance.destroy();
+  const labels = CRITERIOS.map(c => c.nombre);
+  const dataValues = CRITERIOS.map(c => gradesObj[c.id] === "—" ? 0 : gradesObj[c.id]);
+  const backgroundColors = CRITERIOS.map(c => c.color);
+  rcChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Nota', data: dataValues, backgroundColor: backgroundColors, borderColor: backgroundColors.map(c => c + 'CC'), borderWidth: 2, borderRadius: 8 }] },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, title: { display: true, text: 'Rendimiento por Criterio', font: { size: 16, weight: 'bold', color: '#004A8F' } } },
+      scales: { y: { beginAtZero: true, max: 20, ticks: { stepSize: 2, color: '#475569' }, grid: { color: '#e2e8f0' } }, x: { grid: { display: false }, ticks: { color: '#475569' } } }
+    }
+  });
+  preview.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("btnConfirmSendRC").addEventListener("click", () => {
+  if (!currentRcData) return;
+  state.reportCards.push(currentRcData);
+  saveState();
+  alert("✅ Report Card enviado al alumno.");
+  document.getElementById("rcPreviewContainer").classList.remove("visible");
+  document.getElementById("rcComment").value = "";
+  currentRcData = null;
+});
+document.getElementById("btnDownloadRC").addEventListener("click", () => {
+  if (!currentRcData) return;
+  imprimirReportCard(currentRcData);
+});
 
 /* ============================================================
    VISTA ADMIN
@@ -2143,13 +2595,14 @@ function refreshAdminView() {
   renderAdminDocentes();
   renderAdminGrupos();
   renderAdminMatriculas();
+  renderAdminCourses();
   renderAdminExams();
   renderAdminResumen();
   refreshAdminTeacherSelects();
   refreshAdminExamGroups();
-  // No llamamos a renderAdminAsistencia aquí porque requiere una selección previa
+  renderAdminLetterhead();
+  renderAdminFounder();
 }
-
 function refreshAdminTeacherSelects() {
   const sel = document.getElementById("admGroupTeacher");
   if (sel) {
@@ -2157,10 +2610,7 @@ function refreshAdminTeacherSelects() {
     sel.innerHTML = '<option value="">Selecciona docente</option>';
     Object.keys(state.teachers).forEach(code => {
       const t = state.teachers[code];
-      const opt = document.createElement("option");
-      opt.value = code;
-      opt.textContent = `${t.nombre} (${code})`;
-      sel.appendChild(opt);
+      const opt = document.createElement("option"); opt.value = code; opt.textContent = `${t.nombre} (${code})`; sel.appendChild(opt);
     });
     if (cur && state.teachers[cur]) sel.value = cur;
   }
@@ -2170,49 +2620,38 @@ function refreshAdminTeacherSelects() {
     selAlu.innerHTML = '<option value="">Sin grupo</option>';
     state.groups.forEach(g => {
       const nivel = getNivelInfo(g.nivel);
-      const opt = document.createElement("option");
-      opt.value = g.id;
-      opt.textContent = `${g.nombre} · ${nivel.nombre}`;
-      selAlu.appendChild(opt);
+      const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; selAlu.appendChild(opt);
     });
     if (cur) selAlu.value = cur;
   }
 }
-
 function refreshAdminExamGroups() {
   const sel = document.getElementById("admExamGroup");
   if (!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">Selecciona grupo destino</option>';
+  sel.innerHTML = '<option value="">Selecciona grupo</option>';
   state.groups.forEach(g => {
     const nivel = getNivelInfo(g.nivel);
-    const opt = document.createElement("option");
-    opt.value = g.id;
-    opt.textContent = `${g.nombre} · ${nivel.nombre}`;
-    sel.appendChild(opt);
+    const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; sel.appendChild(opt);
   });
   if (cur) sel.value = cur;
 }
-
 function renderAdminAlumnos() {
   const body = document.getElementById("admAlumnosBody");
   body.innerHTML = "";
   const codes = Object.keys(state.students);
-  if (!codes.length) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">No hay alumnos.</td></tr>`; return; }
+  if (!codes.length) { body.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#6b7280;">No hay alumnos.</td></tr>`; return; }
   codes.forEach(code => {
     const s = state.students[code];
     const groups = getStudentGroups(code);
     const groupsHtml = groups.length ? groups.map(g => { const n = getNivelInfo(g.nivel); return `<span class="group-nivel ${n.clase}" style="margin-right:4px;">${g.nombre}</span>`; }).join("") : `<span style="color:var(--gris);font-size:.82rem;">Sin grupo</span>`;
+    
+    const evidenciaBtn = s.dniPhoto 
+      ? `<button class="btn btn-mini btn-azul" onclick="showImageViewer('${s.dniPhoto}')">📄 Ver DNI</button>` 
+      : `<span style="color:var(--rojo);font-size:.8rem;">Pendiente</span>`;
+
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><code>${code}</code></td>
-      <td>${s.nombre}</td>
-      <td>${s.email || "—"}</td>
-      <td>${groupsHtml}</td>
-      <td>${s.programa || "—"}</td>
-      <td><div class="pwd-cell"><span class="pwd-hidden" data-pwd="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd="${code}" title="Mostrar/ocultar">👁️</button></div></td>
-      <td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd="${code}">🔑 Resetear</button><button class="btn btn-mini btn-rojo" data-del-alumno="${code}">🗑️ Eliminar</button></div></td>
-    `;
+    tr.innerHTML = `<td><code>${code}</code></td><td>${s.nombre}</td><td>${s.email || "—"}</td><td>${groupsHtml}</td><td>${s.programa || "—"}</td><td>${s.year || "—"}</td><td>${s.month || "—"}</td><td>${s.day || "—"}</td><td>${s.dni || "—"}</td><td>${evidenciaBtn}</td><td><div class="pwd-cell"><span class="pwd-hidden" data-pwd="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd="${code}">👁️</button></div></td><td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-del-alumno="${code}">🗑️</button></div></td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll("[data-toggle-pwd]").forEach(btn => {
@@ -2228,8 +2667,7 @@ function renderAdminAlumnos() {
       const code = btn.dataset.resetPwd;
       const nueva = genPassword();
       if (confirm(`¿Resetear contraseña de ${state.students[code].nombre}?\n\nNueva contraseña: ${nueva}`)) {
-        state.students[code].password = nueva;
-        saveState();
+        state.students[code].password = nueva; saveState();
         alert(`✅ Contraseña actualizada.\n\nUsuario: ${code}\nContraseña: ${nueva}`);
       }
     });
@@ -2237,37 +2675,33 @@ function renderAdminAlumnos() {
   body.querySelectorAll("[data-del-alumno]").forEach(btn => {
     btn.addEventListener("click", () => {
       const code = btn.dataset.delAlumno;
-      if (confirm(`¿Eliminar definitivamente a ${state.students[code].nombre}?\n\nSe borrarán sus notas, asistencia, tests y se retirará de sus grupos.`)) {
-        delete state.students[code];
-        delete state.grades[code];
+      if (confirm(`¿Eliminar a ${state.students[code].nombre}?`)) {
+        delete state.students[code]; delete state.grades[code];
         state.attendance = state.attendance.filter(a => a.studentCode !== code);
         state.groups.forEach(g => { g.studentCodes = g.studentCodes.filter(c => c !== code); });
-        if (state.examResults) Object.keys(state.examResults).forEach(examId => { delete state.examResults[examId][code]; });
+        if (state.examResults) Object.keys(state.examResults).forEach(id => { delete state.examResults[id][code]; });
+        state.reportCards = state.reportCards.filter(rc => rc.studentCode !== code);
         saveState();
       }
     });
   });
 }
-
 function renderAdminDocentes() {
   const body = document.getElementById("admDocentesBody");
   body.innerHTML = "";
   const codes = Object.keys(state.teachers);
-  if (!codes.length) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">No hay docentes.</td></tr>`; return; }
+  if (!codes.length) { body.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#6b7280;">No hay docentes.</td></tr>`; return; }
   codes.forEach(code => {
     const t = state.teachers[code];
     const misGrupos = getTeacherGroups(code);
     const gruposHtml = misGrupos.length ? misGrupos.map(g => { const n = getNivelInfo(g.nivel); return `<span class="group-nivel ${n.clase}" style="margin-right:4px;">${g.nombre}</span>`; }).join("") : `<span style="color:var(--gris);font-size:.82rem;">Sin grupos</span>`;
+
+    const evidenciaBtn = t.dniPhoto 
+      ? `<button class="btn btn-mini btn-azul" onclick="showImageViewer('${t.dniPhoto}')">📄 Ver DNI</button>` 
+      : `<span style="color:var(--rojo);font-size:.8rem;">Pendiente</span>`;
+
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><code>${code}</code></td>
-      <td>${t.nombre}</td>
-      <td>${t.email || "—"}</td>
-      <td>${t.area || "—"}</td>
-      <td>${gruposHtml}</td>
-      <td><div class="pwd-cell"><span class="pwd-hidden" data-pwd-t="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd-t="${code}" title="Mostrar/ocultar">👁️</button></div></td>
-      <td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd-t="${code}">🔑 Resetear</button><button class="btn btn-mini btn-rojo" data-del-docente="${code}">🗑️ Eliminar</button></div></td>
-    `;
+    tr.innerHTML = `<td><code>${code}</code></td><td>${t.nombre}</td><td>${t.email || "—"}</td><td>${t.area || "—"}</td><td>${gruposHtml}</td><td>${t.year || "—"}</td><td>${t.month || "—"}</td><td>${t.day || "—"}</td><td>${t.dni || "—"}</td><td>${evidenciaBtn}</td><td><div class="pwd-cell"><span class="pwd-hidden" data-pwd-t="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd-t="${code}">👁️</button></div></td><td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd-t="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-del-docente="${code}">🗑️</button></div></td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll("[data-toggle-pwd-t]").forEach(btn => {
@@ -2282,9 +2716,8 @@ function renderAdminDocentes() {
     btn.addEventListener("click", () => {
       const code = btn.dataset.resetPwdT;
       const nueva = genPassword();
-      if (confirm(`¿Resetear contraseña de ${state.teachers[code].nombre}?\n\nNueva contraseña: ${nueva}`)) {
-        state.teachers[code].password = nueva;
-        saveState();
+      if (confirm(`¿Resetear contraseña de ${state.teachers[code].nombre}?\n\nNueva: ${nueva}`)) {
+        state.teachers[code].password = nueva; saveState();
         alert(`✅ Contraseña actualizada.\n\nUsuario: ${code}\nContraseña: ${nueva}`);
       }
     });
@@ -2293,12 +2726,13 @@ function renderAdminDocentes() {
     btn.addEventListener("click", () => {
       const code = btn.dataset.delDocente;
       const grupos = getTeacherGroups(code);
-      if (grupos.length > 0) { alert(`⚠️ No puedes eliminar a ${state.teachers[code].nombre} porque tiene ${grupos.length} grupo(s) asignado(s).\n\nPrimero reasigna sus grupos.`); return; }
-      if (confirm(`¿Eliminar definitivamente a ${state.teachers[code].nombre}?`)) { delete state.teachers[code]; saveState(); }
+      if (grupos.length > 0) { alert(`⚠️ No puedes eliminar a ${state.teachers[code].nombre}, tiene ${grupos.length} grupo(s).`); return; }
+      if (confirm(`¿Eliminar a ${state.teachers[code].nombre}?`)) {
+        delete state.teachers[code]; delete state.signatures[code]; saveState();
+      }
     });
   });
 }
-
 function renderAdminGrupos() {
   const cont = document.getElementById("admGroupsLista");
   cont.innerHTML = "";
@@ -2310,38 +2744,7 @@ function renderAdminGrupos() {
     const studentsNotInGroup = Object.keys(state.students).filter(c => !g.studentCodes.includes(c));
     const card = document.createElement("div");
     card.className = "group-card";
-    card.innerHTML = `
-      <div class="group-card-head">
-        <div class="group-info">
-          <span class="group-nivel ${nivel.clase}">${nivel.nombre}</span>
-          <strong>${g.nombre}</strong>
-          <small>Docente: <span class="teacher-tag">${teacherName}</span> · ${g.studentCodes.length} alumno${g.studentCodes.length === 1 ? "" : "s"}</small>
-        </div>
-        <div class="asg-actions">
-          <select class="group-teacher-select" data-change-teacher="${g.id}">
-            ${Object.keys(state.teachers).map(code => {
-              const t = state.teachers[code];
-              return `<option value="${code}" ${code === g.teacherCode ? "selected" : ""}>${t.nombre}</option>`;
-            }).join("")}
-          </select>
-          <button class="btn btn-mini btn-rojo" data-del-group="${g.id}">🗑️ Eliminar</button>
-        </div>
-      </div>
-      <div class="group-card-body">
-        <h5>Alumnos en este grupo</h5>
-        <div class="student-chips">
-          ${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>'
-            : g.studentCodes.map(code => { const s = state.students[code]; if (!s) return ""; return `<span class="student-chip">${s.nombre} <button title="Retirar" data-remove-student="${code}" data-group-id="${g.id}">×</button></span>`; }).join("")}
-        </div>
-        <div class="group-add-student">
-          <select data-add-student-select="${g.id}">
-            <option value="">Seleccionar alumno...</option>
-            ${studentsNotInGroup.map(code => { const s = state.students[code]; return `<option value="${code}">${s.nombre} (${code})</option>`; }).join("")}
-          </select>
-          <button class="btn btn-mini btn-verde" data-add-student-btn="${g.id}">+ Agregar</button>
-        </div>
-      </div>
-    `;
+    card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${nivel.nombre}</span><strong>${g.nombre}</strong><small>Docente: <span class="teacher-tag">${teacherName}</span> · ${g.studentCodes.length} alumno${g.studentCodes.length === 1 ? "" : "s"}</small></div><div class="asg-actions"><select class="group-teacher-select" data-change-teacher="${g.id}">${Object.keys(state.teachers).map(code => { const t = state.teachers[code]; return `<option value="${code}" ${code === g.teacherCode ? "selected" : ""}>${t.nombre}</option>`; }).join("")}</select><button class="btn btn-mini btn-rojo" data-del-group="${g.id}">🗑️</button></div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; if (!s) return ""; return `<span class="student-chip">${s.nombre} <button data-remove-student="${code}" data-group-id="${g.id}">×</button></span>`; }).join("")}</div><div class="group-add-student"><select data-add-student-select="${g.id}"><option value="">Seleccionar alumno...</option>${studentsNotInGroup.map(code => { const s = state.students[code]; return `<option value="${code}">${s.nombre} (${code})</option>`; }).join("")}</select><button class="btn btn-mini btn-verde" data-add-student-btn="${g.id}">+ Agregar</button></div></div>`;
     cont.appendChild(card);
   });
   cont.querySelectorAll("[data-change-teacher]").forEach(sel => {
@@ -2353,9 +2756,8 @@ function renderAdminGrupos() {
   cont.querySelectorAll("[data-del-group]").forEach(btn => {
     btn.addEventListener("click", () => {
       const group = state.groups.find(x => x.id === btn.dataset.delGroup);
-      if (confirm(`¿Eliminar el grupo "${group.nombre}"?\n\nLos alumnos no serán eliminados.`)) {
-        state.groups = state.groups.filter(g => g.id !== group.id);
-        saveState();
+      if (confirm(`¿Eliminar el grupo "${group.nombre}"?`)) {
+        state.groups = state.groups.filter(g => g.id !== group.id); saveState();
       }
     });
   });
@@ -2376,7 +2778,6 @@ function renderAdminGrupos() {
     });
   });
 }
-
 document.getElementById("admNewGroupForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admGroupNombre").value.trim();
@@ -2387,169 +2788,149 @@ document.getElementById("admNewGroupForm").addEventListener("submit", (e) => {
   saveState();
   e.target.reset();
 });
-
 function renderAdminMatriculas() {
   const body = document.getElementById("admMatriculasBody");
   body.innerHTML = "";
   if (!state.registrations || !state.registrations.length) {
-    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#6b7280;">No hay matrículas registradas aún.</td></tr>`;
-    return;
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#6b7280;">No hay registros.</td></tr>`; return;
   }
-  
-  const schNames = {
-    "sch_basic": "Basic (Jueves 19-21)",
-    "sch_int": "Intermedio (Martes y Jueves 21-23)",
-    "sch_teens": "Teens (Jueves 16-18:20)"
-  };
-
   [...state.registrations].sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(r => {
+    const tipoLabel = r.tipo === 'cita' ? '🩺 Cita' : '📝 Matrícula';
+    const fechaShow = r.tipo === 'cita' ? `Cita: ${formatearFecha(r.fecha)}` : `Registro: ${formatearFecha(r.fecha)}`;
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><strong>${r.nombre}</strong></td>
-      <td>${r.email}</td>
-      <td>${r.telefono}</td>
-      <td>${schNames[r.scheduleId] || r.programa}</td>
-      <td>${formatearFecha(r.fecha)}</td>
-      <td><button class="btn btn-mini btn-rojo" data-del-reg="${r.id}">🗑️ Eliminar</button></td>
-    `;
+    tr.innerHTML = `<td><strong>${tipoLabel}</strong></td><td>${r.nombre}</td><td>${r.email}</td><td>${r.telefono}</td><td>${r.programa} <br><small>${fechaShow}</small></td><td><button class="btn btn-mini btn-rojo" data-del-reg="${r.id}">🗑️</button></td>`;
     body.appendChild(tr);
   });
-
   body.querySelectorAll("[data-del-reg]").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (confirm("¿Eliminar esta matrícula? Se liberará el cupo.")) {
+      if (confirm("¿Eliminar este registro?")) {
         state.registrations = state.registrations.filter(r => r.id !== btn.dataset.delReg);
         saveState();
       }
     });
   });
 }
-
-/* NUEVO: RENDERIZAR RESUMEN DE ASISTENCIA EN ADMIN */
+function renderAdminCourses() {
+  const cont = document.getElementById("admCoursesList");
+  if (!cont) return;
+  if (!state.courses.length) {
+    cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">No hay cursos registrados.</p>`;
+    return;
+  }
+  let html = `<table class="admin-table" style="min-width:760px;"><thead><tr><th>Programa</th><th>Día(s)</th><th>Horario</th><th>Modalidad</th><th>Tipo</th><th>Cupo</th><th>Acción</th></tr></thead><tbody>`;
+  state.courses.forEach(c => {
+    const tipoLabel = c.tipo === 'cita' ? '🩺 Cita' : '📝 Matrícula';
+    const cupoInfo = c.tipo === 'cita' ? '—' : `${c.max || 12}`;
+    html += `<tr><td><strong>${c.programa}</strong></td><td>${c.dia || '—'}</td><td>${c.horario || '—'}</td><td>${c.modalidad}</td><td>${tipoLabel}</td><td>${cupoInfo}</td><td><button class="btn btn-mini btn-rojo" data-del-course="${c.id}">🗑️</button></td></tr>`;
+  });
+  html += `</tbody></table>`;
+  cont.innerHTML = html;
+  cont.querySelectorAll("[data-del-course]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const course = state.courses.find(c => c.id === btn.dataset.delCourse);
+      if (confirm(`¿Eliminar el curso "${course.programa}"?`)) {
+        state.courses = state.courses.filter(c => c.id !== course.id);
+        saveState();
+        renderAdminCourses();
+      }
+    });
+  });
+}
+document.getElementById("admNewCourseForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const programa = document.getElementById("admCoursePrograma").value.trim();
+  const dia = document.getElementById("admCourseDia").value.trim();
+  const horario = document.getElementById("admCourseHorario").value.trim();
+  const modalidad = document.getElementById("admCourseModalidad").value;
+  const tipo = document.getElementById("admCourseTipo").value;
+  const max = parseInt(document.getElementById("admCourseMax").value) || 12;
+  if (!programa) { alert("Completa el programa."); return; }
+  state.courses.push({
+    id: "sch_" + Date.now(), programa, dia, horario, modalidad, tipo, max
+  });
+  saveState();
+  e.target.reset();
+  document.getElementById("admCourseMax").value = 12;
+});
 function renderAdminAsistencia() {
   const groupId = document.getElementById("admAsisGrupo").value;
   const cont = document.getElementById("admAsisResumen");
-  
-  if (!groupId) {
-    cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo para ver el resumen de asistencia.</p>`;
-    return;
-  }
-  
+  if (!groupId) { cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo.</p>`; return; }
   const group = state.groups.find(g => g.id === groupId);
-  if (!group || group.studentCodes.length === 0) {
-    cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">Este grupo no tiene alumnos registrados.</p>`;
-    return;
-  }
-
-  let html = `
-    <table class="admin-table" style="min-width:640px;">
-      <thead>
-        <tr>
-          <th>Alumno</th>
-          <th>Present</th>
-          <th>Late</th>
-          <th>Absent</th>
-          <th>% Asistencia</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
+  if (!group || group.studentCodes.length === 0) { cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">Grupo sin alumnos.</p>`; return; }
+  let html = `<table class="admin-table" style="min-width:640px;"><thead><tr><th>Alumno</th><th>Present</th><th>Late</th><th>Absent</th><th>% Asistencia</th></tr></thead><tbody>`;
   group.studentCodes.forEach(code => {
-    const s = state.students[code];
-    if (!s) return;
-    
-    // Filtrar asistencia de este alumno para las clases de este grupo
+    const s = state.students[code]; if (!s) return;
     const regs = state.attendance.filter(a => a.studentCode === code && a.clase.includes(group.nombre));
-    
     let p = 0, l = 0, a = 0;
-    regs.forEach(r => {
-      if (r.estado === "Present") p++;
-      else if (r.estado === "Late") l++;
-      else if (r.estado === "Absent") a++;
-    });
-
+    regs.forEach(r => { if (r.estado === "Present") p++; else if (r.estado === "Late") l++; else if (r.estado === "Absent") a++; });
     const total = p + l + a;
     const pct = total > 0 ? Math.round(((p + l) / total) * 100) : null;
-
-    html += `
-      <tr>
-        <td><strong>${s.nombre}</strong><br><small style="color:var(--gris);">${code}</small></td>
-        <td><span class="estado estado-present">${p}</span></td>
-        <td><span class="estado estado-late">${l}</span></td>
-        <td><span class="estado estado-absent">${a}</span></td>
-        <td><strong style="color:${pct !== null && pct >= 70 ? 'var(--verde)' : 'var(--rojo)'};">${pct !== null ? pct + "%" : "—"}</strong></td>
-      </tr>
-    `;
+    html += `<tr><td><strong>${s.nombre}</strong><br><small style="color:var(--gris);">${code}</small></td><td><span class="estado estado-present">${p}</span></td><td><span class="estado estado-late">${l}</span></td><td><span class="estado estado-absent">${a}</span></td><td><strong style="color:${pct !== null && pct >= 70 ? 'var(--verde)' : 'var(--rojo)'};">${pct !== null ? pct + "%" : "—"}</strong></td></tr>`;
   });
-
-  html += `
-      </tbody>
-    </table>
-  `;
+  html += `</tbody></table>`;
   cont.innerHTML = html;
 }
-
 document.getElementById("admAsisGrupo").addEventListener("change", renderAdminAsistencia);
-
-/* ============ EXAM BUILDER (ADMIN) ============ */
+function renderAdminLetterhead() {
+  const box = document.getElementById("letterheadPreviewBox");
+  if (state.letterhead) {
+    box.innerHTML = `<img src="${state.letterhead}" alt="Membrete">`;
+  } else {
+    box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p>`;
+  }
+}
+document.getElementById("btnSaveLetterhead").addEventListener("click", async () => {
+  const fileInput = document.getElementById("adminLetterheadFile");
+  if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona una imagen."); return; }
+  const file = fileInput.files[0];
+  if (file.size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
+  try {
+    const base64 = await fileToBase64(file);
+    state.letterhead = base64; saveState();
+    renderAdminLetterhead();
+    const msg = document.getElementById("letterheadMsg"); msg.classList.add("visible");
+    setTimeout(() => msg.classList.remove("visible"), 3000);
+    fileInput.value = "";
+  } catch (e) { alert("Error al cargar."); }
+});
+function renderAdminFounder() {
+  const box = document.getElementById("founderPreviewBox");
+  if (state.founderPhoto) {
+    box.innerHTML = `<img src="${state.founderPhoto}" alt="Fundador">`;
+  } else {
+    box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No hay foto cargada.</p>`;
+  }
+}
+document.getElementById("btnSaveFounder").addEventListener("click", async () => {
+  const fileInput = document.getElementById("adminFounderFile");
+  if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona una imagen."); return; }
+  const file = fileInput.files[0];
+  if (file.size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
+  try {
+    const base64 = await fileToBase64(file);
+    state.founderPhoto = base64; saveState();
+    renderAdminFounder(); renderFounderPhoto();
+    const msg = document.getElementById("founderMsg"); msg.classList.add("visible");
+    setTimeout(() => msg.classList.remove("visible"), 3000);
+    fileInput.value = "";
+  } catch (e) { alert("Error al cargar."); }
+});
 function addExamQuestionBlock() {
   const cont = document.getElementById("admExamPreguntas");
   const div = document.createElement("div");
   div.className = "qblock";
-  div.innerHTML = `
-    <div class="qblock-head">
-      <strong>Pregunta</strong>
-      <button type="button" class="btn btn-mini btn-rojo btn-remove-q">✕</button>
-    </div>
-    <div class="campo">
-      <label>Enunciado <span class="req">*</span></label>
-      <input type="text" class="q-enunciado" placeholder="Escribe la pregunta...">
-    </div>
-    <div class="opciones-inputs">
-      <input type="text" class="q-op" placeholder="Opción A">
-      <input type="text" class="q-op" placeholder="Opción B">
-      <input type="text" class="q-op" placeholder="Opción C">
-      <input type="text" class="q-op" placeholder="Opción D">
-    </div>
-    <div class="campo">
-      <label>Respuesta correcta <span class="req">*</span></label>
-      <select class="q-correcta">
-        <option value="0">Opción A</option>
-        <option value="1">Opción B</option>
-        <option value="2">Opción C</option>
-        <option value="3">Opción D</option>
-      </select>
-    </div>
-    <div class="q-media-section">
-      <label style="display:block;margin-bottom:8px;">🎵 Media opcional (audio o enlace)</label>
-      <div class="campo">
-        <label style="font-size:.78rem;font-weight:500;">Enlace web (URL) — recomendado para audios grandes</label>
-        <input type="url" class="q-media-url" placeholder="https://ejemplo.com/audio.mp3">
-      </div>
-      <div class="campo">
-        <label style="font-size:.78rem;font-weight:500;">O subir audio (máx. 2 MB)</label>
-        <input type="file" class="q-media-file" accept="audio/*">
-      </div>
-    </div>
-  `;
+  div.innerHTML = `<div class="qblock-head"><strong>Pregunta</strong><button type="button" class="btn btn-mini btn-rojo btn-remove-q">✕</button></div><div class="campo"><label>Enunciado</label><input type="text" class="q-enunciado" placeholder="Escribe la pregunta..."></div><div class="opciones-inputs"><input type="text" class="q-op" placeholder="Opción A"><input type="text" class="q-op" placeholder="Opción B"><input type="text" class="q-op" placeholder="Opción C"><input type="text" class="q-op" placeholder="Opción D"></div><div class="campo"><label>Respuesta correcta</label><select class="q-correcta"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><div class="q-media-section"><label>🎵 Media opcional</label><div class="campo"><label style="font-size:.78rem;">Enlace (URL)</label><input type="url" class="q-media-url" placeholder="https://..."></div><div class="campo"><label style="font-size:.78rem;">O subir audio (máx. 2MB)</label><input type="file" class="q-media-file" accept="audio/*"></div></div>`;
   div.querySelector(".btn-remove-q").addEventListener("click", () => {
-    div.remove();
-    renumberQuestions(cont);
+    div.remove(); renumberQuestions(cont);
   });
   cont.appendChild(div);
   renumberQuestions(cont);
 }
-
 function renumberQuestions(cont) {
-  [...cont.children].forEach((b, i) => {
-    const strong = b.querySelector(".qblock-head strong");
-    if (strong) strong.textContent = `Pregunta ${i + 1}`;
-  });
+  [...cont.children].forEach((b, i) => { const strong = b.querySelector(".qblock-head strong"); if (strong) strong.textContent = `Pregunta ${i + 1}`; });
 }
-
 document.getElementById("admBtnAddPregunta").addEventListener("click", addExamQuestionBlock);
-
 document.getElementById("admNewExamForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admExamNombre").value.trim();
@@ -2557,13 +2938,9 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
   const desc = document.getElementById("admExamDesc").value.trim();
   const fechaPub = document.getElementById("admExamFechaPub").value || new Date().toISOString().slice(0, 10);
   const fechaFin = document.getElementById("admExamFechaFin").value || fechaPub;
-
-  if (!nombre) { alert("Escribe el nombre del examen."); return; }
-  if (!grupoId) { alert("Selecciona un grupo destino."); return; }
-  
+  if (!nombre || !grupoId) { alert("Completa nombre y grupo."); return; }
   const blocks = [...document.querySelectorAll("#admExamPreguntas .qblock")];
   if (!blocks.length) { alert("Agrega al menos una pregunta."); return; }
-
   const preguntas = [];
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
@@ -2572,100 +2949,50 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
     const correcta = Number(b.querySelector(".q-correcta").value);
     const mediaUrl = b.querySelector(".q-media-url").value.trim();
     const fileInput = b.querySelector(".q-media-file");
-
-    if (!enunciado) { alert(`Pregunta ${i + 1}: falta el enunciado.`); return; }
-    if (ops.some(o => !o)) { alert(`Pregunta ${i + 1}: completa las 4 opciones.`); return; }
-
+    if (!enunciado || ops.some(o => !o)) { alert(`Pregunta ${i + 1}: completa enunciado y 4 opciones.`); return; }
     let mediaArchivo = null, mediaType = null, mediaNombre = "";
     if (fileInput.files && fileInput.files[0]) {
       const file = fileInput.files[0];
-      if (file.size > MAX_AUDIO_SIZE) {
-        alert(`Pregunta ${i + 1}: el audio supera los 2 MB. Usa un enlace web en su lugar.`);
-        return;
-      }
-      try {
-        mediaArchivo = await fileToBase64(file);
-        mediaType = file.type || "audio/mpeg";
-        mediaNombre = file.name;
-      } catch (err) {
-        alert(`Pregunta ${i + 1}: error al leer el archivo.`);
-        return;
-      }
+      if (file.size > MAX_AUDIO_SIZE) { alert(`Pregunta ${i + 1}: audio > 2MB.`); return; }
+      try { mediaArchivo = (await fileToBase64(file)).split(",")[1]; mediaType = file.type || "audio/mpeg"; mediaNombre = file.name; }
+      catch (err) { alert(`Error al leer audio.`); return; }
     }
-
-    preguntas.push({
-      enunciado, opciones: ops, correcta,
-      mediaUrl: mediaUrl || "",
-      mediaArchivo, mediaType, mediaNombre
-    });
+    preguntas.push({ enunciado, opciones: ops, correcta, mediaUrl: mediaUrl || "", mediaArchivo, mediaType, mediaNombre });
   }
-
   const examId = "exam_" + Date.now();
   const asgId = "asg_exam_" + Date.now();
-
-  state.exams.push({
-    id: examId, nombre,
-    descripcion: desc || "Examen online",
-    grupoId: grupoId, assignmentId: asgId,
-    fechaPublicacion: fechaPub, fechaFin,
-    preguntas
-  });
-
-  state.assignments.push({
-    id: asgId, criterio: "final_exam", 
-    nombre: "📝 " + nombre,
-    fechaInicio: fechaPub, fechaFin,
-    esExamen: true, examId
-  });
-
+  state.exams.push({ id: examId, nombre, descripcion: desc || "Examen online", grupoId, assignmentId: asgId, fechaPublicacion: fechaPub, fechaFin, preguntas });
+  state.assignments.push({ id: asgId, criterio: "final_exam", nombre: "📝 " + nombre, fechaInicio: fechaPub, fechaFin, esExamen: true, examId });
   if (!state.examResults) state.examResults = {};
   state.examResults[examId] = {};
-
   saveState();
   e.target.reset();
   document.getElementById("admExamPreguntas").innerHTML = "";
-  const msg = document.getElementById("admExamMsg");
-  msg.classList.add("visible");
+  const msg = document.getElementById("admExamMsg"); msg.classList.add("visible");
   setTimeout(() => msg.classList.remove("visible"), 4500);
 });
-
 function renderAdminExams() {
   const cont = document.getElementById("admExamsLista");
   cont.innerHTML = "";
   const exams = state.exams || [];
-  if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 Aún no has publicado exámenes. Usa el formulario de arriba.</div>`; return; }
+  if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 Sin exámenes publicados.</div>`; return; }
   [...exams].sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
     const results = (state.examResults && state.examResults[ex.id]) || {};
     const completados = Object.keys(results).length;
-    
     const targetGroup = state.groups.find(g => g.id === ex.grupoId);
     const total = targetGroup ? targetGroup.studentCodes.length : 0;
     const avg = completados > 0 ? (Object.values(results).reduce((s, r) => s + r.nota, 0) / completados).toFixed(2) : "—";
     const grupoNombre = targetGroup ? targetGroup.nombre : "Todos";
-
     const card = document.createElement("div");
     card.className = "exam-link-card";
-    card.innerHTML = `
-      <div class="exam-link-info">
-        <h4>📝 ${ex.nombre}</h4>
-        <p>${ex.descripcion || "Sin descripción"}</p>
-        <small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo destino: <strong>${grupoNombre}</strong></small>
-        <div style="margin-top:10px;padding:10px 12px;background:#f1f5f9;border-radius:8px;font-size:.85rem;color:var(--slate);">
-          <strong>${completados}/${total}</strong> alumnos del grupo completaron · Promedio: <strong>${avg}</strong>
-        </div>
-      </div>
-      <div class="exam-link-actions">
-        <button class="btn btn-mini btn-rojo" data-del-exam="${ex.id}">🗑️ Eliminar</button>
-      </div>
-    `;
+    card.innerHTML = `<div class="exam-link-info"><h4>📝 ${ex.nombre}</h4><p>${ex.descripcion || "Sin descripción"}</p><small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong></small><div style="margin-top:10px;padding:10px 12px;background:#f1f5f9;border-radius:8px;font-size:.85rem;color:var(--slate);"><strong>${completados}/${total}</strong> completaron · Promedio: <strong>${avg}</strong></div></div><div class="exam-link-actions"><button class="btn btn-mini btn-rojo" data-del-exam="${ex.id}">🗑️</button></div>`;
     cont.appendChild(card);
   });
   cont.querySelectorAll("[data-del-exam]").forEach(btn => {
     btn.addEventListener("click", () => {
       const examId = btn.dataset.delExam;
       const exam = state.exams.find(e => e.id === examId);
-      if (!exam) return;
-      if (!confirm(`¿Eliminar el examen "${exam.nombre}"?\n\nSe eliminarán también las notas asociadas a este examen.`)) return;
+      if (!confirm(`¿Eliminar "${exam.nombre}"?`)) return;
       state.exams = state.exams.filter(e => e.id !== examId);
       if (exam.assignmentId) {
         state.assignments = state.assignments.filter(a => a.id !== exam.assignmentId);
@@ -2676,14 +3003,12 @@ function renderAdminExams() {
     });
   });
 }
-
 function renderAdminResumen() {
   document.getElementById("admStatAlumnos").textContent = Object.keys(state.students).length;
   document.getElementById("admStatDocentes").textContent = Object.keys(state.teachers).length;
   document.getElementById("admStatGrupos").textContent = state.groups.length;
   document.getElementById("admStatAsgs").textContent = state.assignments.length;
   document.getElementById("admStatExams").textContent = (state.exams || []).length;
-
   const porNivel = document.getElementById("admGruposPorNivel");
   porNivel.innerHTML = "";
   NIVELES.forEach(n => {
@@ -2694,11 +3019,10 @@ function renderAdminResumen() {
     card.innerHTML = `<div class="et">${n.nombre}</div><div class="val">${grupos.length}</div><div style="font-size:.8rem;color:var(--gris);margin-top:4px;">${totalAlumnos} alumnos</div>`;
     porNivel.appendChild(card);
   });
-
   const body = document.getElementById("admResumenBody");
   body.innerHTML = "";
   const codes = Object.keys(state.students);
-  if (!codes.length) { body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#6b7280;">No hay alumnos registrados.</td></tr>`; return; }
+  if (!codes.length) { body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#6b7280;">No hay alumnos.</td></tr>`; return; }
   codes.forEach(code => {
     const s = state.students[code];
     const groups = getStudentGroups(code).map(g => g.nombre).join(", ") || "—";
@@ -2711,76 +3035,182 @@ function renderAdminResumen() {
   });
 }
 
-/* ============ GENERAR Y COPIAR CREDENCIALES ============ */
+/* ============================================================
+   VISTA MARKETING
+   ============================================================ */
+function renderMarketingGallery() {
+  const cont = document.getElementById("mktGalleryGrid");
+  if (!cont) return;
+  cont.innerHTML = "";
+  if (!state.marketingPhotos.length) {
+    cont.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;">📸 Aún no has subido fotos.</div>`;
+    return;
+  }
+  state.marketingPhotos.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "gallery-item";
+    div.style.position = "relative";
+    div.innerHTML = `
+      <img src="${p.src}" alt="${p.title || 'Foto'}">
+      ${p.title ? `<div class="gallery-item-caption">${p.title}</div>` : ''}
+      <button class="btn btn-mini btn-rojo" data-del-photo="${p.id}" style="position:absolute; top:8px; right:8px; padding:6px 10px; z-index:2;">🗑️</button>
+    `;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll("[data-del-photo]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (confirm("¿Eliminar esta foto? Dejará de verse en la página principal.")) {
+        state.marketingPhotos = state.marketingPhotos.filter(p => p.id !== btn.dataset.delPhoto);
+        saveState();
+        renderMarketingGallery();
+      }
+    });
+  });
+}
+document.getElementById("btnUploadPhoto").addEventListener("click", async () => {
+  const titleInput = document.getElementById("mktPhotoTitle");
+  const fileInput = document.getElementById("mktPhotoFile");
+  const files = fileInput.files;
+
+  if (!files || !files.length) { alert("Selecciona al menos una imagen."); return; }
+  if (files.length > 3) { alert("Puedes subir un máximo de 3 imágenes a la vez."); return; }
+
+  let uploadedCount = 0;
+  const title = titleInput.value.trim();
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.size > MAX_IMG_SIZE) { alert(`La imagen ${file.name} es muy grande. Máximo 2MB.`); continue; }
+    try {
+      const base64 = await fileToBase64(file);
+      state.marketingPhotos.push({ 
+        id: "photo_" + Date.now() + "_" + i, 
+        title: title, 
+        src: base64 
+      });
+      uploadedCount++;
+    } catch (e) {
+      alert(`Error al cargar la imagen ${file.name}.`);
+    }
+  }
+
+  if (uploadedCount > 0) {
+    saveState();
+    renderMarketingGallery();
+    renderPublicGallery();
+    const msg = document.getElementById("mktPhotoMsg"); 
+    msg.textContent = `✅ ${uploadedCount} foto(s) subida(s).`;
+    msg.classList.add("visible");
+    setTimeout(() => msg.classList.remove("visible"), 3000);
+    titleInput.value = "";
+    fileInput.value = "";
+  }
+});
+
+/* ============================================================
+   GENERAR Y COPIAR CREDENCIALES
+   ============================================================ */
 document.querySelectorAll("[data-gen-user]").forEach(btn => {
   btn.addEventListener("click", () => {
     const tipo = btn.dataset.genUser;
-    const nombreInput = document.getElementById(tipo === "alumno" ? "admAlumnoNombre" : "admDocenteNombre");
+    const year = document.getElementById(tipo === "alumno" ? "admAlumnoYear" : "admDocenteYear").value;
+    const month = document.getElementById(tipo === "alumno" ? "admAlumnoMonth" : "admDocenteMonth").value;
+    const day = document.getElementById(tipo === "alumno" ? "admAlumnoDay" : "admDocenteDay").value;
     const userInput = document.getElementById(tipo === "alumno" ? "admAlumnoUser" : "admDocenteUser");
-    const prefix = tipo === "alumno" ? "ALM" : "PRF";
-    userInput.value = genUsername(nombreInput.value, tipo === "alumno" ? state.students : state.teachers, prefix);
+    const existing = tipo === "alumno" ? state.students : state.teachers;
+    userInput.value = genUsernameByDate(year, month, day, existing);
   });
 });
 document.querySelectorAll("[data-gen-pass]").forEach(btn => {
   btn.addEventListener("click", () => {
     const tipo = btn.dataset.genPass;
+    const dni = document.getElementById(tipo === "alumno" ? "admAlumnoDni" : "admDocenteDni").value;
     const passInput = document.getElementById(tipo === "alumno" ? "admAlumnoPass" : "admDocentePass");
-    passInput.value = genPassword();
+    passInput.value = dni || "";
   });
 });
 document.querySelectorAll("[data-copy]").forEach(btn => {
   btn.addEventListener("click", async () => {
-    const targetId = btn.dataset.copy;
-    const text = document.getElementById(targetId).textContent;
+    const text = document.getElementById(btn.dataset.copy).textContent;
     try {
       await navigator.clipboard.writeText(text);
-      const orig = btn.textContent;
-      btn.textContent = "✅ Copiado";
+      const orig = btn.textContent; btn.textContent = "✅";
       setTimeout(() => btn.textContent = orig, 1500);
     } catch (err) { alert("No se pudo copiar: " + text); }
   });
 });
 
-document.getElementById("admNewAlumnoForm").addEventListener("submit", (e) => {
+/* ============================================================
+   ADMIN - SUBMIT ALUMNO (CON FOTO DNI)
+   ============================================================ */
+document.getElementById("admNewAlumnoForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admAlumnoNombre").value.trim();
   const email = document.getElementById("admAlumnoEmail").value.trim();
   const programa = document.getElementById("admAlumnoPrograma").value.trim();
   const groupId = document.getElementById("admAlumnoGrupo").value;
+  const year = document.getElementById("admAlumnoYear").value;
+  const month = document.getElementById("admAlumnoMonth").value;
+  const day = document.getElementById("admAlumnoDay").value;
+  const dni = document.getElementById("admAlumnoDni").value.trim();
   const user = document.getElementById("admAlumnoUser").value.trim().toUpperCase();
   const pass = document.getElementById("admAlumnoPass").value;
-  if (!nombre || !user || !pass) { alert("Completa nombre, usuario y contraseña."); return; }
-  if (state.students[user]) { alert("Ese usuario ya existe."); return; }
-  if (state.teachers[user]) { alert("Ese usuario ya está en uso por un docente."); return; }
-  state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—" };
-  state.grades[user] = {};
-  if (groupId) {
-    const g = state.groups.find(x => x.id === groupId);
-    if (g && !g.studentCodes.includes(user)) g.studentCodes.push(user);
-  }
-  saveState();
-  document.getElementById("credUserAlumno").textContent = user;
-  document.getElementById("credPassAlumno").textContent = pass;
-  document.getElementById("credAlumno").classList.add("visible");
-  e.target.reset();
+  const dniFileInput = document.getElementById("admAlumnoDniFile");
+
+  if (!nombre || !user || !pass || !year || !month || !day || !dni) { alert("Completa todos los campos."); return; }
+  if (!dniFileInput.files || !dniFileInput.files[0]) { alert("La foto del DNI es obligatoria como evidencia de identidad."); return; }
+  if (state.students[user] || state.teachers[user]) { alert("Usuario ya existe."); return; }
+
+  try {
+    const dniPhotoBase64 = await fileToBase64(dniFileInput.files[0]);
+    state.students[user] = { 
+      password: pass, nombre, email: email || "—", programa: programa || "—", 
+      year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, 
+      dniPhoto: dniPhotoBase64 
+    };
+    state.grades[user] = {};
+    if (groupId) { const g = state.groups.find(x => x.id === groupId); if (g && !g.studentCodes.includes(user)) g.studentCodes.push(user); }
+    saveState();
+    document.getElementById("credUserAlumno").textContent = user;
+    document.getElementById("credPassAlumno").textContent = pass;
+    document.getElementById("credAlumno").classList.add("visible");
+    e.target.reset();
+  } catch (err) { alert("Error al procesar la foto del DNI."); }
 });
 
-document.getElementById("admNewDocenteForm").addEventListener("submit", (e) => {
+/* ============================================================
+   ADMIN - SUBMIT DOCENTE (CON FOTO DNI)
+   ============================================================ */
+document.getElementById("admNewDocenteForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admDocenteNombre").value.trim();
   const email = document.getElementById("admDocenteEmail").value.trim();
   const area = document.getElementById("admDocenteArea").value.trim();
+  const year = document.getElementById("admDocenteYear").value;
+  const month = document.getElementById("admDocenteMonth").value;
+  const day = document.getElementById("admDocenteDay").value;
+  const dni = document.getElementById("admDocenteDni").value.trim();
   const user = document.getElementById("admDocenteUser").value.trim().toUpperCase();
   const pass = document.getElementById("admDocentePass").value;
-  if (!nombre || !user || !pass) { alert("Completa nombre, usuario y contraseña."); return; }
-  if (state.teachers[user]) { alert("Ese usuario ya existe."); return; }
-  if (state.students[user]) { alert("Ese usuario ya está en uso por un alumno."); return; }
-  state.teachers[user] = { password: pass, nombre, email: email || "—", area: area || "—" };
-  saveState();
-  document.getElementById("credUserDocente").textContent = user;
-  document.getElementById("credPassDocente").textContent = pass;
-  document.getElementById("credDocente").classList.add("visible");
-  e.target.reset();
+  const dniFileInput = document.getElementById("admDocenteDniFile");
+
+  if (!nombre || !user || !pass || !year || !month || !day || !dni) { alert("Completa todos los campos."); return; }
+  if (!dniFileInput.files || !dniFileInput.files[0]) { alert("La foto del DNI es obligatoria como evidencia de identidad."); return; }
+  if (state.teachers[user] || state.students[user]) { alert("Usuario ya existe."); return; }
+
+  try {
+    const dniPhotoBase64 = await fileToBase64(dniFileInput.files[0]);
+    state.teachers[user] = { 
+      password: pass, nombre, email: email || "—", area: area || "—", 
+      year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, 
+      dniPhoto: dniPhotoBase64, formalPhoto: null 
+    };
+    saveState();
+    document.getElementById("credUserDocente").textContent = user;
+    document.getElementById("credPassDocente").textContent = pass;
+    document.getElementById("credDocente").classList.add("visible");
+    e.target.reset();
+  } catch (err) { alert("Error al procesar la foto del DNI."); }
 });
 
 /* ============================================================
@@ -2794,11 +3224,11 @@ window.addEventListener("storage", (e) => {
     refreshAll();
   }
 });
-
 setInterval(() => {
   if (currentStudentCode) { const r = document.getElementById("relojA"); if (r) r.textContent = horaActual(); }
   if (currentTeacherCode) { const r = document.getElementById("relojD"); if (r) r.textContent = horaActual(); }
   if (adminLoggedIn) { const r = document.getElementById("relojAdm"); if (r) r.textContent = horaActual(); }
+  if (marketingLoggedIn) { const r = document.getElementById("relojMkt"); if (r) r.textContent = horaActual(); }
 }, 1000);
 
 /* MENÚ MÓVIL */
@@ -2816,7 +3246,9 @@ navLinks.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
    INICIALIZAR
    ============================================================ */
 state = loadState();
-updateHorariosCounters();
+renderHorariosTable();
+renderFounderPhoto();
+renderPublicGallery();
 refreshAdminTeacherSelects();
 refreshAdminExamGroups();
 </script>
