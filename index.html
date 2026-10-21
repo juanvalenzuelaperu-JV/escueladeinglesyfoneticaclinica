@@ -1291,7 +1291,7 @@
     <div class="mensaje-exito" id="citaMsg">✅ ¡Cita solicitada!</div>
   </div>
 </div>
-
+ 
 <!-- MODAL VISOR DE IMAGEN -->
 <div class="modal-overlay" id="modalImageViewer">
   <div class="modal-box" style="max-width:800px; padding:20px; text-align:center;">
@@ -1300,7 +1300,62 @@
     <img id="imageViewerImg" src="" style="max-width:100%; max-height:70vh; border-radius:12px; box-shadow:var(--sombra);">
   </div>
 </div>
-
+<!-- MODAL EDITAR ALUMNO / DOCENTE -->
+<div class="modal-overlay" id="modalEditar">
+  <div class="modal-box" style="max-width:520px; text-align:left; padding:32px 28px;">
+    <button class="modal-close" onclick="document.getElementById('modalEditar').classList.remove('visible')">✕</button>
+    <h3 id="editarTitulo" style="margin-bottom:20px; text-align:center;">✏️ Editar</h3>
+    <form id="formEditar" style="display:flex; flex-direction:column; gap:12px;">
+      <input type="hidden" id="editTipo">
+      <input type="hidden" id="editCode">
+      <div class="campo">
+        <label>Nombre completo <span class="req">*</span></label>
+        <input type="text" id="editNombre" required style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo">
+        <label>Email</label>
+        <input type="email" id="editEmail" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo" id="editProgramaWrap">
+        <label>Programa</label>
+        <input type="text" id="editPrograma" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo" id="editAreaWrap" style="display:none;">
+        <label>Área</label>
+        <input type="text" id="editArea" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo">
+        <label>Año de ingreso</label>
+        <input type="number" id="editYear" min="2000" max="2100" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo">
+        <label>Mes de ingreso</label>
+        <select id="editMonth">
+          <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+          <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+          <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label>Día de ingreso</label>
+        <input type="number" id="editDay" min="1" max="31" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo">
+        <label>DNI</label>
+        <input type="text" id="editDni" maxlength="8" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="campo">
+        <label>Nueva contraseña <small style="color:var(--gris); font-weight:400;">(dejar vacío para no cambiar)</small></label>
+        <input type="text" id="editPassword" placeholder="••••••••" style="text-align:left; letter-spacing:normal; font-weight:500;">
+      </div>
+      <div class="tform-acciones" style="justify-content:flex-end; margin-top:10px;">
+        <button type="button" class="btn btn-slate btn-mini" onclick="document.getElementById('modalEditar').classList.remove('visible')">Cancelar</button>
+        <button type="submit" class="btn btn-verde btn-mini">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
 <script>
 /* ============================================================
    CONSTANTES
@@ -2673,7 +2728,7 @@ function renderAdminAlumnos() {
       : `<span style="color:var(--rojo);font-size:.8rem;">Pendiente</span>`;
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><code>${code}</code></td><td>${s.nombre}</td><td>${s.email || "—"}</td><td>${groupsHtml}</td><td>${s.programa || "—"}</td><td>${s.year || "—"}</td><td>${s.month || "—"}</td><td>${s.day || "—"}</td><td>${s.dni || "—"}</td><td>${evidenciaBtn}</td><td><div class="pwd-cell"><span class="pwd-hidden" data-pwd="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd="${code}">👁️</button></div></td><td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-del-alumno="${code}">🗑️</button></div></td>`;
+    tr.innerHTML = `<td><code>${code}</code></td><td>${s.nombre}</td><td>${s.email || "—"}</td><td>${groupsHtml}</td><td>${s.programa || "—"}</td><td>${s.year || "—"}</td><td>${s.month || "—"}</td><td>${s.day || "—"}</td><td>${s.dni || "—"}</td><td>${evidenciaBtn}</td><td><div class="pwd-cell"><span class="pwd-hidden" data-pwd="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd="${code}">👁️</button></div></td><td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-edit-alumno="${code}">✏️ Editar</button><button class="btn btn-mini btn-azul" data-reset-pwd="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-del-alumno="${code}">🗑️</button></div></td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll("[data-toggle-pwd]").forEach(btn => {
@@ -2694,7 +2749,10 @@ function renderAdminAlumnos() {
       }
     });
   });
-  body.querySelectorAll("[data-del-alumno]").forEach(btn => {
+ body.querySelectorAll("[data-edit-alumno]").forEach(btn => {
+  btn.addEventListener("click", () => abrirEditar(btn.dataset.editAlumno, "alumno"));
+}); 
+ body.querySelectorAll("[data-del-alumno]").forEach(btn => {
     btn.addEventListener("click", () => {
       const code = btn.dataset.delAlumno;
       if (confirm(`¿Eliminar a ${state.students[code].nombre}?`)) {
@@ -2723,7 +2781,7 @@ function renderAdminDocentes() {
       : `<span style="color:var(--rojo);font-size:.8rem;">Pendiente</span>`;
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><code>${code}</code></td><td>${t.nombre}</td><td>${t.email || "—"}</td><td>${t.area || "—"}</td><td>${gruposHtml}</td><td>${t.year || "—"}</td><td>${t.month || "—"}</td><td>${t.day || "—"}</td><td>${t.dni || "—"}</td><td>${evidenciaBtn}</td><td><div class="pwd-cell"><span class="pwd-hidden" data-pwd-t="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd-t="${code}">👁️</button></div></td><td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd-t="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-del-docente="${code}">🗑️</button></div></td>`;
+    tr.innerHTML = `<td><code>${code}</code></td><td>${t.nombre}</td><td>${t.email || "—"}</td><td>${t.area || "—"}</td><td>${gruposHtml}</td><td>${t.year || "—"}</td><td>${t.month || "—"}</td><td>${t.day || "—"}</td><td>${t.dni || "—"}</td><td>${evidenciaBtn}</td><td><div class="pwd-cell"><span class="pwd-hidden" data-pwd-t="${code}">••••••••</span><button class="eye-btn" data-toggle-pwd-t="${code}">👁️</button></div></td><td><div class="acciones-cell"><button class="btn btn-mini btn-azul" data-reset-pwd-t="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-edit-docente="${code}">✏️ Editar</button><button class="btn btn-mini btn-azul" data-reset-pwd-t="${code}">🔑</button><button class="btn btn-mini btn-rojo" data-del-docente="${code}">🗑️</button></div></td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll("[data-toggle-pwd-t]").forEach(btn => {
@@ -2744,7 +2802,10 @@ function renderAdminDocentes() {
       }
     });
   });
-  body.querySelectorAll("[data-del-docente]").forEach(btn => {
+ body.querySelectorAll("[data-edit-docente]").forEach(btn => {
+  btn.addEventListener("click", () => abrirEditar(btn.dataset.editDocente, "docente"));
+}); 
+ body.querySelectorAll("[data-del-docente]").forEach(btn => {
     btn.addEventListener("click", () => {
       const code = btn.dataset.delDocente;
       const grupos = getTeacherGroups(code);
@@ -3236,6 +3297,72 @@ document.getElementById("admNewDocenteForm").addEventListener("submit", async (e
 });
 
 /* ============================================================
+/* ============================================================
+   EDITAR ALUMNO / DOCENTE
+   ============================================================ */
+function abrirEditar(code, tipo) {
+  const obj = tipo === "alumno" ? state.students[code] : state.teachers[code];
+  if (!obj) return;
+
+  document.getElementById("editTipo").value = tipo;
+  document.getElementById("editCode").value = code;
+  document.getElementById("editarTitulo").textContent = tipo === "alumno" ? "✏️ Editar Alumno" : "✏️ Editar Docente";
+
+  document.getElementById("editNombre").value = obj.nombre || "";
+  document.getElementById("editEmail").value = (obj.email && obj.email !== "—") ? obj.email : "";
+  document.getElementById("editYear").value = obj.year || "";
+  document.getElementById("editMonth").value = obj.month || 1;
+  document.getElementById("editDay").value = obj.day || "";
+  document.getElementById("editDni").value = obj.dni || "";
+  document.getElementById("editPassword").value = "";
+
+  if (tipo === "alumno") {
+    document.getElementById("editProgramaWrap").style.display = "";
+    document.getElementById("editAreaWrap").style.display = "none";
+    document.getElementById("editPrograma").value = (obj.programa && obj.programa !== "—") ? obj.programa : "";
+  } else {
+    document.getElementById("editProgramaWrap").style.display = "none";
+    document.getElementById("editAreaWrap").style.display = "";
+    document.getElementById("editArea").value = (obj.area && obj.area !== "—") ? obj.area : "";
+  }
+
+  document.getElementById("modalEditar").classList.add("visible");
+}
+
+document.getElementById("formEditar").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const tipo = document.getElementById("editTipo").value;
+  const code = document.getElementById("editCode").value;
+  const obj = tipo === "alumno" ? state.students[code] : state.teachers[code];
+  if (!obj) return;
+
+  const nombre = document.getElementById("editNombre").value.trim();
+  if (!nombre) { alert("El nombre es obligatorio."); return; }
+
+  obj.nombre = nombre;
+  obj.email = document.getElementById("editEmail").value.trim() || "—";
+  obj.year = parseInt(document.getElementById("editYear").value) || obj.year;
+  obj.month = parseInt(document.getElementById("editMonth").value) || obj.month;
+  obj.day = parseInt(document.getElementById("editDay").value) || obj.day;
+  obj.dni = document.getElementById("editDni").value.trim() || obj.dni;
+
+  if (tipo === "alumno") {
+    obj.programa = document.getElementById("editPrograma").value.trim() || "—";
+  } else {
+    obj.area = document.getElementById("editArea").value.trim() || "—";
+  }
+
+  const nuevaPass = document.getElementById("editPassword").value.trim();
+  if (nuevaPass) obj.password = nuevaPass;
+
+  // Sincronizar referencias si es el usuario actual
+  if (currentStudentCode === code) currentStudent = obj;
+  if (currentTeacherCode === code) currentTeacher = obj;
+
+  saveState();
+  document.getElementById("modalEditar").classList.remove("visible");
+  alert("✅ Datos actualizados correctamente.");
+});
    SINCRONIZACIÓN EN TIEMPO REAL
    ============================================================ */
 window.addEventListener("storage", (e) => {
