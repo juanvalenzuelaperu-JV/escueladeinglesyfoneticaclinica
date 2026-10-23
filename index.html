@@ -2204,7 +2204,7 @@ function renderTeacherSignature() { const box = document.getElementById("signatu
 document.getElementById("btnSaveSignature").addEventListener("click", async () => {
   const fileInput = document.getElementById("teacherSignatureFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
-  try { const url = await fileToBase64(fileInput.files[0]); state.signatures[currentTeacherCode] = base64; saveState(); renderTeacherSignature(); const msg = document.getElementById("signatureMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
+ try { const url = await procesarImagen(fileInput.files[0], "firmas"); state.signatures[currentTeacherCode] = url; saveState(); renderTeacherSignature(); const msg = document.getElementById("signatureMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); } }
 });
 function renderTeacherPhoto() { const box = document.getElementById("teacherPhotoPreviewBox"); const photo = state.teachers[currentTeacherCode]?.formalPhoto; if (photo) box.innerHTML = `<img src="${photo}" alt="Foto">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una foto aún.</p>`; }
 document.getElementById("btnSavePhoto").addEventListener("click", async () => {
