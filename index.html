@@ -2207,10 +2207,11 @@ document.getElementById("btnSaveSignature").addEventListener("click", async () =
  try { const url = await procesarImagen(fileInput.files[0], "firmas"); state.signatures[currentTeacherCode] = url; saveState(); renderTeacherSignature(); const msg = document.getElementById("signatureMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); } }
 });
 function renderTeacherPhoto() { const box = document.getElementById("teacherPhotoPreviewBox"); const photo = state.teachers[currentTeacherCode]?.formalPhoto; if (photo) box.innerHTML = `<img src="${photo}" alt="Foto">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una foto aún.</p>`; }
-document.getElementById("btnSavePhoto").addEventListener("click", async () => {
-  const fileInput = document.getElementById("teacherPhotoFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
+document.getElementById("btnSaveSignature").addEventListener("click", async () => {
+  const fileInput = document.getElementById("teacherSignatureFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
-  try { const url = await procesarImagen(fileInput.files[0], "fotos-docentes"); state.teachers[currentTeacherCode].formalPhoto = url; saveState(); renderTeacherPhoto(); const avatar = document.getElementById("dashAvatarD"); avatar.innerHTML = `<img src="${url}">`; avatar.style.padding = '0'; const msg = document.getElementById("photoMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
+  try { const url = await procesarImagen(fileInput.files[0], "firmas"); state.signatures[currentTeacherCode] = url; saveState(); renderTeacherSignature(); const msg = document.getElementById("signatureMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); }
+});
 });
 function renderTeacherGroups() {
   const cont = document.getElementById("dMisGrupos"); cont.innerHTML = "";
