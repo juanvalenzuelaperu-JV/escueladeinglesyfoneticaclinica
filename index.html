@@ -1682,7 +1682,7 @@ function renderIconografia() {
     inp.addEventListener("change", async () => {
       if (!inp.files || !inp.files[0]) return;
       if (inp.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
-      try { const base64 = await fileToBase64(inp.files[0]); state.iconos[inp.dataset.iconoKey] = base64; saveState(); renderIconografia(); aplicarIconosInterfaz(); } catch (e) { alert("Error."); }
+      try { const url = await procesarImagen(inp.files[0], "iconos"); state.iconos[inp.dataset.iconoKey] = url; saveState(); renderIconografia(); aplicarIconosInterfaz(); } catch (e) { alert("Error: " + e.message); }
     });
   });
   cont.querySelectorAll("[data-reset-icono]").forEach(btn => btn.addEventListener("click", () => {
@@ -2409,7 +2409,7 @@ async function handleOficinaUpload(subportal, tipo) {
   const fileInput = document.getElementById(prefix + (tipo === "sello" ? "SelloFile" : "MembreteFile"));
   if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
-  try { const base64 = await fileToBase64(fileInput.files[0]); if (!state.oficinaImagenes[subportal]) state.oficinaImagenes[subportal] = { sello: "", membrete: "" }; state.oficinaImagenes[subportal][tipo] = base64; saveState(); renderOficinaImagenes(subportal); alert("✅ Guardado."); fileInput.value = ""; } catch (e) { alert("Error."); }
+  try { const carpeta = tipo === "sello" ? "sellos" : "membretes"; const url = await procesarImagen(fileInput.files[0], carpeta); if (!state.oficinaImagenes[subportal]) state.oficinaImagenes[subportal] = { sello: "", membrete: "" }; state.oficinaImagenes[subportal][tipo] = url; saveState(); renderOficinaImagenes(subportal); alert("✅ Guardado."); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); }
 }
 document.getElementById("btnSaveMktSello").addEventListener("click", () => handleOficinaUpload("marketing", "sello"));
 document.getElementById("btnSaveMktMembrete").addEventListener("click", () => handleOficinaUpload("marketing", "membrete"));
@@ -2546,12 +2546,12 @@ document.getElementById("admAsisGrupo").addEventListener("change", renderAdminAs
 function renderAdminLetterhead() { const box = document.getElementById("letterheadPreviewBox"); if (state.letterhead) box.innerHTML = `<img src="${state.letterhead}">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">Sin membrete.</p>`; }
 document.getElementById("btnSaveLetterhead").addEventListener("click", async () => {
   const fileInput = document.getElementById("adminLetterheadFile"); if (!fileInput.files || !fileInput.files[0]) return;
-  try { const base64 = await fileToBase64(fileInput.files[0]); state.letterhead = base64; saveState(); renderAdminLetterhead(); document.getElementById("letterheadMsg").classList.add("visible"); setTimeout(() => document.getElementById("letterheadMsg").classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
+ try { const url = await procesarImagen(fileInput.files[0], "membretes"); state.letterhead = url; saveState(); renderAdminLetterhead(); document.getElementById("letterheadMsg").classList.add("visible"); setTimeout(() => document.getElementById("letterheadMsg").classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
 });
 function renderAdminFounder() { const box = document.getElementById("founderPreviewBox"); if (state.founderPhoto) box.innerHTML = `<img src="${state.founderPhoto}">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">Sin foto.</p>`; }
 document.getElementById("btnSaveFounder").addEventListener("click", async () => {
   const fileInput = document.getElementById("adminFounderFile"); if (!fileInput.files || !fileInput.files[0]) return;
-  try { const base64 = await fileToBase64(fileInput.files[0]); state.founderPhoto = base64; saveState(); renderAdminFounder(); renderFounderPhoto(); document.getElementById("founderMsg").classList.add("visible"); setTimeout(() => document.getElementById("founderMsg").classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
+  try { const url = await procesarImagen(fileInput.files[0], "fundador"); state.founderPhoto = url; saveState(); renderAdminFounder(); renderFounderPhoto(); document.getElementById("founderMsg").classList.add("visible"); setTimeout(() => document.getElementById("founderMsg").classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
 });
 document.getElementById("admBtnAddPregunta").addEventListener("click", () => {
   const cont = document.getElementById("admExamPreguntas"); const div = document.createElement("div"); div.className = "qblock";
@@ -2599,7 +2599,7 @@ document.getElementById("btnUploadPhoto").addEventListener("click", async () => 
   const titleInput = document.getElementById("mktPhotoTitle"); const fileInput = document.getElementById("mktPhotoFile"); const files = fileInput.files;
   if (!files || !files.length) { alert("Selecciona imágenes."); return; }
   let count = 0; const title = titleInput.value.trim();
-  for (let i = 0; i < files.length && i < 3; i++) { const file = files[i]; if (file.size > MAX_IMG_SIZE) { alert(`${file.name} muy grande.`); continue; } try { const base64 = await fileToBase64(file); state.marketingPhotos.push({ id: "photo_" + Date.now() + "_" + i, title, src: base64 }); count++; } catch (e) {} }
+  for (let i = 0; i < files.length && i < 3; i++) { const file = files[i]; if (file.size > MAX_IMG_SIZE) { alert(`${file.name} muy grande.`); continue; } try { const url = await procesarImagen(file, "galeria"); state.marketingPhotos.push({ id: "photo_" + Date.now() + "_" + i, title, src: url }); count++; } catch (e) {} }
   if (count > 0) { saveState(); renderMarketingGallery(); renderPublicGallery(); titleInput.value = ""; fileInput.value = ""; alert(`✅ ${count} foto(s) subida(s).`); }
 });
 
