@@ -1773,9 +1773,9 @@ document.getElementById("btnTerminarInscExistente").addEventListener("click", as
   const courseId = document.getElementById("inscCourseId").value;
   const course = state.courses.find(c => c.id === courseId);
   const student = state.students[_alumnoVerificado];
-  try {
-    const voucher = await fileToBase64(voucherFile);
-    state.registrations.push({ id: "reg_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: student.nombre, email: student.email, telefono: "—", fecha: new Date().toISOString().slice(0, 10), tipo: "matricula", origen: "web_existente", codigoAlumno: _alumnoVerificado, voucher });
+ try {
+  const voucher = await procesarImagen(voucherFile, "vouchers");
+  state.registrations.push({ id: "reg_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: student.nombre, email: student.email, telefono: "—", fecha: new Date().toISOString().slice(0, 10), tipo: "matricula", origen: "web_existente", codigoAlumno: _alumnoVerificado, voucher });
     saveState();
     document.getElementById("inscPasoExistente").style.display = "none";
     document.getElementById("inscExito").style.display = "block";
@@ -1795,9 +1795,9 @@ document.getElementById("btnTerminarPreInsc").addEventListener("click", async ()
   const courseId = document.getElementById("inscCourseId").value;
   const course = state.courses.find(c => c.id === courseId);
   try {
-    const dniPhoto = await fileToBase64(dniFile);
-    const voucher = await fileToBase64(voucherFile);
-    state.registrations.push({ id: "reg_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: nombres + " " + apellidos, email: email || "—", telefono, fecha: new Date().toISOString().slice(0, 10), tipo: "preinscripcion", origen: "web_nuevo", dni, dniPhoto, voucher });
+  const dniPhoto = await procesarImagen(dniFile, "dni-alumnos");
+  const voucher = await procesarImagen(voucherFile, "vouchers");
+  state.registrations.push({ id: "reg_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: nombres + " " + apellidos, email: email || "—", telefono, fecha: new Date().toISOString().slice(0, 10), tipo: "preinscripcion", origen: "web_nuevo", dni, dniPhoto, voucher });
     saveState();
     document.getElementById("inscPasoNuevo").style.display = "none";
     document.getElementById("inscExito").style.display = "block";
@@ -2135,10 +2135,10 @@ function renderStudentMatriculaCursos() {
     const courseId = btn.dataset.confirmarMatricula;
     const fileInput = cont.querySelector(`[data-matriculo-voucher="${courseId}"]`);
     if (!fileInput.files || !fileInput.files[0]) { alert("Sube tu voucher."); return; }
-    try {
-      const voucher = await fileToBase64(fileInput.files[0]);
-      const course = state.courses.find(c => c.id === courseId);
-      state.registrations.push({ id: "reg_alum_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: currentStudent.nombre, email: currentStudent.email, telefono: "—", fecha: new Date().toISOString().slice(0, 10), tipo: "matricula", origen: "portal_alumno", codigoAlumno: currentStudentCode, voucher });
+   try {
+  const voucher = await procesarImagen(fileInput.files[0], "vouchers");
+  const course = state.courses.find(c => c.id === courseId);
+  state.registrations.push({ id: "reg_alum_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: currentStudent.nombre, email: currentStudent.email, telefono: "—", fecha: new Date().toISOString().slice(0, 10), tipo: "matricula", origen: "portal_alumno", codigoAlumno: currentStudentCode, voucher });
       saveState();
       alert("✅ ¡Matrícula enviada! La escuela se contactará contigo.");
       document.getElementById("matriculaInicio").style.display = "block";
@@ -2625,8 +2625,8 @@ document.getElementById("admNewAlumnoForm").addEventListener("submit", async (e)
   if (!dniFileInput.files || !dniFileInput.files[0]) { alert("Foto DNI obligatoria."); return; }
   if (state.students[user] || state.teachers[user]) { alert("Usuario ya existe."); return; }
   try {
-    const dniPhotoBase64 = await fileToBase64(dniFileInput.files[0]);
-    state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoBase64 };
+    const dniPhotoUrl = await procesarImagen(dniFileInput.files[0], "dni-alumnos");
+state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoUrl };
     state.grades[user] = {};
     if (groupId) { const g = state.groups.find(x => x.id === groupId); if (g && !g.studentCodes.includes(user)) g.studentCodes.push(user); }
     saveState();
@@ -2646,8 +2646,8 @@ document.getElementById("admNewDocenteForm").addEventListener("submit", async (e
   if (!dniFileInput.files || !dniFileInput.files[0]) { alert("Foto DNI obligatoria."); return; }
   if (state.teachers[user] || state.students[user]) { alert("Usuario ya existe."); return; }
   try {
-    const dniPhotoBase64 = await fileToBase64(dniFileInput.files[0]);
-    state.teachers[user] = { password: pass, nombre, email: email || "—", area: area || "—", pagoHora, year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoBase64, formalPhoto: null };
+    const dniPhotoUrl = await procesarImagen(dniFileInput.files[0], "dni-docentes");
+state.teachers[user] = { password: pass, nombre, email: email || "—", area: area || "—", pagoHora, year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoUrl, formalPhoto: null };
     saveState();
     document.getElementById("credUserDocente").textContent = user; document.getElementById("credPassDocente").textContent = pass;
     document.getElementById("credDocente").classList.add("visible"); e.target.reset();
