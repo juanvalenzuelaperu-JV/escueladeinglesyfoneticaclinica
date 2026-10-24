@@ -504,6 +504,21 @@
     .modal-box { padding: 36px 22px; }
     .gallery-grid { grid-template-columns: 1fr; }
   }
+   /* === NUEVOS ESTILOS (v2) === */
+  .libros-section { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--borde); }
+  .libros-section h5 { font-size: .82rem; font-weight: 800; color: var(--slate); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .04em; }
+  .libro-upload-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .libro-upload-row input[type="file"] { flex: 1; min-width: 180px; font-size: .82rem; }
+  .libro-card.pendiente { opacity: .45; pointer-events: none; }
+  .libro-card { border: 1px solid var(--borde); border-radius: 10px; padding: 12px; background: #fff; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: wrap; }
+  .libro-info { flex: 1; font-size: .9rem; font-weight: 600; color: var(--texto); min-width: 150px; }
+  .libro-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .pago-row { display: grid; grid-template-columns: 1fr 120px 36px; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .pago-row input[type="text"] { padding: 9px 12px; border: 1.5px solid var(--borde); border-radius: 8px; font-family: inherit; font-size: .9rem; width: 100%; }
+  .pago-row input[type="number"] { padding: 9px 12px; border: 1.5px solid var(--borde); border-radius: 8px; font-family: inherit; font-size: .9rem; text-align: right; width: 100%; }
+  .pago-row button { background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; cursor: pointer; font-size: 1.1rem; padding: 6px; line-height: 1; }
+  .pago-row button:hover { background: #fecaca; }
 </style>
 </head>
 <body>
@@ -999,17 +1014,13 @@
             <div class="tform admin-form">
               <h4>➕ Crear nuevo grupo</h4>
               <form id="admNewGroupForm" class="tform-grid">
-                <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A" required></div>
-                <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admGroupPrograma" placeholder="Ej: Basic" required></div>
-                <div class="campo"><label>Nivel <span class="req">*</span></label>
-                  <select id="admGroupNivel" required><option value="">Selecciona nivel</option><option value="basico">Básico</option><option value="intermedio">Intermedio</option><option value="teens">Teens</option></select>
-                </div>
-                <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
-                <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
-                <div class="campo"><label>Total de horas por ciclo <span class="req">*</span></label><input type="number" id="admGroupTotalHoras" placeholder="Ej: 40" min="1" required></div>
-                <div class="campo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
-              </form>
+  <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admGroupPrograma" placeholder="Ej: Basic" required></div>
+  <div class="campo"><label>Nivel (texto libre) <span class="req">*</span></label><input type="text" id="admGroupNivel" placeholder="Ej: Básico / B1 / Intermedio" required></div>
+  <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
+  <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
+  <div class="campo completo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
+  <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
+</form>
             </div>
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Grupos creados</h4>
             <div id="admGroupsLista"></div>
@@ -1100,7 +1111,47 @@
             </div>
             <div class="founder-preview-box" id="founderPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay foto cargada.</p></div>
           </div>
-
+<div class="panel" id="adm-panel-pago_docente">
+  <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
+  <div class="tform admin-form">
+    <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
+  </div>
+  <div id="admPagoEditor" style="display:none;">
+    <div class="resumen-grid">
+      <div class="resumen-card azul"><div class="et">Pago/hora base</div><div class="val" id="admPagoBase">—</div></div>
+      <div class="resumen-card"><div class="et">Horas ped.</div><div class="val" id="admPagoSubH">—</div></div>
+      <div class="resumen-card"><div class="et">Horas extra</div><div class="val" id="admPagoSubHE">—</div></div>
+      <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val" id="admPagoSubB">—</div></div>
+      <div class="resumen-card morado"><div class="et">Descuentos</div><div class="val" id="admPagoSubD">—</div></div>
+      <div class="resumen-card verde"><div class="et">Total neto</div><div class="val" id="admPagoSubTotal">—</div></div>
+    </div>
+    <div class="tform">
+      <h4>⏱️ Horas trabajadas</h4>
+      <div class="tform-grid">
+        <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
+        <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
+        <div class="campo"><label>Pago por hora extra (S/)</label><input type="number" id="admPagoHoraExtra" min="0" step="0.01" value="0"></div>
+      </div>
+    </div>
+    <div class="tform">
+      <h4>➕ Bonificaciones</h4>
+      <div id="admPagoBonifList"></div>
+      <button type="button" class="btn btn-mini btn-verde" id="admPagoAddBonif">+ Agregar bonificación</button>
+    </div>
+    <div class="tform">
+      <h4>➖ Descuentos</h4>
+      <div id="admPagoDescList"></div>
+      <button type="button" class="btn btn-mini btn-rojo" id="admPagoAddDesc">+ Agregar descuento</button>
+    </div>
+    <div class="tform-acciones">
+      <button class="btn btn-azul" id="admPagoPreliminar">👁️ Preliminar</button>
+      <button class="btn btn-verde" id="admPagoDescargar">⬇️ Descargar</button>
+      <button class="btn btn-slate" id="admPagoImprimir">🖨️ Imprimir</button>
+      <button class="btn btn-morado" id="admPagoGuardar">💾 Guardar cambios</button>
+    </div>
+    <div class="boleta-preview-container" id="admPagoPreview"></div>
+  </div>
+</div>
           <div class="panel" id="adm-panel-resumen">
             <div class="resumen-grid">
               <div class="resumen-card slate"><div class="et">Alumnos</div><div class="val" id="admStatAlumnos">—</div></div>
@@ -1861,10 +1912,25 @@ document.getElementById("loginFormDocente").addEventListener("submit", (e) => {
   const user = document.getElementById("userDocente").value.trim().toUpperCase();
   const pass = document.getElementById("passDocente").value;
   const error = document.getElementById("errorDocente"); error.classList.remove("visible");
-  if (user === "JESUS") { const codes = Object.keys(state.teachers); if (codes.length) { document.getElementById("modalDocente").classList.remove("visible"); document.getElementById("userDocente").value = ""; document.getElementById("passDocente").value = ""; loginTeacher(codes[0]); return; } }
+  
+  if (user === "JESUS") { 
+    const codes = Object.keys(state.teachers); 
+    if (codes.length) { 
+      document.getElementById("modalDocente").classList.remove("visible"); 
+      document.getElementById("userDocente").value = ""; 
+      document.getElementById("passDocente").value = ""; 
+      loginTeacher(codes[0]); 
+      return; 
+    } 
+  }
+  
   const teacher = state.teachers[user];
   if (!teacher || teacher.password !== pass) { error.classList.add("visible"); return; }
-  document.getElementById("modalDocente").classList.remove("visible"); document.getElementById("userDocente").value = ""; document.getElementById("passDocente").value = ""; loginTeacher(user);
+  
+  document.getElementById("modalDocente").classList.remove("visible"); 
+  document.getElementById("userDocente").value = ""; 
+  document.getElementById("passDocente").value = ""; 
+  loginTeacher(user); 
 });
 document.getElementById("loginFormTalento").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -1920,6 +1986,7 @@ function loginTeacher(code) {
   getTeacherGroups(currentTeacherCode).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selRcGroup.appendChild(opt); });
   renderTeacherSignature(); renderTeacherPhoto(); refreshTeacherView();
   document.getElementById("relojD").textContent = horaActual();
+   history.pushState({ portal: 'docente' }, '', '#docente');
 }
 function loginTalento() {
   adminLoggedIn = true; currentStudentCode = null; currentStudent = null; currentTeacherCode = null; currentTeacher = null;
@@ -1996,7 +2063,7 @@ function showImageViewer(src) { document.getElementById('imageViewerImg').src = 
 /* ============================================================
    VISTA ALUMNO
    ============================================================ */
-function refreshStudentView() { if (!currentStudent) return; renderStudentResumen(); renderStudentCalificaciones(); renderStudentExams(); renderStudentAsistencia(); renderStudentReportCards(); }
+function refreshStudentView() { if (!currentStudent) return; renderStudentResumen(); renderStudentCalificaciones(); renderStudentExams(); renderStudentAsistencia(); renderStudentReportCards(); renderStudentLibros(); }
 function renderStudentResumen() {
   const prom = promedioGeneral(currentStudentCode);
   document.getElementById("resumenPromA").textContent = prom !== null ? prom.toFixed(2) : "—";
@@ -2199,7 +2266,7 @@ function reabrirCurso(groupId) {
   group.cerrado = false; delete group.fechaCierre;
   saveState(); alert("✅ Curso reabierto.");
 }
-function refreshTeacherView() { renderTeacherGroups(); renderTeacherAlumnos(); renderTeacherAsignaciones(); renderTeacherAsistencia(); renderTeacherExamsReadOnly(); renderTeacherPhoto(); }
+function refreshTeacherView() { renderTeacherGroups(); renderTeacherAlumnos(); renderTeacherAsignaciones(); renderTeacherAsistencia(); renderTeacherExamsReadOnly(); renderTeacherPhoto(); renderSolicitudesDocente(); renderAccesoAlumnoSelect(); }
 function renderTeacherSignature() { const box = document.getElementById("signaturePreviewBox"); const sig = state.signatures[currentTeacherCode]; if (sig) box.innerHTML = `<img src="${sig}" alt="Firma">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una firma aún.</p>`; }
 document.getElementById("btnSaveSignature").addEventListener("click", async () => {
   const fileInput = document.getElementById("teacherSignatureFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
@@ -2219,7 +2286,7 @@ function renderTeacherGroups() {
   groups.forEach(g => {
     const nivel = getNivelInfo(g.nivel); const cerrado = g.cerrado === true; const puedeCerrar = puedeCerrarCurso(g);
     const card = document.createElement("div"); card.className = "group-card" + (cerrado ? " cerrado" : "");
-    card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${nivel.nombre}</span>${cerrado ? '<span class="cerrado-badge">🔒 Cerrado</span>' : ''}<strong>${g.nombre}</strong><small>${g.programa || '—'} · ${g.frecuencia || '—'} · ${g.horario || '—'} · ${g.totalHoras || 0} h/ciclo · ${g.studentCodes.length} alumno(s)</small></div><div class="asg-actions">${cerrado ? `<button class="btn btn-mini btn-cerrar-curso" disabled>🔒 Cerrado</button>` : `<button class="btn btn-mini btn-cerrar-curso" data-cerrar-curso="${g.id}" ${puedeCerrar ? '' : 'disabled title="Debes enviar todos los RC antes de cerrar" style="opacity:.5;cursor:not-allowed;"'}>🔒 Cerrar Curso</button>`}</div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; return s ? `<span class="student-chip">${s.nombre}</span>` : ""; }).join("")}</div></div>`;
+    card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${g.nivelTexto || nivel.nombre}</span>${cerrado ? '<span class="cerrado-badge">🔒 Cerrado</span>' : ''}<strong>${g.nombre}</strong><small>${g.programa || '—'} · ${g.frecuencia || '—'} · ${g.horario || '—'} · ${g.studentCodes.length} alumno(s)</small></div><div class="asg-actions">${cerrado ? `<button class="btn btn-mini btn-cerrar-curso" disabled>🔒 Cerrado</button>` : `<button class="btn btn-mini btn-cerrar-curso" data-cerrar-curso="${g.id}" ${puedeCerrar ? '' : 'disabled title="Debes enviar todos los RC antes de cerrar" style="opacity:.5;cursor:not-allowed;"'}>🔒 Cerrar Curso</button>`}</div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; return s ? `<span class="student-chip">${s.nombre}</span>` : ""; }).join("")}</div>${librosCardHTML(g.id, false)}</div>`;
     cont.appendChild(card);
   });
   cont.querySelectorAll("[data-cerrar-curso]").forEach(btn => btn.addEventListener("click", () => cerrarCurso(btn.dataset.cerrarCurso)));
@@ -2425,8 +2492,15 @@ function refreshAdminView() {
   renderAdminAlumnos(); renderAdminDocentes(); renderAdminGrupos(); renderAdminMatriculas();
   renderAdminCourses(); renderAdminExams(); renderAdminResumen();
   refreshAdminTeacherSelects(); refreshAdminExamGroups(); renderAdminLetterhead(); renderAdminFounder();
-  renderMarketingGallery();
+  renderMarketingGallery(); renderFavicon();
   renderOficinaImagenes("marketing"); renderOficinaImagenes("contabilidad"); renderOficinaImagenes("direccion");
+  const selPago = document.getElementById('admPagoSelectTeacher');
+  if (selPago) {
+    const cur = selPago.value;
+    selPago.innerHTML = '<option value="">Selecciona...</option>';
+    Object.keys(state.teachers).forEach(code => { const t = state.teachers[code]; const opt = document.createElement('option'); opt.value = code; opt.textContent = `${t.nombre} (${code})`; selPago.appendChild(opt); });
+    if (cur) selPago.value = cur;
+  }
 }
 function refreshAdminTeacherSelects() {
   const sel = document.getElementById("admGroupTeacher");
@@ -2477,7 +2551,7 @@ function renderAdminGrupos() {
     const studentsNotInGroup = Object.keys(state.students).filter(c => !g.studentCodes.includes(c));
     const cerrado = g.cerrado === true;
     const card = document.createElement("div"); card.className = "group-card" + (cerrado ? " cerrado" : "");
-    card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${nivel.nombre}</span>${cerrado ? `<span class="cerrado-badge">🔒 Cerrado ${g.fechaCierre ? '(' + formatearFecha(g.fechaCierre) + ')' : ''}</span>` : ''}<strong>${g.nombre}</strong><small>Programa: ${g.programa || '—'} · Docente: <span class="teacher-tag">${teacherName}</span> · ${g.studentCodes.length} alumno(s)</small><small>Frecuencia: ${g.frecuencia || '—'} · Horario: ${g.horario || '—'} · Total: ${g.totalHoras || 0} h/ciclo</small></div><div class="asg-actions">${cerrado ? `<button class="btn btn-mini btn-verde" data-reabrir-grupo="${g.id}">🔓 Reabrir</button>` : ''}<button class="btn btn-mini btn-morado" data-edit-group="${g.id}">✏️ Editar</button><button class="btn btn-mini btn-rojo" data-del-group="${g.id}">🗑️</button></div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; if (!s) return ""; return `<span class="student-chip">${s.nombre} <button data-remove-student="${code}" data-group-id="${g.id}">×</button></span>`; }).join("")}</div><div class="group-add-student"><select data-add-student-select="${g.id}"><option value="">Seleccionar alumno...</option>${studentsNotInGroup.map(code => { const s = state.students[code]; return `<option value="${code}">${s.nombre} (${code})</option>`; }).join("")}</select><button class="btn btn-mini btn-verde" data-add-student-btn="${g.id}">+ Agregar</button></div></div>`;
+    card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${g.nivelTexto || nivel.nombre}</span>${cerrado ? `<span class="cerrado-badge">🔒 Cerrado ${g.fechaCierre ? '(' + formatearFecha(g.fechaCierre) + ')' : ''}</span>` : ''}<strong>${g.nombre}</strong><small>Programa: ${g.programa || '—'} · Docente: <span class="teacher-tag">${teacherName}</span> · ${g.studentCodes.length} alumno(s)</small><small>Frecuencia: ${g.frecuencia || '—'} · Horario: ${g.horario || '—'}</small></div><div class="asg-actions">${cerrado ? `<button class="btn btn-mini btn-verde" data-reabrir-grupo="${g.id}">🔓 Reabrir</button>` : ''}<button class="btn btn-mini btn-morado" data-edit-group="${g.id}">✏️ Editar</button><button class="btn btn-mini btn-rojo" data-del-group="${g.id}">🗑️</button></div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; if (!s) return ""; return `<span class="student-chip">${s.nombre} <button data-remove-student="${code}" data-group-id="${g.id}">×</button></span>`; }).join("")}</div><div class="group-add-student"><select data-add-student-select="${g.id}"><option value="">Seleccionar alumno...</option>${studentsNotInGroup.map(code => { const s = state.students[code]; return `<option value="${code}">${s.nombre} (${code})</option>`; }).join("")}</select><button class="btn btn-mini btn-verde" data-add-student-btn="${g.id}">+ Agregar</button></div>${librosCardHTML(g.id, true)}</div>`;
     cont.appendChild(card);
   });
   cont.querySelectorAll("[data-reabrir-grupo]").forEach(btn => btn.addEventListener("click", () => reabrirCurso(btn.dataset.reabrirGrupo)));
@@ -2485,17 +2559,20 @@ function renderAdminGrupos() {
   cont.querySelectorAll("[data-edit-group]").forEach(btn => btn.addEventListener("click", () => abrirEditarGrupo(btn.dataset.editGroup)));
   cont.querySelectorAll("[data-remove-student]").forEach(btn => btn.addEventListener("click", () => { const group = state.groups.find(g => g.id === btn.dataset.groupId); if (group) { group.studentCodes = group.studentCodes.filter(c => c !== btn.dataset.removeStudent); saveState(); } }));
   cont.querySelectorAll("[data-add-student-btn]").forEach(btn => btn.addEventListener("click", () => { const gid = btn.dataset.addStudentBtn; const sel = cont.querySelector(`[data-add-student-select="${gid}"]`); const code = sel.value; if (!code) return; const group = state.groups.find(g => g.id === gid); if (group && !group.studentCodes.includes(code)) { group.studentCodes.push(code); saveState(); } }));
+  cont.querySelectorAll("[data-upload-libro]").forEach(btn => btn.addEventListener("click", () => {
+    const gid = btn.dataset.uploadLibro;
+    const inp = document.getElementById('libroFile_' + gid);
+    if (!inp.files?.[0]) { alert("Selecciona un archivo."); return; }
+    subirLibro(gid, inp.files[0]);
+  }));
+  cont.querySelectorAll("[data-del-libro]").forEach(btn => btn.addEventListener("click", () => {
+    const gid = btn.dataset.libroGroup; const lid = btn.dataset.delLibro;
+    if (!confirm("¿Eliminar libro?")) return;
+    const g = state.groups.find(x => x.id === gid); if (!g) return;
+    g.libros = (g.libros || []).filter(l => l.id !== lid);
+    saveState(); refreshAll();
+  }));
 }
-document.getElementById("admNewGroupForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const nombre = document.getElementById("admGroupNombre").value.trim(); const programa = document.getElementById("admGroupPrograma").value.trim();
-  const nivel = document.getElementById("admGroupNivel").value; const frecuencia = document.getElementById("admGroupFrecuencia").value.trim();
-  const horario = document.getElementById("admGroupHorario").value.trim(); const totalHoras = parseInt(document.getElementById("admGroupTotalHoras").value) || 0;
-  const teacherCode = document.getElementById("admGroupTeacher").value;
-  if (!nombre || !programa || !nivel || !frecuencia || !horario || !totalHoras || !teacherCode) { alert("Completa todos."); return; }
-  state.groups.push({ id: "grp_" + Date.now(), nombre, programa, nivel, frecuencia, horario, totalHoras, teacherCode, studentCodes: [], cerrado: false });
-  saveState(); e.target.reset();
-});
 function renderAdminMatriculas() {
   const body = document.getElementById("admMatriculasBody"); body.innerHTML = "";
   if (!state.registrations || !state.registrations.length) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">Sin registros.</td></tr>`; return; }
@@ -2769,7 +2846,297 @@ function refreshAll() {
 /* ============================================================
    INICIALIZAR
    ============================================================ */
-(async () => {
+/* ============================================================
+   NUEVAS FUNCIONALIDADES (v2)
+   ============================================================ */
+function renderFavicon() {
+  const link = document.getElementById('dynamicFavicon');
+  if (link && state.favicon) link.href = state.favicon;
+  const box = document.getElementById('faviconPreviewBox');
+  if (box) box.innerHTML = state.favicon ? `<img src="${state.favicon}" style="max-width:64px;max-height:64px;border-radius:8px;">` : `<p style="color:var(--gris);font-size:0.9rem;">No hay favicon cargado.</p>`;
+}
+document.getElementById('btnSaveFavicon')?.addEventListener('click', async () => {
+  const inp = document.getElementById('adminFaviconFile');
+  if (!inp.files?.[0]) return;
+  try {
+    const url = await procesarImagen(inp.files[0], 'favicon');
+    state.favicon = url; saveState(); renderFavicon();
+    document.getElementById('faviconMsg').classList.add('visible');
+    setTimeout(() => document.getElementById('faviconMsg').classList.remove('visible'), 3000);
+    inp.value = '';
+  } catch (e) { alert('Error: ' + e.message); }
+});
+
+async function procesarArchivo(file, carpeta = "general") {
+  const MAX = 5 * 1024 * 1024;
+  if (file.size > MAX) throw new Error(`Archivo muy grande (máx 5 MB).`);
+  try {
+    const ts = Date.now(); const rnd = Math.random().toString(36).substring(2, 8);
+    const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const limpio = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").substring(0, 40);
+    const path = `${carpeta}/${ts}_${rnd}_${limpio}`;
+    const { error } = await supabase.storage.from('evidencias').upload(path, file, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from('evidencias').getPublicUrl(path);
+    return data.publicUrl;
+  } catch (e) {
+    console.warn("Storage falló, usando base64:", e);
+    return await fileToBase64(file);
+  }
+}
+
+function getLibrosDeGrupo(groupId) {
+  const g = state.groups.find(x => x.id === groupId);
+  return (g && g.libros) ? g.libros : [];
+}
+function librosCardHTML(groupId, mostrarAdmin) {
+  const libros = getLibrosDeGrupo(groupId);
+  const listaHtml = libros.length
+    ? libros.map(l => `
+      <div class="libro-card">
+        <div class="libro-info">📖 ${l.nombre}</div>
+        <div class="libro-actions">
+          <a href="${l.url}" target="_blank" rel="noopener" class="btn btn-mini btn-azul">👁️ Vista previa</a>
+          <a href="${l.url}" download="${l.nombre}" class="btn btn-mini btn-verde">⬇️ Descargar</a>
+          ${mostrarAdmin ? `<button type="button" class="btn btn-mini btn-rojo" data-del-libro="${l.id}" data-libro-group="${groupId}">🗑️</button>` : ''}
+        </div>
+      </div>`).join('')
+    : `<div class="empty-state" style="padding:10px;">Sin libros cargados.</div>`;
+  const addHtml = mostrarAdmin ? `
+    <div class="libro-upload-row">
+      <input type="file" id="libroFile_${groupId}" accept=".pdf,.doc,.docx,image/*" data-libro-input="${groupId}" ${libros.length >= 3 ? 'disabled' : ''}>
+      <button type="button" class="btn btn-mini btn-verde" data-upload-libro="${groupId}" ${libros.length >= 3 ? 'disabled' : ''}>+ Subir libro</button>
+    </div>
+    ${libros.length >= 3 ? '<small style="color:var(--gris);font-size:.78rem;">Límite: 3 libros por grupo.</small>' : ''}` : '';
+  return `<div class="libros-section">
+    <h5>📚 Libros del ciclo ${libros.length}/3</h5>
+    ${listaHtml}
+    ${addHtml}
+  </div>`;
+}
+async function subirLibro(groupId, file) {
+  const g = state.groups.find(x => x.id === groupId);
+  if (!g) return;
+  if (!g.libros) g.libros = [];
+  if (g.libros.length >= 3) { alert("Máximo 3 libros por grupo."); return; }
+  try {
+    const url = await procesarArchivo(file, 'libros');
+    g.libros.push({ id: 'lib_' + Date.now(), nombre: file.name, url });
+    saveState(); refreshAll(); alert('✅ Libro subido.');
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+function renderStudentLibros() {
+  const cont = document.getElementById('studentLibrosLista');
+  const tab = document.querySelector('[data-atab="libros"]');
+  if (!cont || !currentStudentCode) return;
+  const groups = getStudentGroups(currentStudentCode);
+  const matriculado = groups.length > 0;
+  if (tab) {
+    tab.disabled = !matriculado;
+    tab.style.opacity = matriculado ? '1' : '.45';
+    tab.style.cursor = matriculado ? 'pointer' : 'not-allowed';
+    tab.title = matriculado ? '' : 'Debes estar matriculado en un grupo para ver tus libros.';
+  }
+  if (!matriculado) {
+    cont.innerHTML = '<div class="empty-state">🔒 Aún no estás matriculado. Los libros aparecerán cuando te asignen a un grupo.</div>';
+    return;
+  }
+  let html = '';
+  groups.forEach(g => {
+    const libros = g.libros || [];
+    if (libros.length) {
+      html += `<h5 style="color:var(--azul);margin:16px 0 8px;">📚 ${g.nombre || g.programa}</h5>`;
+      libros.forEach(l => {
+        html += `<div class="libro-card"><div class="libro-info">📖 ${l.nombre}</div><div class="libro-actions"><a href="${l.url}" target="_blank" rel="noopener" class="btn btn-mini btn-azul">👁️ Vista previa</a><a href="${l.url}" download="${l.nombre}" class="btn btn-mini btn-verde">⬇️ Descargar</a></div></div>`;
+      });
+    }
+  });
+  cont.innerHTML = html || '<div class="empty-state">📚 Tus grupos aún no tienen libros cargados.</div>';
+}
+
+function getPagoDocente(teacherCode) {
+  if (!state.pagosDocentes) state.pagosDocentes = {};
+  if (!state.pagosDocentes[teacherCode]) {
+    state.pagosDocentes[teacherCode] = { horasPed: 0, horasExt: 0, pagoHoraExtra: 0, bonificaciones: [], descuentos: [] };
+  }
+  return state.pagosDocentes[teacherCode];
+}
+function calcPagoDocente(teacherCode) {
+  const t = state.teachers[teacherCode];
+  const p = getPagoDocente(teacherCode);
+  const base = parseFloat(t?.pagoHora) || 0;
+  const subPed = (parseFloat(p.horasPed) || 0) * base;
+  const subExt = (parseFloat(p.horasExt) || 0) * (parseFloat(p.pagoHoraExtra) || 0);
+  const subB = (p.bonificaciones || []).reduce((s, b) => s + (parseFloat(b.monto) || 0), 0);
+  const subD = (p.descuentos || []).reduce((s, d) => s + (parseFloat(d.monto) || 0), 0);
+  const total = subPed + subExt + subB - subD;
+  return { base, subPed, subExt, subB, subD, total, p };
+}
+function renderAdmPagoEditor(teacherCode) {
+  const editor = document.getElementById('admPagoEditor');
+  if (!teacherCode || !state.teachers[teacherCode]) { if (editor) editor.style.display = 'none'; return; }
+  if (editor) editor.style.display = 'block';
+  const p = getPagoDocente(teacherCode);
+  document.getElementById('admPagoHorasPed').value = p.horasPed || 0;
+  document.getElementById('admPagoHorasExt').value = p.horasExt || 0;
+  document.getElementById('admPagoHoraExtra').value = p.pagoHoraExtra || 0;
+  const c = calcPagoDocente(teacherCode);
+  document.getElementById('admPagoBase').textContent = 'S/ ' + c.base.toFixed(2);
+  document.getElementById('admPagoSubH').textContent = 'S/ ' + c.subPed.toFixed(2);
+  document.getElementById('admPagoSubHE').textContent = 'S/ ' + c.subExt.toFixed(2);
+  document.getElementById('admPagoSubB').textContent = 'S/ ' + c.subB.toFixed(2);
+  document.getElementById('admPagoSubD').textContent = 'S/ ' + c.subD.toFixed(2);
+  document.getElementById('admPagoSubTotal').textContent = 'S/ ' + c.total.toFixed(2);
+  const renderLista = (arr, tipo) => {
+    const cont = document.getElementById(tipo === 'bonif' ? 'admPagoBonifList' : 'admPagoDescList');
+    cont.innerHTML = arr.length ? arr.map((it, i) => `
+      <div class="pago-row">
+        <input type="text" value="${it.concepto || ''}" data-${tipo}-concepto="${i}" placeholder="Concepto / justificación">
+        <input type="number" value="${it.monto || 0}" min="0" step="0.01" data-${tipo}-monto="${i}" placeholder="Monto S/">
+        <button type="button" data-del-${tipo}="${i}">✕</button>
+      </div>`).join('') : '<div class="empty-state" style="padding:8px;font-size:.85rem;">Sin registros.</div>';
+    cont.querySelectorAll(`[data-${tipo}-concepto]`).forEach(inp => inp.addEventListener('input', () => { arr[+inp.dataset[tipo + 'Concepto']].concepto = inp.value; }));
+    cont.querySelectorAll(`[data-${tipo}-monto]`).forEach(inp => inp.addEventListener('input', () => { arr[+inp.dataset[tipo + 'Monto']].monto = parseFloat(inp.value) || 0; }));
+    cont.querySelectorAll(`[data-del-${tipo}]`).forEach(btn => btn.addEventListener('click', () => { arr.splice(+btn.dataset['del' + (tipo === 'bonif' ? 'Bonif' : 'Desc')], 1); saveState(); renderAdmPagoEditor(teacherCode); }));
+  };
+  renderLista(p.bonificaciones || [], 'bonif');
+  renderLista(p.descuentos || [], 'desc');
+}
+document.getElementById('admPagoSelectTeacher')?.addEventListener('change', (e) => renderAdmPagoEditor(e.target.value));
+document.getElementById('admPagoAddBonif')?.addEventListener('click', () => { const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return; getPagoDocente(tc).bonificaciones.push({ concepto: '', monto: 0 }); saveState(); renderAdmPagoEditor(tc); });
+document.getElementById('admPagoAddDesc')?.addEventListener('click', () => { const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return; getPagoDocente(tc).descuentos.push({ concepto: '', monto: 0 }); saveState(); renderAdmPagoEditor(tc); });
+['admPagoHorasPed','admPagoHorasExt','admPagoHoraExtra'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', () => {
+    const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return;
+    const p = getPagoDocente(tc);
+    p.horasPed = parseFloat(document.getElementById('admPagoHorasPed').value) || 0;
+    p.horasExt = parseFloat(document.getElementById('admPagoHorasExt').value) || 0;
+    p.pagoHoraExtra = parseFloat(document.getElementById('admPagoHoraExtra').value) || 0;
+    saveState(); renderAdmPagoEditor(tc);
+  });
+});
+document.getElementById('admPagoGuardar')?.addEventListener('click', () => { alert('✅ Guardado.'); });
+
+function buildBoletaPagoHTML(teacherCode) {
+  const t = state.teachers[teacherCode];
+  const c = calcPagoDocente(teacherCode);
+  const contImg = (state.oficinaImagenes?.contabilidad) || { sello: '', membrete: '' };
+  const lh = contImg.membrete ? `<div class="rc-letterhead"><img src="${contImg.membrete}"></div>` : '';
+  const bonifHtml = (c.p.bonificaciones || []).length ? c.p.bonificaciones.map(b => `<tr><td>${b.concepto || '—'}</td><td style="text-align:right;color:var(--verde);">+ S/ ${(b.monto||0).toFixed(2)}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gris);">Sin bonificaciones</td></tr>';
+  const descHtml = (c.p.descuentos || []).length ? c.p.descuentos.map(d => `<tr><td>${d.concepto || '—'}</td><td style="text-align:right;color:var(--rojo);">− S/ ${(d.monto||0).toFixed(2)}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gris);">Sin descuentos</td></tr>';
+  return `${lh}
+    <div class="boleta-title"><h2>Boleta de Pago Docente</h2><p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p><p>Por el Prof. Juan Valenzuela M.</p></div>
+    <div class="boleta-info-grid">
+      <p><strong>Docente:</strong> ${t.nombre}</p>
+      <p><strong>Código:</strong> ${teacherCode}</p>
+      <p><strong>Área:</strong> ${t.area || '—'}</p>
+      <p><strong>Fecha:</strong> ${formatearFecha(new Date().toISOString().slice(0,10))}</p>
+      <p><strong>Base por hora:</strong> S/ ${c.base.toFixed(2)}</p>
+      <p><strong>Horas pedagógicas:</strong> ${c.p.horasPed} h</p>
+      <p><strong>Horas extras:</strong> ${c.p.horasExt} h × S/ ${(c.p.pagoHoraExtra||0).toFixed(2)}</p>
+      <p><strong>Subtotal horas:</strong> S/ ${(c.subPed + c.subExt).toFixed(2)}</p>
+    </div>
+    <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;">
+      <table style="min-width:100%;"><thead><tr><th>Bonificaciones</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${bonifHtml}</tbody></table>
+    </div>
+    <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;">
+      <table style="min-width:100%;"><thead><tr><th>Descuentos</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${descHtml}</tbody></table>
+    </div>
+    <div class="boleta-total-row"><span>TOTAL NETO A PAGAR</span><span>S/ ${c.total.toFixed(2)}</span></div>
+    <div class="boleta-footer"><div></div><div class="rc-signature">${contImg.sello ? `<img src="${contImg.sello}" style="max-height:80px;">` : ''}<p style="font-size:0.85rem;color:var(--gris);border-top:1px solid #9ca3af;padding-top:5px;width:200px;">Sello de Contabilidad y Finanzas</p></div></div>`;
+}
+document.getElementById('admPagoPreliminar')?.addEventListener('click', () => {
+  const tc = document.getElementById('admPagoSelectTeacher').value;
+  if (!tc) { alert('Selecciona un docente.'); return; }
+  const box = document.getElementById('admPagoPreview');
+  box.innerHTML = buildBoletaPagoHTML(tc); box.classList.add('visible');
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+document.getElementById('admPagoImprimir')?.addEventListener('click', () => {
+  const tc = document.getElementById('admPagoSelectTeacher').value;
+  if (!tc) return;
+  const html = `<!DOCTYPE html><html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px} img{max-height:80px}</style></head><body>${buildBoletaPagoHTML(tc)}</body></html>`;
+  const w = window.open('', '_blank'); w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400);
+});
+document.getElementById('admPagoDescargar')?.addEventListener('click', () => {
+  const tc = document.getElementById('admPagoSelectTeacher').value;
+  if (!tc) return;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ${tc}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}</style></head><body>${buildBoletaPagoHTML(tc)}</body></html>`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Boleta_${tc}_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+});
+
+document.getElementById('formSolicitudDocente')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tipo = document.getElementById('solTipo').value;
+  const mensaje = document.getElementById('solMensaje').value.trim();
+  const f = document.getElementById('solArchivo').files?.[0];
+  if (!tipo) { alert('Selecciona una acción.'); return; }
+  let archivoUrl = null;
+  if (f) { try { archivoUrl = await procesarArchivo(f, 'solicitudes'); } catch (err) { alert('Error: ' + err.message); return; } }
+  if (!state.solicitudes) state.solicitudes = [];
+  state.solicitudes.push({ id: 'sol_' + Date.now(), teacherCode: currentTeacherCode, tipo, mensaje, archivo: archivoUrl, fecha: new Date().toISOString().slice(0,10) });
+  saveState(); e.target.reset();
+  document.getElementById('solMsg').classList.add('visible');
+  setTimeout(() => document.getElementById('solMsg').classList.remove('visible'), 3000);
+  renderSolicitudesDocente();
+});
+function renderSolicitudesDocente() {
+  const cont = document.getElementById('listaSolicitudesDocente');
+  if (!cont) return;
+  const mias = (state.solicitudes || []).filter(s => s.teacherCode === currentTeacherCode);
+  if (!mias.length) { cont.innerHTML = '<div class="empty-state">Sin solicitudes enviadas.</div>'; return; }
+  cont.innerHTML = mias.sort((a,b) => b.fecha.localeCompare(a.fecha)).map(s => `
+    <div class="exam-link-card">
+      <div class="exam-link-info">
+        <h4>📝 ${s.tipo}</h4>
+        <p>${s.mensaje || '(Sin mensaje)'}</p>
+        <small>📅 ${formatearFecha(s.fecha)}</small>
+      </div>
+      <div class="exam-link-actions">
+        ${s.archivo ? `<a href="${s.archivo}" target="_blank" rel="noopener" class="btn btn-mini btn-azul">👁️ Ver archivo</a>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderAccesoAlumnoSelect() {
+  const sel = document.getElementById('dAccesoAlumnoSelect');
+  if (!sel || !currentTeacherCode) return;
+  sel.innerHTML = '<option value="">Selecciona...</option>';
+  getTeacherStudents(currentTeacherCode).forEach(code => {
+    const s = state.students[code]; if (!s) return;
+    const opt = document.createElement('option'); opt.value = code; opt.textContent = `${s.nombre} (${code})`; sel.appendChild(opt);
+  });
+}
+document.getElementById('btnEntrarAlumno')?.addEventListener('click', () => {
+  const code = document.getElementById('dAccesoAlumnoSelect').value;
+  if (!code || !state.students[code]) { alert('Selecciona un alumno válido.'); return; }
+  _returnToTeacherCode = currentTeacherCode;
+  history.pushState({ portal: 'alumno', fromTeacher: true }, '', '#alumno');
+  loginStudent(code);
+});
+
+function navigateToPortal(portal) {
+  if (portal === 'main') {
+    document.getElementById('portalCards').style.display = 'grid';
+    ['dashboardAlumno','dashboardDocente','dashboardTalento'].forEach(id => document.getElementById(id).classList.remove('visible'));
+    currentStudentCode = null; currentStudent = null; currentTeacherCode = null; currentTeacher = null; adminLoggedIn = false;
+    return;
+  }
+  ['dashboardAlumno','dashboardDocente','dashboardTalento'].forEach(id => document.getElementById(id).classList.remove('visible'));
+  document.getElementById('portalCards').style.display = 'none';
+  if (portal === 'alumno' && currentStudent) document.getElementById('dashboardAlumno').classList.add('visible');
+  if (portal === 'docente' && currentTeacher) document.getElementById('dashboardDocente').classList.add('visible');
+  if (portal === 'talento' && adminLoggedIn) document.getElementById('dashboardTalento').classList.add('visible');
+}
+window.addEventListener('popstate', (e) => {
+  const s = e.state;
+  if (!s || !s.portal) { navigateToPortal('main'); return; }
+  navigateToPortal(s.portal);
+});
+ (async () => {
   state = await loadState();
   renderHorariosTable();
   renderFounderPhoto();
@@ -2784,5 +3151,9 @@ function refreshAll() {
   console.log("🚀 App lista. Datos sincronizados con Supabase.");
 })();
 </script>
+<a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
+   class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="#fff"><path d="M16 .4C7.4.4.4 7.4.4 16c0 2.8.7 5.5 2.1 7.9L.3 31.7l8-2.1A15.6 15.6 0 0 0 16 31.6C24.6 31.6 31.6 24.6 31.6 16S24.6.4 16 .4zm0 28.6c-2.5 0-4.9-.7-7-2l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.9 12.9 0 0 1 3 16C3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 13-13 13zm7.1-9.7c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.3 1.6-.2.3-.5.3-.9.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8.2-.2.4-.5.6-.7.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.8 0 1.7 1.2 3.3 1.4 3.5.2.2 2.4 3.7 5.9 5.2.8.3 1.5.5 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg>
+</a>
 </body>
 </html>
