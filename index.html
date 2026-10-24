@@ -723,8 +723,8 @@
               <h4 style="color:var(--azul);">Nueva Matrícula</h4>
               <p style="color:var(--gris); font-size:.9rem; margin-bottom:18px;">Inicia una nueva matrícula para el próximo ciclo.</p>
               <button class="btn btn-azul" id="btnIniciarMatricula">Iniciar Nueva Matrícula</button>
-                   <div class="panel" id="panel-libros">
-          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Libros del Ciclo</h4>
+              <div class="panel" id="panel-libros">
+             <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Libros del Ciclo</h4>
           <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Libros asignados a tus grupos.</p>
           <div id="studentLibrosLista"></div>
         </div>
@@ -759,18 +759,9 @@
         <button class="dash-tab" data-dtab="reportcard">📄 Generar Report Card</button>
         <button class="dash-tab" data-dtab="historial">📚 Historial de Reportes</button>
         <button class="dash-tab" data-dtab="pago">💰 Pago Docente</button>
-               <button class="dash-tab" data-dtab="acceso_alumno">🔑 Acceder a Alumno</button>
         <button class="dash-tab" data-dtab="libros_grupos">📖 Libros por Grupo</button>
         <button class="dash-tab" data-dtab="solicitudes">📝 Solicitudes</button>
-             <div class="panel" id="dpanel-acceso_alumno">
-          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceder a Cuenta de Alumno</h4>
-          <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Entra directamente a la cuenta de un alumno para asistirlo.</p>
-          <div class="tform">
-            <div class="campo"><label>Selecciona al alumno</label><select id="dAccesoAlumnoSelect"><option value="">Selecciona...</option></select></div>
-            <div class="tform-acciones"><button class="btn btn-azul" id="btnEntrarAlumno">Entrar a la cuenta</button></div>
-          </div>
-        </div>
-        
+               
         <div class="panel" id="dpanel-libros_grupos">
           <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📖 Libros por Grupo</h4>
           <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Libros cargados por la administración para tus grupos.</p>
@@ -983,9 +974,11 @@
             <button class="dash-tab" data-admtab="programacion">🗓️ Programación</button>
             <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
             <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
+           <button class="dash-tab" data-admtab="pago_docente">💰 Gestor Pago Docente</button>
             <button class="dash-tab" data-admtab="membrete">🖼️ Membrete</button>
             <button class="dash-tab" data-admtab="fundador">👤 Foto Fundador</button>
             <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
+           <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceder a Alumno</button>
           </div>
           <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo el administrador crea cuentas, grupos, cursos y exámenes.</div>
 
@@ -1159,7 +1152,17 @@
             </div>
             <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
           </div>
-
+            <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
+            <div class="tform admin-form" style="margin-top:20px;">
+              <h4>🎨 Favicon de la página</h4>
+              <p style="color:var(--gris);font-size:.85rem;margin-bottom:12px;">Sube una imagen cuadrada (32×32 o 64×64). Se usará como icono de la pestaña.</p>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminFaviconFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveFavicon">Guardar Favicon</button></div>
+              <div class="mensaje-exito" id="faviconMsg">✅ Favicon guardado.</div>
+            </div>
+            <div class="firma-preview-box" id="faviconPreviewBox" style="min-height:80px;"><p style="color:var(--gris);font-size:0.9rem;">No hay favicon cargado.</p></div>
+            
+          </div> <!-- Este es el cierre del panel-membrete -->
           <div class="panel" id="adm-panel-fundador">
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">👤 Foto del Fundador</h4>
             <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Sube una foto del fundador. Se mostrará al lado de su descripción en la página principal.</p>
@@ -1171,6 +1174,14 @@
             <div class="founder-preview-box" id="founderPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay foto cargada.</p></div>
           </div>
 <div class="panel" id="adm-panel-pago_docente">
+ <div class="panel" id="adm-panel-acceso_alumno">
+  <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceder a Cuenta de Alumno</h4>
+  <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Entra directamente a la cuenta de un alumno para asistirlo.</p>
+  <div class="tform">
+    <div class="campo"><label>Selecciona al alumno</label><select id="dAccesoAlumnoSelect"><option value="">Selecciona...</option></select></div>
+    <div class="tform-acciones"><button class="btn btn-azul" id="btnEntrarAlumno">Entrar a la cuenta</button></div>
+  </div>
+</div>
   <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
   <div class="tform admin-form">
     <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
@@ -1640,6 +1651,7 @@ let memoriaFallback = null;
 let rcChartInstance = null;
 let currentRcData = null;
 let _alumnoVerificado = null;
+ let _returnToAdmin = false;
 
 /* ============================================================
    PERSISTENCIA
@@ -2058,7 +2070,27 @@ function loginTalento() {
   renderAdminLetterhead(); renderAdminFounder(); renderAdminCourses(); refreshAdminView(); renderIconografia(); aplicarIconosInterfaz();
   document.getElementById("relojTal").textContent = horaActual();
 }
-document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirA").addEventListener("click", () => {
+  if (_returnToTeacherCode) {
+    const tc = _returnToTeacherCode;
+    _returnToTeacherCode = null;
+    currentStudentCode = null; currentStudent = null;
+    document.getElementById("dashboardAlumno").classList.remove("visible");
+    loginTeacher(tc);
+    return;
+  }
+  if (_returnToAdmin) { // 👈 NUEVO: Volver al admin
+    _returnToAdmin = false;
+    currentStudentCode = null; currentStudent = null;
+    document.getElementById("dashboardAlumno").classList.remove("visible");
+    loginTalento();
+    return;
+  }
+  currentStudentCode = null; currentStudent = null;
+  document.getElementById("dashboardAlumno").classList.remove("visible");
+  document.getElementById("portalCards").style.display = "grid";
+  history.pushState(null, '', location.pathname);
+});
 document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 document.getElementById("btnSalirTal").addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 
@@ -3162,9 +3194,9 @@ function renderSolicitudesDocente() {
 
 function renderAccesoAlumnoSelect() {
   const sel = document.getElementById('dAccesoAlumnoSelect');
-  if (!sel || !currentTeacherCode) return;
+  if (!sel) return;
   sel.innerHTML = '<option value="">Selecciona...</option>';
-  getTeacherStudents(currentTeacherCode).forEach(code => {
+  Object.keys(state.students).forEach(code => {
     const s = state.students[code]; if (!s) return;
     const opt = document.createElement('option'); opt.value = code; opt.textContent = `${s.nombre} (${code})`; sel.appendChild(opt);
   });
@@ -3172,8 +3204,9 @@ function renderAccesoAlumnoSelect() {
 document.getElementById('btnEntrarAlumno')?.addEventListener('click', () => {
   const code = document.getElementById('dAccesoAlumnoSelect').value;
   if (!code || !state.students[code]) { alert('Selecciona un alumno válido.'); return; }
-  _returnToTeacherCode = currentTeacherCode;
-  history.pushState({ portal: 'alumno', fromTeacher: true }, '', '#alumno');
+  _returnToTeacherCode = null; // Nos aseguramos que no venga de un docente
+  _returnToAdmin = true;       // Marcamos que venimos del admin
+  history.pushState({ portal: 'alumno', fromAdmin: true }, '', '#alumno');
   loginStudent(code);
 });
 
