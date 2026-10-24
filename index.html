@@ -519,6 +519,19 @@
   .pago-row input[type="number"] { padding: 9px 12px; border: 1.5px solid var(--borde); border-radius: 8px; font-family: inherit; font-size: .9rem; text-align: right; width: 100%; }
   .pago-row button { background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; cursor: pointer; font-size: 1.1rem; padding: 6px; line-height: 1; }
   .pago-row button:hover { background: #fecaca; }
+  .whatsapp-float {
+    position: fixed; width: 60px; height: 60px; bottom: 30px; right: 30px;
+    background-color: #25D366; color: #FFF; border-radius: 50px; text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); z-index: 2000;
+    display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;
+    animation: pulse-wa 2s infinite;
+  }
+  .whatsapp-float:hover { background-color: #128C7E; transform: scale(1.1); color: #FFF; }
+  @keyframes pulse-wa {
+    0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+  }
 </style>
 </head>
 <body>
@@ -655,6 +668,7 @@
         <button class="dash-tab" data-atab="asistencia">📅 Mi asistencia</button>
         <button class="dash-tab" data-atab="reportcard">📄 Recojo de Report Card</button>
         <button class="dash-tab" data-atab="matricula">🎫 Matrícula</button>
+               <button class="dash-tab" data-atab="libros">📚 Mis libros</button>
       </div>
       <div class="dash-contenido">
         <div class="resumen-grid">
@@ -709,6 +723,11 @@
               <h4 style="color:var(--azul);">Nueva Matrícula</h4>
               <p style="color:var(--gris); font-size:.9rem; margin-bottom:18px;">Inicia una nueva matrícula para el próximo ciclo.</p>
               <button class="btn btn-azul" id="btnIniciarMatricula">Iniciar Nueva Matrícula</button>
+                   <div class="panel" id="panel-libros">
+          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Libros del Ciclo</h4>
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Libros asignados a tus grupos.</p>
+          <div id="studentLibrosLista"></div>
+        </div>
             </div>
           </div>
           <div id="matriculaContenido" style="display:none;">
@@ -740,6 +759,46 @@
         <button class="dash-tab" data-dtab="reportcard">📄 Generar Report Card</button>
         <button class="dash-tab" data-dtab="historial">📚 Historial de Reportes</button>
         <button class="dash-tab" data-dtab="pago">💰 Pago Docente</button>
+               <button class="dash-tab" data-dtab="acceso_alumno">🔑 Acceder a Alumno</button>
+        <button class="dash-tab" data-dtab="libros_grupos">📖 Libros por Grupo</button>
+        <button class="dash-tab" data-dtab="solicitudes">📝 Solicitudes</button>
+             <div class="panel" id="dpanel-acceso_alumno">
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceder a Cuenta de Alumno</h4>
+          <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Entra directamente a la cuenta de un alumno para asistirlo.</p>
+          <div class="tform">
+            <div class="campo"><label>Selecciona al alumno</label><select id="dAccesoAlumnoSelect"><option value="">Selecciona...</option></select></div>
+            <div class="tform-acciones"><button class="btn btn-azul" id="btnEntrarAlumno">Entrar a la cuenta</button></div>
+          </div>
+        </div>
+        
+        <div class="panel" id="dpanel-libros_grupos">
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📖 Libros por Grupo</h4>
+          <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Libros cargados por la administración para tus grupos.</p>
+          <div id="dLibrosGruposLista"></div>
+        </div>
+
+        <div class="panel" id="dpanel-solicitudes">
+          <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📝 Solicitudes / Iniciativa Docente</h4>
+          <div class="tform">
+            <form id="formSolicitudDocente">
+              <div class="campo">
+                <label>Acción <span class="req">*</span></label>
+                <select id="solTipo" required>
+                  <option value="">Selecciona...</option>
+                  <option value="Justificación de ausencia/tardanza">Justificación de ausencia/tardanza</option>
+                  <option value="Iniciativa de proyecto">Iniciativa de proyecto</option>
+                  <option value="Recomendación a la institución">Recomendación a la institución</option>
+                </select>
+              </div>
+              <div class="campo"><label>Mensaje / Detalle</label><textarea id="solMensaje" placeholder="Escribe tu mensaje aquí..."></textarea></div>
+              <div class="campo"><label>O subir archivo (PDF, DOCX, TXT)</label><input type="file" id="solArchivo" accept=".pdf,.doc,.docx,.txt"></div>
+              <div class="tform-acciones"><button type="submit" class="btn btn-verde">Enviar Solicitud</button></div>
+            </form>
+            <div class="mensaje-exito" id="solMsg">✅ Solicitud enviada.</div>
+          </div>
+          <h4 style="color:var(--morado);margin-bottom:14px;font-size:1rem;font-weight:800;">Mis solicitudes enviadas</h4>
+          <div id="listaSolicitudesDocente"></div>
+        </div>
       </div>
       <div class="dash-contenido">
         <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo ves los grupos y alumnos que el administrador te asignó.</div>
