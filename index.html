@@ -6,7 +6,7 @@
 <title>Escuela de Inglés y Fonética Clínica Jotavalenzuela | por el Prof. Juan Valenzuela M.</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="icon" id="dynamicFavicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004A8F'/><text x='50' y='68' font-size='50' fill='white' text-anchor='middle' font-weight='bold'>JV</text></svg>">
+<link rel="icon" id="dynamicFavicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004aad'/><text x='50' y='68' font-size='50' fill='white' text-anchor='middle' font-weight='bold'>JV</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -911,6 +911,8 @@
           <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">💰 Pago Docente</h4>
           <div class="resumen-grid" id="dPagoResumen"></div>
           <div class="tform"><h4>📊 Detalle de grupos asignados</h4><div id="dPagoGruposLista"></div></div>
+          <div class="tform"><h4>➕ Bonificaciones</h4><div id="dPagoBonificaciones"></div></div>
+          <div class="tform"><h4>➖ Descuentos</h4><div id="dPagoDescuentos"></div></div>
           <div class="tform-acciones"><button class="btn btn-morado" id="btnGenerarBoleta">📄 Boleta preliminar</button></div>
           <div class="boleta-preview-container" id="boletaPreviewContainer">
             <div id="boletaPrintable">
@@ -1226,6 +1228,8 @@
     </div>
     <div class="tform">
       <h4>⏱️ Horas trabajadas</h4>
+      <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
+      <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
       <div class="tform-grid">
         <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
         <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
@@ -1285,6 +1289,8 @@
               </div>
               <div class="tform">
                 <h4>⏱️ Horas trabajadas</h4>
+                <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
+                <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
                 <div class="tform-grid">
                   <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
                   <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
@@ -1726,6 +1732,7 @@
       <input type="hidden" id="editCode">
       <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="editNombre" required></div>
       <div class="campo"><label>Email</label><input type="email" id="editEmail"></div>
+      <div class="campo" id="editTelefonoWrap" style="display:none;"><label>Teléfono / WhatsApp</label><input type="tel" id="editTelefono" placeholder="Ej: 51915900797"></div>
       <div class="campo" id="editProgramaWrap"><label>Programa</label><input type="text" id="editPrograma"></div>
       <div class="campo" id="editAreaWrap" style="display:none;"><label>Área</label><input type="text" id="editArea"></div>
       <div class="campo" id="editPagoHoraWrap" style="display:none;"><label>Pago por hora pedagógica (S/)</label><input type="number" id="editPagoHora" step="0.01" min="0"></div>
@@ -2625,7 +2632,40 @@ function mostrarReportCardModal(rc) {
 function imprimirReportCard(rc) {
   const iframe = document.createElement('iframe'); iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe); const doc = iframe.contentWindow.document; doc.open();
-  doc.write(`<html><head><title>Report Card</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;color:#1f2937}.rc-letterhead{text-align:center;margin:0 0 20px 0;width:100%}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain;display:block;margin:0 auto}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004A8F;font-size:1.5rem;margin:0 0 5px 0}.rc-header p{color:#6b7280;font-size:0.9rem;margin:0}.rc-student-info{margin-bottom:20px;background:#f8fafc;padding:15px;border-radius:8px;border-left:4px solid #FDB913;display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc-student-info p{margin:0;font-size:0.95rem}.rc-status-banner{margin-bottom:20px;padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:1.05rem;border-width:2px;border-style:solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:0.9rem}.tabla-wrap th{background:#004A8F;color:#fff;text-align:left}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px;display:block;margin:0 auto 10px}.rc-signature p{font-size:0.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}@media print{body{padding:0}}</style></head><body>${buildReportCardHTML(rc)}
+  doc.write(`<html><head><title>Report Card</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;color:#1f2937}.rc-letterhead{text-align:center;margin:0 0 20px 0;width:100%}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain;display:block;margin:0 auto}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004aad;font-size:1.5rem;margin:0 0 5px 0}.rc-header p{color:#6b7280;font-size:0.9rem;margin:0}.rc-student-info{margin-bottom:20px;background:#f8fafc;padding:15px;border-radius:8px;border-left:4px solid #ffcc00;display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc-student-info p{margin:0;font-size:0.95rem}.rc-status-banner{margin-bottom:20px;padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:1.05rem;border-width:2px;border-style:solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:0.9rem}.tabla-wrap th{background:#004aad;color:#fff;text-align:left}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px;display:block;margin:0 auto 10px}.rc-signature p{font-size:0.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}@media print{body{padding:0}}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head><body>${buildReportCardHTML(rc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
       <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
@@ -2639,7 +2679,40 @@ function imprimirReportCard(rc) {
 }
 function descargarReportCard(rc) {
   const student = state.students[rc.studentCode];
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RC - ${student.nombre}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}.rc-letterhead{text-align:center;margin:0 0 20px 0}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004A8F}.rc-student-info{background:#f8fafc;padding:15px;border-left:4px solid #FDB913;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.rc-status-banner{padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;font-weight:800;margin-bottom:20px;border:2px solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:.9rem}.tabla-wrap th{background:#004A8F;color:#fff}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px}.rc-signature p{font-size:.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}</style></head><body>${buildReportCardHTML(rc)}
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RC - ${student.nombre}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}.rc-letterhead{text-align:center;margin:0 0 20px 0}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004aad}.rc-student-info{background:#f8fafc;padding:15px;border-left:4px solid #ffcc00;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.rc-status-banner{padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;font-weight:800;margin-bottom:20px;border:2px solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:.9rem}.tabla-wrap th{background:#004aad;color:#fff}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px}.rc-signature p{font-size:.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head><body>${buildReportCardHTML(rc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
       <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
@@ -2703,7 +2776,7 @@ function buildComprobanteEntregaHTML(group, historialEntry) {
     <p style="font-size:.88rem;color:#374151;margin:0 0 10px;"><strong>Descripción del curso dictado:</strong> ${historialEntry.descripcion || '—'}</p>
     <div class="tabla-wrap" style="box-shadow:none;border:1px solid #e2e8f0;">
       <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
-        <thead><tr style="background:#004A8F;color:#fff;">
+        <thead><tr style="background:#004aad;color:#fff;">
           <th style="padding:8px;text-align:left;">#</th>
           <th style="padding:8px;text-align:left;">Alumno</th>
           <th style="padding:8px;text-align:left;">Código</th>
@@ -3061,16 +3134,92 @@ function renderTeacherHistorialRC() {
   html += `</tbody></table></div>`; cont.innerHTML = html;
 }
 function renderTeacherPago() {
-  const resumen = document.getElementById("dPagoResumen"); const gruposLista = document.getElementById("dPagoGruposLista");
+  const resumen = document.getElementById("dPagoResumen");
+  const gruposLista = document.getElementById("dPagoGruposLista");
+  const bonifBox = document.getElementById("dPagoBonificaciones");
+  const descBox = document.getElementById("dPagoDescuentos");
   if (!resumen || !gruposLista) return;
-  const myGroups = getTeacherGroups(currentTeacherCode); const pagoHora = parseFloat(currentTeacher.pagoHora) || 0;
-  const totalHoras = myGroups.reduce((s, g) => s + (parseInt(g.totalHoras) || 0), 0); const monto = totalHoras * pagoHora;
-  resumen.innerHTML = `<div class="resumen-card morado"><div class="et">Pago/hora</div><div class="val">S/ ${pagoHora.toFixed(2)}</div></div><div class="resumen-card azul"><div class="et">Total horas</div><div class="val">${totalHoras} h</div></div><div class="resumen-card verde"><div class="et">Monto estimado</div><div class="val">S/ ${monto.toFixed(2)}</div></div><div class="resumen-card amarillo"><div class="et">Fecha de pago</div><div class="val" style="font-size:1.05rem;">${fechaFinDeMes()}</div></div>`;
-  if (!myGroups.length) { gruposLista.innerHTML = `<div class="empty-state">📚 Sin grupos.</div>`; return; }
-  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:640px;"><thead><tr><th>Grupo</th><th>Programa</th><th>Nivel</th><th>Horas/ciclo</th><th>Subtotal</th></tr></thead><tbody>`;
-  myGroups.forEach(g => { const nivel = getNivelInfo(g.nivel); const horas = parseInt(g.totalHoras) || 0; html += `<tr><td><strong>${g.nombre}</strong></td><td>${g.programa || '—'}</td><td>${nivel.nombre}</td><td>${horas} h</td><td><strong>S/ ${(horas * pagoHora).toFixed(2)}</strong></td></tr>`; });
-  html += `</tbody></table></div>`; gruposLista.innerHTML = html;
+
+  const myGroups = typeof getTeacherGroups === "function" ? getTeacherGroups(currentTeacherCode) : [];
+  const pagoHora = parseFloat(currentTeacher?.pagoHora) || 0;
+  const totalHoras = myGroups.reduce((s, g) => s + (parseFloat(g.totalHoras) || 0), 0);
+  const subGrupos = totalHoras * pagoHora;
+
+  let bonifs = [];
+  let descs = [];
+  let subB = 0, subD = 0, horasExt = 0, pagoHoraExt = 0, subExt = 0, horasPed = 0;
+  try {
+    const p = typeof getPagoDocente === "function" ? getPagoDocente(currentTeacherCode) : null;
+    const calc = typeof calcPagoDocente === "function" ? calcPagoDocente(currentTeacherCode) : null;
+    if (p) {
+      bonifs = p.bonificaciones || [];
+      descs = p.descuentos || [];
+      horasExt = parseFloat(p.horasExt) || 0;
+      pagoHoraExt = parseFloat(p.pagoHoraExtra) || 0;
+      horasPed = parseFloat(p.horasPed) || 0;
+    }
+    if (calc) {
+      subB = calc.subB || 0;
+      subD = calc.subD || 0;
+      subExt = calc.subExt || 0;
+    } else {
+      subB = bonifs.reduce((s, b) => s + (parseFloat(b.monto) || 0), 0);
+      subD = descs.reduce((s, d) => s + (parseFloat(d.monto) || 0), 0);
+      subExt = horasExt * pagoHoraExt;
+    }
+  } catch (e) { console.warn(e); }
+
+  const baseHoras = (horasPed > 0 ? horasPed : totalHoras) * pagoHora;
+  const montoNeto = baseHoras + subExt + subB - subD;
+
+  resumen.innerHTML = `
+    <div class="resumen-card morado"><div class="et">Pago/hora</div><div class="val">S/ ${pagoHora.toFixed(2)}</div></div>
+    <div class="resumen-card azul"><div class="et">Horas ciclo / ped.</div><div class="val">${totalHoras} h${horasPed ? " / " + horasPed + " h" : ""}</div></div>
+    <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val">S/ ${subB.toFixed(2)}</div></div>
+    <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Descuentos</div><div class="val">S/ ${subD.toFixed(2)}</div></div>
+    <div class="resumen-card verde"><div class="et">Monto neto estimado</div><div class="val">S/ ${montoNeto.toFixed(2)}</div></div>
+    <div class="resumen-card"><div class="et">Fecha de pago</div><div class="val" style="font-size:1.05rem;">${typeof fechaFinDeMes === "function" ? fechaFinDeMes() : "—"}</div></div>`;
+
+  if (!myGroups.length) {
+    gruposLista.innerHTML = `<div class="empty-state">📚 Sin grupos asignados.</div>`;
+  } else {
+    let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:640px;"><thead><tr><th>Grupo</th><th>Programa</th><th>Nivel</th><th>Horas/ciclo</th><th>Subtotal</th></tr></thead><tbody>`;
+    myGroups.forEach(g => {
+      const nivel = typeof getNivelInfo === "function" ? getNivelInfo(g.nivel) : { nombre: g.nivel || "—" };
+      const horas = parseFloat(g.totalHoras) || 0;
+      html += `<tr><td><strong>${g.nombre || "—"}</strong></td><td>${g.programa || "—"}</td><td>${nivel.nombre || g.nivelTexto || "—"}</td><td>${horas} h</td><td><strong>S/ ${(horas * pagoHora).toFixed(2)}</strong></td></tr>`;
+    });
+    html += `</tbody><tfoot><tr style="background:#f8fafc;font-weight:800;"><td colspan="3" style="text-align:right;padding:10px;">Total grupos</td><td>${totalHoras} h</td><td>S/ ${subGrupos.toFixed(2)}</td></tr></tfoot></table></div>`;
+    gruposLista.innerHTML = html;
+  }
+
+  if (bonifBox) {
+    if (!bonifs.length) {
+      bonifBox.innerHTML = `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin bonificaciones registradas por administración.</div>`;
+    } else {
+      let bh = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto / justificación</th><th style="text-align:right;">Monto</th></tr></thead><tbody>`;
+      bonifs.forEach(b => {
+        bh += `<tr><td>${b.concepto || "—"}</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${(parseFloat(b.monto)||0).toFixed(2)}</td></tr>`;
+      });
+      bh += `</tbody><tfoot><tr style="background:#f0fdf4;font-weight:800;"><td style="text-align:right;padding:10px;">Total bonificaciones</td><td style="text-align:right;color:var(--verde);">S/ ${subB.toFixed(2)}</td></tr></tfoot></table></div>`;
+      bonifBox.innerHTML = bh;
+    }
+  }
+
+  if (descBox) {
+    if (!descs.length) {
+      descBox.innerHTML = `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin descuentos registrados por administración.</div>`;
+    } else {
+      let dh = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto / justificación</th><th style="text-align:right;">Monto</th></tr></thead><tbody>`;
+      descs.forEach(d => {
+        dh += `<tr><td>${d.concepto || "—"}</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${(parseFloat(d.monto)||0).toFixed(2)}</td></tr>`;
+      });
+      dh += `</tbody><tfoot><tr style="background:#fef2f2;font-weight:800;"><td style="text-align:right;padding:10px;">Total descuentos</td><td style="text-align:right;color:var(--rojo);">S/ ${subD.toFixed(2)}</td></tr></tfoot></table></div>`;
+      descBox.innerHTML = dh;
+    }
+  }
 }
+
 document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
   const pagoHora = parseFloat(currentTeacher.pagoHora) || 0; const myGroups = getTeacherGroups(currentTeacherCode);
   const totalHoras = myGroups.reduce((s, g) => s + (parseInt(g.totalHoras) || 0), 0); const monto = totalHoras * pagoHora;
@@ -3092,7 +3241,40 @@ document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
 document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
   const iframe = document.createElement('iframe'); iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe); const doc = iframe.contentWindow.document; doc.open();
-  doc.write(`<html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px}</style></head><body>${document.getElementById("boletaPrintable").innerHTML}
+  doc.write(`<html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head><body>${document.getElementById("boletaPrintable").innerHTML}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
       <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
@@ -3105,7 +3287,40 @@ document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
   setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); document.body.removeChild(iframe); }, 500);
 });
 document.getElementById("btnDescargarBoleta").addEventListener("click", () => {
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}</style></head><body>${document.getElementById("boletaPrintable").innerHTML}
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head><body>${document.getElementById("boletaPrintable").innerHTML}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
       <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
@@ -3464,29 +3679,76 @@ function abrirEditar(code, tipo) {
   document.getElementById("editYear").value = obj.year || ""; document.getElementById("editMonth").value = obj.month || 1;
   document.getElementById("editDay").value = obj.day || ""; document.getElementById("editDni").value = obj.dni || "";
   document.getElementById("editPassword").value = "";
-  if (tipo === "alumno") { document.getElementById("editProgramaWrap").style.display = ""; document.getElementById("editAreaWrap").style.display = "none"; document.getElementById("editPagoHoraWrap").style.display = "none"; document.getElementById("editPrograma").value = (obj.programa && obj.programa !== "—") ? obj.programa : ""; }
-  else { document.getElementById("editProgramaWrap").style.display = "none"; document.getElementById("editAreaWrap").style.display = ""; document.getElementById("editPagoHoraWrap").style.display = ""; document.getElementById("editArea").value = (obj.area && obj.area !== "—") ? obj.area : ""; document.getElementById("editPagoHora").value = obj.pagoHora || ""; }
+  const telWrap = document.getElementById("editTelefonoWrap");
+  if (tipo === "alumno") {
+    document.getElementById("editProgramaWrap").style.display = "";
+    document.getElementById("editAreaWrap").style.display = "none";
+    document.getElementById("editPagoHoraWrap").style.display = "none";
+    if (telWrap) telWrap.style.display = "none";
+    document.getElementById("editPrograma").value = (obj.programa && obj.programa !== "—") ? obj.programa : "";
+  } else {
+    document.getElementById("editProgramaWrap").style.display = "none";
+    document.getElementById("editAreaWrap").style.display = "";
+    document.getElementById("editPagoHoraWrap").style.display = "";
+    if (telWrap) telWrap.style.display = "";
+    document.getElementById("editArea").value = (obj.area && obj.area !== "—") ? obj.area : "";
+    document.getElementById("editPagoHora").value = obj.pagoHora != null ? obj.pagoHora : "";
+    const telInp = document.getElementById("editTelefono");
+    if (telInp) telInp.value = obj.telefono || "";
+  }
   try { renderCustomFieldsInto("editCamposExtra", tipo, obj.custom || {}); } catch(e) {}
   document.getElementById("modalEditar").classList.add("visible");
 }
 document.getElementById("formEditar").addEventListener("submit", (e) => {
   e.preventDefault();
-  const tipo = document.getElementById("editTipo").value; const code = document.getElementById("editCode").value;
-  const obj = tipo === "alumno" ? state.students[code] : state.teachers[code]; if (!obj) return;
-  const nombre = document.getElementById("editNombre").value.trim(); if (!nombre) { alert("Nombre obligatorio."); return; }
-  obj.nombre = nombre; obj.email = document.getElementById("editEmail").value.trim() || "—";
-  obj.year = parseInt(document.getElementById("editYear").value) || obj.year;
-  obj.month = parseInt(document.getElementById("editMonth").value) || obj.month;
-  obj.day = parseInt(document.getElementById("editDay").value) || obj.day;
-  obj.dni = document.getElementById("editDni").value.trim() || obj.dni;
-  if (tipo === "alumno") obj.programa = document.getElementById("editPrograma").value.trim() || "—";
-  else { obj.area = document.getElementById("editArea").value.trim() || "—"; obj.pagoHora = parseFloat(document.getElementById("editPagoHora").value) || 0; }
-  const nuevaPass = document.getElementById("editPassword").value.trim(); if (nuevaPass) obj.password = nuevaPass;
-  if (!validateCustomFields("editCamposExtra", tipo)) return;
-  obj.custom = collectCustomFields("editCamposExtra");
-  if (currentStudentCode === code) currentStudent = obj;
-  if (currentTeacherCode === code) currentTeacher = obj;
-  saveState(); document.getElementById("modalEditar").classList.remove("visible"); alert("✅ Actualizado.");
+  e.stopPropagation();
+  const tipo = document.getElementById("editTipo").value;
+  const code = document.getElementById("editCode").value;
+  if (!tipo || !code) { alert("Error: no se identificó la cuenta a editar."); return; }
+  const bag = tipo === "alumno" ? state.students : state.teachers;
+  if (!bag[code]) { alert("No se encontró la cuenta."); return; }
+  const nombre = document.getElementById("editNombre").value.trim();
+  if (!nombre) { alert("Nombre obligatorio."); return; }
+  // Validar campos personalizados solo si hay inputs
+  try {
+    if (typeof validateCustomFields === "function" && !validateCustomFields("editCamposExtra", tipo)) return;
+  } catch (err) { console.warn(err); }
+  const updated = Object.assign({}, bag[code], {
+    nombre: nombre,
+    email: (document.getElementById("editEmail").value || "").trim() || "—",
+    year: parseInt(document.getElementById("editYear").value, 10) || bag[code].year,
+    month: parseInt(document.getElementById("editMonth").value, 10) || bag[code].month,
+    day: parseInt(document.getElementById("editDay").value, 10) || bag[code].day,
+    dni: (document.getElementById("editDni").value || "").trim() || bag[code].dni
+  });
+  if (tipo === "alumno") {
+    updated.programa = (document.getElementById("editPrograma").value || "").trim() || "—";
+  } else {
+    updated.area = (document.getElementById("editArea").value || "").trim() || "—";
+    updated.pagoHora = parseFloat(document.getElementById("editPagoHora").value) || 0;
+    const telEl = document.getElementById("editTelefono");
+    if (telEl) updated.telefono = (telEl.value || "").trim();
+  }
+  const nuevaPass = (document.getElementById("editPassword").value || "").trim();
+  if (nuevaPass) updated.password = nuevaPass;
+  try {
+    if (typeof collectCustomFields === "function") {
+      updated.custom = collectCustomFields("editCamposExtra");
+    }
+  } catch (err) { console.warn(err); }
+  // Escribir de vuelta en el estado (reemplazo explícito)
+  bag[code] = updated;
+  if (tipo === "alumno") state.students[code] = updated;
+  else state.teachers[code] = updated;
+  if (currentStudentCode === code) currentStudent = updated;
+  if (currentTeacherCode === code) currentTeacher = updated;
+  try { saveState(); } catch (err) { console.error(err); }
+  // Forzar refresco inmediato de tablas admin
+  try { if (typeof renderAdminDocentes === "function") renderAdminDocentes(); } catch (err) {}
+  try { if (typeof renderAdminAlumnos === "function") renderAdminAlumnos(); } catch (err) {}
+  try { if (typeof refreshAdminView === "function") refreshAdminView(); } catch (err) {}
+  document.getElementById("modalEditar").classList.remove("visible");
+  alert("✅ Datos actualizados correctamente.");
 });
 document.getElementById("btnVerDniEdit").addEventListener("click", () => {
   const tipo = document.getElementById("editTipo").value; const code = document.getElementById("editCode").value; if (!tipo || !code) return;
@@ -3638,6 +3900,59 @@ function renderAdmPagoEditor(teacherCode) {
   if (!teacherCode || !state.teachers[teacherCode]) { if (editor) editor.style.display = 'none'; return; }
   if (editor) editor.style.display = 'block';
   try { fillPagoGrupos(teacherCode); } catch(e) {}
+  // Cursos asignados + horas totales del ciclo
+  const cursosBox = document.getElementById('admPagoCursosAsignados');
+  if (cursosBox) {
+    const groups = (typeof getTeacherGroups === 'function' ? getTeacherGroups(teacherCode) : (state.groups || []).filter(g => g.teacherCode === teacherCode));
+    if (!groups.length) {
+      cursosBox.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Este docente no tiene cursos/grupos asignados.</div>';
+    } else {
+      const totalCiclo = groups.reduce((s, g) => s + (parseFloat(g.totalHoras) || 0), 0);
+      let rows = groups.map(g => {
+        const horas = parseFloat(g.totalHoras) || 0;
+        const nivel = g.nivelTexto || g.nivel || '—';
+        const estado = g.cerrado ? '<span class="cerrado-badge">Cerrado</span>' : '<span class="estado estado-present">Abierto</span>';
+        return `<tr>
+          <td><strong>${g.nombre || '—'}</strong></td>
+          <td>${g.programa || '—'}</td>
+          <td>${nivel}</td>
+          <td>${g.horario || '—'}</td>
+          <td>${g.frecuencia || '—'}</td>
+          <td style="text-align:right;font-weight:700;">${horas} h</td>
+          <td>${estado}</td>
+        </tr>`;
+      }).join('');
+      cursosBox.innerHTML = `
+        <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+          <table style="min-width:100%;width:100%;font-size:.88rem;border-collapse:collapse;">
+            <thead>
+              <tr style="background:var(--azul-claro,#e8f1fb);">
+                <th style="padding:8px 10px;text-align:left;">Curso / Grupo</th>
+                <th style="padding:8px 10px;text-align:left;">Programa</th>
+                <th style="padding:8px 10px;text-align:left;">Nivel</th>
+                <th style="padding:8px 10px;text-align:left;">Horario</th>
+                <th style="padding:8px 10px;text-align:left;">Frecuencia</th>
+                <th style="padding:8px 10px;text-align:right;">Horas del ciclo</th>
+                <th style="padding:8px 10px;text-align:left;">Estado</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr style="background:#f8fafc;font-weight:800;">
+                <td colspan="5" style="padding:10px;text-align:right;">Total horas del ciclo</td>
+                <td style="padding:10px;text-align:right;color:var(--azul);">${totalCiclo} h</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
+      // Sugerir horas pedagógicas = total del ciclo si aún está en 0
+      const p0 = getPagoDocente(teacherCode);
+      if ((!p0.horasPed || p0.horasPed === 0) && totalCiclo > 0) {
+        // only suggest in UI default when empty — don't overwrite saved values
+      }
+    }
+  }
   const p = getPagoDocente(teacherCode);
   document.getElementById('admPagoHorasPed').value = p.horasPed || 0;
   document.getElementById('admPagoHorasExt').value = p.horasExt || 0;
@@ -3717,7 +4032,40 @@ document.getElementById('admPagoPreliminar')?.addEventListener('click', () => {
 document.getElementById('admPagoImprimir')?.addEventListener('click', () => {
   const tc = document.getElementById('admPagoSelectTeacher').value;
   if (!tc) return;
-  const html = `<!DOCTYPE html><html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px} img{max-height:80px}</style></head><body>${buildBoletaPagoHTML(tc)}
+  const html = `<!DOCTYPE html><html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004aad;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px} img{max-height:80px}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head><body>${buildBoletaPagoHTML(tc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
       <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
@@ -3732,7 +4080,40 @@ document.getElementById('admPagoImprimir')?.addEventListener('click', () => {
 document.getElementById('admPagoDescargar')?.addEventListener('click', () => {
   const tc = document.getElementById('admPagoSelectTeacher').value;
   if (!tc) return;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ${tc}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}</style></head><body>${buildBoletaPagoHTML(tc)}
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ${tc}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004aad;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head><body>${buildBoletaPagoHTML(tc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
       <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
@@ -4235,7 +4616,7 @@ function buildCargaHorariaHTML(teacherCode) {
     </div>
     <div class="tabla-wrap" style="box-shadow:none;border:1px solid #e2e8f0;margin-bottom:14px;">
       <table style="min-width:100%;width:100%;border-collapse:collapse;">
-        <thead><tr style="background:#004A8F;color:#fff;"><th style="padding:8px;">#</th><th style="padding:8px;">Programa</th><th style="padding:8px;">Días</th><th style="padding:8px;">Horario</th><th style="padding:8px;">Modalidad</th></tr></thead>
+        <thead><tr style="background:#004aad;color:#fff;"><th style="padding:8px;">#</th><th style="padding:8px;">Programa</th><th style="padding:8px;">Días</th><th style="padding:8px;">Horario</th><th style="padding:8px;">Modalidad</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -4275,9 +4656,42 @@ document.getElementById('btnDescargarCarga')?.addEventListener('click', () => {
   const tc = document.getElementById('admCargaTeacherSelect')?.value;
   if (!tc) { alert('Selecciona un docente.'); return; }
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carga Horaria ${tc}</title>
-    <style>body{font-family:'Segoe UI',sans-serif;padding:16px;max-width:900px;margin:0 auto} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004A8F;color:#fff}
+    <style>body{font-family:'Segoe UI',sans-serif;padding:16px;max-width:900px;margin:0 auto} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004aad;color:#fff}
     .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-    .boleta-title{text-align:center;margin-bottom:16px}.boleta-title h2{color:#7c3aed;margin:0 0 4px}</style></head>
+    .boleta-title{text-align:center;margin-bottom:16px}.boleta-title h2{color:#7c3aed;margin:0 0 4px}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head>
     <body>${buildCargaHorariaHTML(tc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
@@ -4300,9 +4714,42 @@ document.getElementById('btnImprimirCarga')?.addEventListener('click', () => {
   if (!tc) { alert('Selecciona un docente.'); return; }
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Carga Horaria</title>
-    <style>body{font-family:'Segoe UI',sans-serif;padding:16px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004A8F;color:#fff}
+    <style>body{font-family:'Segoe UI',sans-serif;padding:16px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004aad;color:#fff}
     .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-    .boleta-title{text-align:center;margin-bottom:16px}@media print{body{padding:0}}</style></head>
+    .boleta-title{text-align:center;margin-bottom:16px}@media print{body{padding:0}}
+
+  .wa-float {
+    box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37, 211, 102, .5); }
+  .admin-table th {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 700; background: #F8FAFC; color: var(--slate-medio);
+  }
+  .admin-table td { font-size: .9rem; }
+  .admin-table tr:hover td { background: #F8FAFC; }
+  ::selection { background: rgba(0, 74, 173, .18); }
+  /* Scrollbar refined */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+  /* WhatsApp flotante — verde oficial preservado */
+  .wa-float,
+  a.wa-float,
+  .whatsapp-float {
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .wa-float:hover,
+  a.wa-float:hover {
+    background: #20BD5A !important;
+  }
+
+</style></head>
     <body>${buildCargaHorariaHTML(tc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
       <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
@@ -4600,24 +5047,25 @@ document.addEventListener('click', function(ev) {
   if (t.id === 'btnDescargarComprobante') {
     ev.preventDefault();
     if (typeof _ultimoComprobanteHTML === 'undefined' || !_ultimoComprobanteHTML) return;
-    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante Entrega de Notas</title><style>body{font-family:Segoe UI,sans-serif;padding:20px;max-width:900px;margin:0 auto;color:#1f2937}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #e5e7eb;font-size:.9rem}</style></head><body>' + _ultimoComprobanteHTML + '</body></html>';
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const a = document.createElement('a');
+    const html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Comprobante</title><style>body{font-family:Segoe UI,sans-serif;padding:20px;max-width:900px;margin:0 auto}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}</style></head><body>" + _ultimoComprobanteHTML + "</body></html>";
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = 'Comprobante_Entrega_Notas.html';
+    a.download = "Comprobante_Entrega_Notas.html";
     a.click();
     return;
   }
   if (t.id === 'btnImprimirComprobante') {
     ev.preventDefault();
     if (typeof _ultimoComprobanteHTML === 'undefined' || !_ultimoComprobanteHTML) return;
-    const w = window.open('', '_blank');
-    w.document.write('<!DOCTYPE html><html><head><title>Comprobante</title><style>body{font-family:Segoe UI,sans-serif;padding:16px;color:#1f2937}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}@media print{body{padding:0}}</style></head><body>' + _ultimoComprobanteHTML + '</body></html>');
+    const w = window.open("", "_blank");
+    w.document.write("<!DOCTYPE html><html><head><title>Comprobante</title><style>body{font-family:Segoe UI,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}</style></head><body>" + _ultimoComprobanteHTML + "</body></html>");
     w.document.close();
     setTimeout(function(){ w.print(); }, 400);
     return;
   }
 });
+
 
 function navigateToPortal(portal) {
   if (portal === 'main') {
