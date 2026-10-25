@@ -1017,6 +1017,7 @@
             <button class="dash-tab" data-admtab="pago_docente">💰 Gestor de pago docente</button>
             <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
             <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad Docente</button>
+            <button class="dash-tab" data-admtab="campos">🧩 Campos personalizados</button>
             <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
           </div>
           <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo el administrador crea cuentas, grupos, cursos y exámenes.</div>
@@ -1044,6 +1045,7 @@
                 <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
                 <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div></div>
                 <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div></div>
+                <div class="campo completo" id="admAlumnoCamposExtra"></div>
                 <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
               </form>
               <div class="cred-box" id="credAlumno">
@@ -1085,6 +1087,7 @@
                 <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admDocenteDniFile" accept="image/*" required></div>
                 <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admDocenteUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="docente">🎲</button></div></div>
                 <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admDocentePass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="docente">🎲</button></div></div>
+                <div class="campo completo" id="admDocenteCamposExtra"></div>
                 <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
               </form>
               <div class="cred-box" id="credDocente">
@@ -1110,6 +1113,8 @@
   <div class="campo"><label>Nivel (texto libre) <span class="req">*</span></label><input type="text" id="admGroupNivel" placeholder="Ej: Básico / B1 / Intermedio" required></div>
   <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
   <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
+  <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A - Tarde" required></div>
+  <div class="campo"><label>Total horas del ciclo</label><input type="number" id="admGroupTotalHoras" min="0" step="1" value="40" placeholder="Ej: 40"></div>
   <div class="campo completo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
   <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
 </form>
@@ -1336,6 +1341,53 @@
               </div>
               <div class="boleta-preview-container" id="admCargaPreview" style="margin-top:16px;"></div>
             </div>
+          </div>
+
+          
+          <div class="panel" id="adm-panel-campos">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🧩 Campos personalizados</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Crea campos adicionales para las cuentas de alumnos y docentes. Aparecerán al crear y al editar cuentas.</p>
+            <div class="tform admin-form">
+              <h4>➕ Nuevo campo</h4>
+              <form id="admNewCampoForm" class="tform-grid">
+                <div class="campo"><label>Etiqueta / nombre del campo <span class="req">*</span></label>
+                  <input type="text" id="campoLabel" placeholder="Ej: Distrito, Especialidad, Contacto de emergencia" required>
+                </div>
+                <div class="campo"><label>Tipo de campo <span class="req">*</span></label>
+                  <select id="campoTipo" required>
+                    <option value="text">Texto</option>
+                    <option value="number">Número</option>
+                    <option value="date">Fecha</option>
+                    <option value="tel">Teléfono</option>
+                    <option value="email">Email</option>
+                    <option value="select">Lista desplegable</option>
+                    <option value="textarea">Texto largo</option>
+                  </select>
+                </div>
+                <div class="campo"><label>Aplica a <span class="req">*</span></label>
+                  <select id="campoAplica" required>
+                    <option value="ambos">Alumnos y Docentes</option>
+                    <option value="alumno">Solo Alumnos</option>
+                    <option value="docente">Solo Docentes</option>
+                  </select>
+                </div>
+                <div class="campo"><label>¿Obligatorio?</label>
+                  <select id="campoReq">
+                    <option value="no">Opcional</option>
+                    <option value="si">Obligatorio</option>
+                  </select>
+                </div>
+                <div class="campo completo" id="campoOpcionesWrap" style="display:none;">
+                  <label>Opciones de la lista (separadas por coma)</label>
+                  <input type="text" id="campoOpciones" placeholder="Ej: Lima, Arequipa, Cusco">
+                </div>
+                <div class="campo completo">
+                  <div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear campo</button></div>
+                </div>
+              </form>
+            </div>
+            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Campos definidos</h4>
+            <div id="admCamposLista"></div>
           </div>
 
           <div class="panel" id="adm-panel-resumen">
@@ -1644,6 +1696,7 @@
       </div>
       <div class="campo"><label>Día de ingreso</label><input type="number" id="editDay" min="1" max="31"></div>
       <div class="campo"><label>DNI</label><input type="text" id="editDni" maxlength="8"></div>
+      <div id="editCamposExtra"></div>
       <div class="campo"><label>Nueva contraseña <small style="color:var(--gris); font-weight:400;">(dejar vacío para no cambiar)</small></label><input type="text" id="editPassword" placeholder="••••••••"></div>
       <div class="campo"><label>Evidencia de Identidad (DNI)</label><button type="button" class="btn btn-azul btn-mini" id="btnVerDniEdit" style="width:100%;">📄 Ver Foto del DNI</button></div>
       <div class="tform-acciones" style="justify-content:flex-end; margin-top:10px;">
@@ -2692,6 +2745,9 @@ document.getElementById("btnSaveDirMembrete").addEventListener("click", () => ha
    VISTA ADMIN
    ============================================================ */
 function refreshAdminView() {
+  try { renderAdminCampos(); } catch(e) {}
+  try { renderCustomFieldsInto("admAlumnoCamposExtra", "alumno"); } catch(e) {}
+  try { renderCustomFieldsInto("admDocenteCamposExtra", "docente"); } catch(e) {}
   try { renderAdminDispDocentes(); } catch(e) {}
   try { renderAdmAccesoAlumnoSelect(); } catch(e) {}
   try { renderAdminEstadosGrupos(); } catch(e) {}
@@ -2802,6 +2858,54 @@ function renderAdminCourses() {
   html += `</tbody></table>`; cont.innerHTML = html;
   cont.querySelectorAll("[data-del-course]").forEach(btn => btn.addEventListener("click", () => { const course = state.courses.find(c => c.id === btn.dataset.delCourse); if (confirm(`¿Eliminar curso?`)) { state.courses = state.courses.filter(c => c.id !== course.id); saveState(); renderAdminCourses(); } }));
 }
+
+document.getElementById("admNewGroupForm")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const programa = document.getElementById("admGroupPrograma")?.value.trim() || "";
+  const nivelTexto = document.getElementById("admGroupNivel")?.value.trim() || "";
+  const frecuencia = document.getElementById("admGroupFrecuencia")?.value.trim() || "";
+  const horario = document.getElementById("admGroupHorario")?.value.trim() || "";
+  const nombre = (document.getElementById("admGroupNombre")?.value || "").trim() || (programa + (nivelTexto ? " · " + nivelTexto : ""));
+  const totalHoras = parseInt(document.getElementById("admGroupTotalHoras")?.value, 10) || 0;
+  const teacherCode = document.getElementById("admGroupTeacher")?.value || "";
+  if (!programa || !nivelTexto || !frecuencia || !horario || !teacherCode) {
+    alert("Completa todos los campos obligatorios.");
+    return;
+  }
+  if (!state.teachers[teacherCode]) {
+    alert("Selecciona un docente válido.");
+    return;
+  }
+  // Map free-text nivel to known ids when possible
+  let nivel = "basico";
+  const nt = nivelTexto.toLowerCase();
+  if (nt.includes("inter") || nt.includes("b1") || nt.includes("b2")) nivel = "intermedio";
+  else if (nt.includes("teen") || nt.includes("adolec") || nt.includes("kid")) nivel = "teens";
+  else if (nt.includes("avanz") || nt.includes("c1") || nt.includes("c2")) nivel = "intermedio";
+
+  const id = "grp_" + Date.now();
+  state.groups.push({
+    id,
+    nombre,
+    nivel,
+    nivelTexto,
+    teacherCode,
+    studentCodes: [],
+    programa,
+    frecuencia,
+    horario,
+    totalHoras,
+    cerrado: false,
+    librosMes: {}
+  });
+  saveState();
+  e.target.reset();
+  const th = document.getElementById("admGroupTotalHoras");
+  if (th) th.value = 40;
+  try { refreshAdminView(); } catch (err) { try { renderAdminGrupos(); } catch (e2) {} }
+  alert("✅ Grupo creado correctamente.");
+});
+
 document.getElementById("admNewCourseForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const programa = document.getElementById("admCoursePrograma").value.trim(); const dia = document.getElementById("admCourseDia").value.trim();
@@ -2910,7 +3014,9 @@ document.getElementById("admNewAlumnoForm").addEventListener("submit", async (e)
   if (state.students[user] || state.teachers[user]) { alert("Usuario ya existe."); return; }
   try {
     const dniPhotoUrl = await procesarImagen(dniFileInput.files[0], "dni-alumnos");
-state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoUrl };
+if (!validateCustomFields("admAlumnoCamposExtra", "alumno")) return;
+    const extrasA = collectCustomFields("admAlumnoCamposExtra");
+state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoUrl, custom: extrasA };
     state.grades[user] = {};
     if (groupId) { const g = state.groups.find(x => x.id === groupId); if (g && !g.studentCodes.includes(user)) g.studentCodes.push(user); }
     saveState();
@@ -2932,7 +3038,9 @@ document.getElementById("admNewDocenteForm").addEventListener("submit", async (e
   if (state.teachers[user] || state.students[user]) { alert("Usuario ya existe."); return; }
   try {
     const dniPhotoUrl = await procesarImagen(dniFileInput.files[0], "dni-docentes");
-state.teachers[user] = { password: pass, nombre, email: email || "—", area: area || "—", pagoHora, year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, telefono, dniPhoto: dniPhotoUrl, formalPhoto: null };
+if (!validateCustomFields("admDocenteCamposExtra", "docente")) return;
+    const extrasD = collectCustomFields("admDocenteCamposExtra");
+state.teachers[user] = { password: pass, nombre, email: email || "—", area: area || "—", pagoHora, year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, telefono, dniPhoto: dniPhotoUrl, formalPhoto: null, custom: extrasD };
     saveState();
     document.getElementById("credUserDocente").textContent = user; document.getElementById("credPassDocente").textContent = pass;
     document.getElementById("credDocente").classList.add("visible"); e.target.reset();
@@ -2953,6 +3061,7 @@ function abrirEditar(code, tipo) {
   document.getElementById("editPassword").value = "";
   if (tipo === "alumno") { document.getElementById("editProgramaWrap").style.display = ""; document.getElementById("editAreaWrap").style.display = "none"; document.getElementById("editPagoHoraWrap").style.display = "none"; document.getElementById("editPrograma").value = (obj.programa && obj.programa !== "—") ? obj.programa : ""; }
   else { document.getElementById("editProgramaWrap").style.display = "none"; document.getElementById("editAreaWrap").style.display = ""; document.getElementById("editPagoHoraWrap").style.display = ""; document.getElementById("editArea").value = (obj.area && obj.area !== "—") ? obj.area : ""; document.getElementById("editPagoHora").value = obj.pagoHora || ""; }
+  try { renderCustomFieldsInto("editCamposExtra", tipo, obj.custom || {}); } catch(e) {}
   document.getElementById("modalEditar").classList.add("visible");
 }
 document.getElementById("formEditar").addEventListener("submit", (e) => {
@@ -2968,6 +3077,8 @@ document.getElementById("formEditar").addEventListener("submit", (e) => {
   if (tipo === "alumno") obj.programa = document.getElementById("editPrograma").value.trim() || "—";
   else { obj.area = document.getElementById("editArea").value.trim() || "—"; obj.pagoHora = parseFloat(document.getElementById("editPagoHora").value) || 0; }
   const nuevaPass = document.getElementById("editPassword").value.trim(); if (nuevaPass) obj.password = nuevaPass;
+  if (!validateCustomFields("editCamposExtra", tipo)) return;
+  obj.custom = collectCustomFields("editCamposExtra");
   if (currentStudentCode === code) currentStudent = obj;
   if (currentTeacherCode === code) currentTeacher = obj;
   saveState(); document.getElementById("modalEditar").classList.remove("visible"); alert("✅ Actualizado.");
@@ -3807,6 +3918,134 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
 document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
   tab.addEventListener('click', () => {
     if (tab.dataset.dtab === 'carga_horaria') setTimeout(renderTeacherCargaHoraria, 40);
+  });
+});
+
+
+/* === CAMPOS PERSONALIZADOS === */
+function getCustomFields() {
+  if (!state.customFields) state.customFields = [];
+  return state.customFields;
+}
+function fieldsFor(tipo) {
+  // tipo: 'alumno' | 'docente'
+  return getCustomFields().filter(f => f.aplica === 'ambos' || f.aplica === tipo);
+}
+function fieldInputHTML(f, value, prefix) {
+  const id = prefix + f.id;
+  const req = f.requerido ? 'required' : '';
+  const reqMark = f.requerido ? ' <span class="req">*</span>' : '';
+  const val = value != null && value !== undefined ? String(value) : '';
+  let input = '';
+  if (f.tipo === 'textarea') {
+    input = `<textarea id="${id}" data-custom-field="${f.id}" ${req} rows="3">${val.replace(/</g,'&lt;')}</textarea>`;
+  } else if (f.tipo === 'select') {
+    const opts = (f.opciones || []).map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('');
+    input = `<select id="${id}" data-custom-field="${f.id}" ${req}><option value="">Selecciona...</option>${opts}</select>`;
+  } else {
+    const t = f.tipo || 'text';
+    input = `<input type="${t}" id="${id}" data-custom-field="${f.id}" value="${val.replace(/"/g,'&quot;')}" ${req}>`;
+  }
+  return `<div class="campo"><label>${f.label}${reqMark}</label>${input}</div>`;
+}
+function renderCustomFieldsInto(containerId, tipo, values) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  const fields = fieldsFor(tipo);
+  values = values || {};
+  if (!fields.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = '<div class="tform-grid" style="margin-top:8px;">' +
+    fields.map(f => fieldInputHTML(f, values[f.id], containerId + '_')).join('') +
+    '</div>';
+}
+function collectCustomFields(containerId) {
+  const cont = document.getElementById(containerId);
+  const out = {};
+  if (!cont) return out;
+  cont.querySelectorAll('[data-custom-field]').forEach(el => {
+    out[el.dataset.customField] = (el.value || '').trim();
+  });
+  return out;
+}
+function validateCustomFields(containerId, tipo) {
+  const fields = fieldsFor(tipo);
+  for (const f of fields) {
+    if (!f.requerido) continue;
+    const el = document.querySelector('#' + containerId + ' [data-custom-field="' + f.id + '"]');
+    if (el && !(el.value || '').trim()) {
+      alert('Completa el campo obligatorio: ' + f.label);
+      el.focus();
+      return false;
+    }
+  }
+  return true;
+}
+function renderAdminCampos() {
+  const cont = document.getElementById('admCamposLista');
+  if (!cont) return;
+  const fields = getCustomFields();
+  if (!fields.length) {
+    cont.innerHTML = '<div class="empty-state">Aún no has creado campos personalizados.</div>';
+    return;
+  }
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table class="admin-table" style="min-width:700px;">
+    <thead><tr><th>Campo</th><th>Tipo</th><th>Aplica a</th><th>Obligatorio</th><th>Opciones</th><th>Acciones</th></tr></thead><tbody>`;
+  fields.forEach(f => {
+    const aplica = f.aplica === 'ambos' ? 'Alumnos y Docentes' : (f.aplica === 'alumno' ? 'Alumnos' : 'Docentes');
+    html += `<tr>
+      <td><strong>${f.label}</strong></td>
+      <td>${f.tipo}</td>
+      <td>${aplica}</td>
+      <td>${f.requerido ? 'Sí' : 'No'}</td>
+      <td>${(f.opciones || []).join(', ') || '—'}</td>
+      <td><button type="button" class="btn btn-mini btn-rojo" data-del-campo="${f.id}">🗑️</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+  cont.querySelectorAll('[data-del-campo]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('¿Eliminar este campo? Los datos ya guardados en cuentas no se borran automáticamente.')) return;
+      state.customFields = getCustomFields().filter(x => x.id !== btn.dataset.delCampo);
+      saveState();
+      renderAdminCampos();
+      renderCustomFieldsInto('admAlumnoCamposExtra', 'alumno');
+      renderCustomFieldsInto('admDocenteCamposExtra', 'docente');
+    });
+  });
+}
+document.getElementById('campoTipo')?.addEventListener('change', (e) => {
+  const wrap = document.getElementById('campoOpcionesWrap');
+  if (wrap) wrap.style.display = e.target.value === 'select' ? '' : 'none';
+});
+document.getElementById('admNewCampoForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const label = document.getElementById('campoLabel').value.trim();
+  const tipo = document.getElementById('campoTipo').value;
+  const aplica = document.getElementById('campoAplica').value;
+  const requerido = document.getElementById('campoReq').value === 'si';
+  let opciones = [];
+  if (tipo === 'select') {
+    opciones = (document.getElementById('campoOpciones').value || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!opciones.length) { alert('Indica al menos una opción para la lista.'); return; }
+  }
+  if (!label) { alert('Escribe el nombre del campo.'); return; }
+  const id = 'cf_' + Date.now();
+  getCustomFields().push({ id, label, tipo, aplica, requerido, opciones });
+  saveState();
+  e.target.reset();
+  document.getElementById('campoOpcionesWrap').style.display = 'none';
+  renderAdminCampos();
+  renderCustomFieldsInto('admAlumnoCamposExtra', 'alumno');
+  renderCustomFieldsInto('admDocenteCamposExtra', 'docente');
+  alert('✅ Campo creado. Ya aparece en los formularios correspondientes.');
+});
+// Initial render when admin opens
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'campos') setTimeout(renderAdminCampos, 40);
+    if (tab.dataset.admtab === 'alumnos') setTimeout(() => renderCustomFieldsInto('admAlumnoCamposExtra', 'alumno'), 40);
+    if (tab.dataset.admtab === 'docentes') setTimeout(() => renderCustomFieldsInto('admDocenteCamposExtra', 'docente'), 40);
   });
 });
 
