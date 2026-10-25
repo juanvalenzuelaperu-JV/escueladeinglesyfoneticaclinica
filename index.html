@@ -6,7 +6,7 @@
 <title>Escuela de Inglés y Fonética Clínica Jotavalenzuela | por el Prof. Juan Valenzuela M.</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004A8F'/><text x='50' y='68' font-size='50' fill='white' text-anchor='middle' font-weight='bold'>JV</text></svg>">
+<link rel="icon" id="dynamicFavicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004A8F'/><text x='50' y='68' font-size='50' fill='white' text-anchor='middle' font-weight='bold'>JV</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -145,7 +145,8 @@
   .portal-card p { color: var(--gris); font-size: .88rem; margin-bottom: 22px; min-height: 60px; }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .75); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-  .modal-overlay.visible { display: flex; }
+  .modal-overlay { pointer-events: none; }
+  .modal-overlay.visible { pointer-events: auto; display: flex; }
   .modal-box { background: #fff; border-radius: 22px; padding: 42px 34px; max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; text-align: center; position: relative; animation: modalIn .3s ease; }
   @keyframes modalIn { from { opacity: 0; transform: scale(.94) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   .modal-close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9ca3af; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; transition: background .2s; font-family: inherit; }
@@ -347,6 +348,15 @@
   .asg-badge.speaking { background: #fef3c7; color: #b45309; }
   .asg-badge.readers { background: #cffafe; color: #0e7490; }
   .asg-badge.final_exam { background: #fee2e2; color: #b91c1c; }
+
+  .criterion-card.writing::before { background: #f97316; }
+  .criterion-card.online_homework::before { background: #36A2EB; }
+  .criterion-card.intl_exam::before { background: #ec4899; }
+  .asg-badge.writing { background: #ffedd5; color: #c2410c; }
+  .asg-badge.online_homework { background: #dbeafe; color: #1d4ed8; }
+  .asg-badge.intl_exam { background: #fce7f3; color: #be185d; }
+  .asg-badge.online_workbook { background: #ede9fe; color: #6d28d9; }
+
 
   .asg-grading { display: none; padding: 16px 20px 20px; border-top: 1px solid var(--borde); background: #fff; }
   .asg-grading.visible { display: block; }
@@ -694,11 +704,20 @@
           <div class="resumen-card amarillo"><div class="et">Actualización</div><div class="val" id="resumenActA" style="font-size:1.05rem;">--:--:--</div></div>
         </div>
         <div class="panel activo" id="panel-calificaciones">
-          <div class="calif-summary">
-            <div class="calif-summary-item"><span class="calif-label">Promedio general</span><span class="calif-promedio" id="califPromedioA">—</span></div>
-            <div class="calif-summary-item"><span class="calif-label">Mínimo aprobatorio</span><span class="calif-min">14.00</span></div>
-            <div class="calif-summary-item"><span class="calif-label">Estado del curso</span><span class="calif-estado pendiente" id="califEstadoA">Pendiente</span></div>
+          <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:20px;">
+            <div id="califTeacherPhotoBox" style="flex-shrink:0;text-align:center;">
+              <div id="califTeacherPhoto" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#ddd6fe);display:grid;place-items:center;font-size:2rem;border:3px solid var(--morado);overflow:hidden;">👨‍🏫</div>
+              <div id="califTeacherName" style="font-size:.78rem;font-weight:700;color:var(--morado);margin-top:6px;max-width:100px;">Docente</div>
+            </div>
+            <div style="flex:1;min-width:220px;">
+              <div class="calif-summary" style="margin-bottom:0;">
+                <div class="calif-summary-item"><span class="calif-label">Promedio general</span><span class="calif-promedio" id="califPromedioA">—</span></div>
+                <div class="calif-summary-item"><span class="calif-label">Mínimo aprobatorio</span><span class="calif-min">14.00</span></div>
+                <div class="calif-summary-item"><span class="calif-label">Estado del curso</span><span class="calif-estado pendiente" id="califEstadoA">Pendiente</span></div>
+              </div>
+            </div>
           </div>
+          <div id="califVencimientosBox" style="margin-bottom:18px;"></div>
           <div class="criteria-grid" id="criteriaGridA"></div>
           <h4 style="color:var(--azul);font-size:1rem;font-weight:800;margin-bottom:16px;">Detalle de evaluaciones por criterio</h4>
           <div id="detalleCriteriosA"></div>
@@ -790,27 +809,8 @@
           </div>
         </div>
         <div class="panel" id="dpanel-evaluaciones">
-          <div class="tform">
-            <h4>➕ Crear nueva asignación por criterio</h4>
-            <form id="dNewAsgForm" class="tform-grid">
-              <div class="campo">
-                <label>Criterio de evaluación <span class="req">*</span></label>
-                <select id="dAsgCriterio" required>
-                  <option value="">Selecciona un criterio</option>
-                  <option value="class_participation">Class Participation</option>
-                  <option value="online_workbook">Online Workbook</option>
-                  <option value="speaking">Speaking</option>
-                  <option value="readers">Readers</option>
-                  <option value="final_exam">Final Exam</option>
-                </select>
-              </div>
-              <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="dAsgNombre" placeholder="Ej: Oral Presentation" required></div>
-              <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="dAsgInicio" required></div>
-              <div class="campo"><label>Fecha fin <span class="req">*</span></label><input type="date" id="dAsgFin" required></div>
-              <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-verde btn-mini">Crear asignación</button></div></div>
-            </form>
-          </div>
-          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">Asignaciones creadas</h4>
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:16px;">ℹ️ Las evaluaciones las programa el área administrativa (Gestor de asignaciones). Aquí solo puedes <strong>calificar</strong>.</p>
+          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">Evaluaciones para calificar</h4>
           <div id="dAsignacionesLista"></div>
         </div>
         <div class="panel" id="dpanel-asistencia">
@@ -1018,6 +1018,8 @@
             <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
             <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad Docente</button>
             <button class="dash-tab" data-admtab="campos">🧩 Campos personalizados</button>
+            <button class="dash-tab" data-admtab="asignaciones">📋 Gestor de asignaciones</button>
+            <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos dictados</button>
             <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
           </div>
           <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo el administrador crea cuentas, grupos, cursos y exámenes.</div>
@@ -1390,6 +1392,48 @@
             <div id="admCamposLista"></div>
           </div>
 
+          
+          <div class="panel" id="adm-panel-asignaciones">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Gestor de asignaciones</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Programa las evaluaciones del ciclo. Los docentes solo podrán calificar; no crear nuevas desde su portal.</p>
+            <div class="tform admin-form">
+              <h4>➕ Nueva evaluación</h4>
+              <form id="admNewAsgForm" class="tform-grid">
+                <div class="campo">
+                  <label>Criterio <span class="req">*</span></label>
+                  <select id="admAsgCriterio" required>
+                    <option value="">Selecciona...</option>
+                    <option value="class_participation">Class Participation</option>
+                    <option value="writing">Writing</option>
+                    <option value="online_homework">Online Homework</option>
+                    <option value="speaking">Speaking</option>
+                    <option value="readers">Readers</option>
+                    <option value="intl_exam">Internacional examination</option>
+                    <option value="final_exam">Final Exam</option>
+                  </select>
+                </div>
+                <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admAsgNombre" placeholder="Ej: Oral Presentation 1" required></div>
+                <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="admAsgInicio" required></div>
+                <div class="campo"><label>Fecha fin / caducidad <span class="req">*</span></label><input type="date" id="admAsgFin" required></div>
+                <div class="campo"><label>Grupo (opcional)</label><select id="admAsgGrupo"><option value="">Todos los grupos</option></select></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear evaluación</button></div></div>
+              </form>
+            </div>
+            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Evaluaciones programadas</h4>
+            <div id="admAsignacionesLista"></div>
+          </div>
+
+          
+          <div class="panel" id="adm-panel-historial_cursos">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📚 Historial de cursos dictados</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Registro de cada curso cerrado por los docentes, con la descripción entregada a Coordinación Académica.</p>
+            <div class="resumen-grid" style="margin-bottom:18px;">
+              <div class="resumen-card azul"><div class="et">Cursos cerrados</div><div class="val" id="histCursosTotal">—</div></div>
+              <div class="resumen-card verde"><div class="et">Alumnos involucrados</div><div class="val" id="histCursosAlumnos">—</div></div>
+            </div>
+            <div id="admHistorialCursosLista"></div>
+          </div>
+
           <div class="panel" id="adm-panel-resumen">
             <div class="resumen-grid">
               <div class="resumen-card slate"><div class="et">Alumnos</div><div class="val" id="admStatAlumnos">—</div></div>
@@ -1755,13 +1799,18 @@ const NIVELES = [
 
 const CRITERIOS = [
   { id: "class_participation", nombre: "Class Participation", color: "#FF6384" },
-  { id: "online_workbook", nombre: "Online Workbook", color: "#36A2EB" },
+  { id: "writing", nombre: "Writing", color: "#F97316" },
+  { id: "online_homework", nombre: "Online Homework", color: "#36A2EB" },
   { id: "speaking", nombre: "Speaking", color: "#FFCE56" },
   { id: "readers", nombre: "Readers", color: "#4BC0C0" },
+  { id: "intl_exam", nombre: "Internacional examination", color: "#EC4899" },
   { id: "final_exam", nombre: "Final Exam", color: "#9966FF" }
 ];
+// compat: map old online_workbook -> online_homework when reading
+
 
 const ICONOS_DEFINIDOS = [
+  { key: "favicon", nombre: "Favicon (pestaña del navegador)", desc: "Imagen pequeña del favicon del sitio", default: "🔖" },
   { key: "logo_jv", nombre: "Logo JV (header y footer)", desc: "Icono del logo de la escuela", default: "JV" },
   { key: "portal_alumno", nombre: "Portal del Alumno", desc: "Icono de la tarjeta del Portal del Alumno", default: "🎓" },
   { key: "portal_docente", nombre: "Portal del Docente", desc: "Icono de la tarjeta del Portal del Docente", default: "👨‍🏫" },
@@ -1802,6 +1851,7 @@ const DEFAULT_STATE = {
   founderPhoto: "",
   marketingPhotos: [],
   iconos: {},
+    historialCursos: [],
   oficinaImagenes: {
     marketing: { sello: "", membrete: "" },
     contabilidad: { sello: "", membrete: "" },
@@ -1972,11 +2022,11 @@ function renderIconografia() {
     inp.addEventListener("change", async () => {
       if (!inp.files || !inp.files[0]) return;
       if (inp.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
-      try { const url = await procesarImagen(inp.files[0], "iconos"); state.iconos[inp.dataset.iconoKey] = url; saveState(); renderIconografia(); aplicarIconosInterfaz(); } catch (e) { alert("Error: " + e.message); }
+      try { const url = await procesarImagen(inp.files[0], "iconos"); state.iconos[inp.dataset.iconoKey] = url; if (inp.dataset.iconoKey === "favicon") { state.favicon = url; try { renderFavicon(); } catch(e) {} } saveState(); renderIconografia(); aplicarIconosInterfaz(); } catch (e) { alert("Error: " + e.message); }
     });
   });
   cont.querySelectorAll("[data-reset-icono]").forEach(btn => btn.addEventListener("click", () => {
-    if (confirm("¿Restablecer icono por defecto?")) { delete state.iconos[btn.dataset.resetIcono]; saveState(); renderIconografia(); aplicarIconosInterfaz(); }
+    if (confirm("¿Restablecer icono por defecto?")) { const k = btn.dataset.resetIcono; delete state.iconos[k]; if (k === "favicon") { delete state.favicon; try { renderFavicon(); } catch(e) {} } saveState(); renderIconografia(); aplicarIconosInterfaz(); }
   }));
 }
 function aplicarIconosInterfaz() {
@@ -2315,28 +2365,129 @@ function renderStudentResumen() {
   document.getElementById("resumenActA").textContent = horaActual();
 }
 function renderStudentCalificaciones() {
-  const prom = promedioGeneral(currentStudentCode);
-  document.getElementById("califPromedioA").textContent = prom !== null ? prom.toFixed(2) : "—";
-  const estado = estadoCurso(currentStudentCode);
-  const estadoEl = document.getElementById("califEstadoA"); estadoEl.className = "calif-estado " + estado.clase; estadoEl.textContent = estado.texto;
-  const grid = document.getElementById("criteriaGridA"); grid.innerHTML = "";
-  CRITERIOS.forEach(c => {
-    const promC = promedioCriterio(currentStudentCode, c.id); const count = countCalificadas(currentStudentCode, c.id); const total = state.assignments.filter(a => a.criterio === c.id).length;
-    const div = document.createElement("div"); div.className = "criterion-card " + c.id;
-    div.innerHTML = `<div class="c-label">${c.nombre}</div><div class="c-valor ${promC === null ? 'vacio' : ''}">${promC !== null ? promC.toFixed(2) : '—'}</div><div class="c-count">${count}/${total} evaluaciones</div>`;
-    grid.appendChild(div);
-  });
-  const detalle = document.getElementById("detalleCriteriosA"); detalle.innerHTML = ""; let hay = false;
-  CRITERIOS.forEach(c => {
-    const asgs = state.assignments.filter(a => a.criterio === c.id); if (!asgs.length) return;
-    hay = true;
-    const promC = promedioCriterio(currentStudentCode, c.id); const grades = state.grades[currentStudentCode] || {};
-    const block = document.createElement("div"); block.className = "criterion-detail";
-    block.innerHTML = `<div class="criterion-detail-header"><h5>${c.nombre}</h5><span class="c-prom">Promedio: ${promC !== null ? promC.toFixed(2) : '—'}</span></div><div>${asgs.map(a => { const v = grades[a.id]; const tiene = v !== null && v !== undefined && !isNaN(v); return `<div class="assignment-row"><div class="assignment-info"><strong>${a.nombre} ${a.esExamen ? '<span style="font-size:.72rem;color:var(--morado);font-weight:700;">📝 Examen</span>' : ''}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="assignment-nota ${tiene ? claseNota(v) : 'pending'}">${tiene ? v : 'Pendiente'}</div></div>`; }).join("")}</div>`;
-    detalle.appendChild(block);
-  });
-  if (!hay) detalle.innerHTML = `<p style="color:var(--gris);padding:16px;">Aún no hay evaluaciones.</p>`;
+  if (!currentStudentCode) return;
+  const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
+  const elProm = document.getElementById('califPromedioA');
+  const elRes = document.getElementById('resumenPromA');
+  if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
+  if (elRes) elRes.textContent = prom !== null ? prom.toFixed(2) : '—';
+  const est = typeof estadoCurso === 'function' ? estadoCurso(currentStudentCode) : { texto: 'Pendiente', clase: 'pendiente' };
+  const elEst = document.getElementById('califEstadoA');
+  if (elEst) { elEst.textContent = est.texto; elEst.className = 'calif-estado ' + est.clase; }
+
+  // Teacher photo beside grades
+  const photoEl = document.getElementById('califTeacherPhoto');
+  const nameEl = document.getElementById('califTeacherName');
+  const groups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+  let teacher = null;
+  if (groups.length) {
+    const g = groups[0];
+    teacher = state.teachers[g.teacherCode];
+  }
+  if (photoEl) {
+    if (teacher && teacher.formalPhoto) {
+      photoEl.innerHTML = `<img src="${teacher.formalPhoto}" alt="Docente" style="width:100%;height:100%;object-fit:cover;">`;
+      photoEl.style.padding = '0';
+    } else {
+      photoEl.innerHTML = '👨‍🏫';
+      photoEl.style.padding = '';
+    }
+  }
+  if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+
+  // Due dates highlight
+  const vencBox = document.getElementById('califVencimientosBox');
+  if (vencBox) {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const myGroupIds = groups.map(g => g.id);
+    const proximas = (state.assignments || []).filter(a => {
+      if (!a.fechaFin) return false;
+      if (a.grupoId && myGroupIds.length && !myGroupIds.includes(a.grupoId)) return false;
+      return a.fechaFin >= hoy;
+    }).sort((a, b) => a.fechaFin.localeCompare(b.fechaFin));
+    const vencidasSinNota = (state.assignments || []).filter(a => {
+      if (!a.fechaFin || a.fechaFin >= hoy) return false;
+      if (a.grupoId && myGroupIds.length && !myGroupIds.includes(a.grupoId)) return false;
+      const nota = (state.grades[currentStudentCode] || {})[a.id];
+      return nota === undefined || nota === null;
+    });
+    let html = '';
+    if (proximas.length) {
+      html += '<div style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
+      html += '<div style="font-weight:800;color:#b45309;margin-bottom:8px;font-size:.9rem;">⏰ Evaluaciones con fecha de caducidad</div>';
+      proximas.slice(0, 6).forEach(a => {
+        const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
+        const days = Math.ceil((new Date(a.fechaFin) - new Date(hoy)) / 86400000);
+        const urg = days <= 3 ? 'color:#b91c1c;font-weight:800;' : 'color:#92400e;';
+        html += `<div style="font-size:.88rem;margin:4px 0;${urg}">📌 ${crit.nombre}: <strong>${a.nombre}</strong> — vence ${formatearFecha(a.fechaFin)} (${days === 0 ? 'hoy' : days + ' día(s)'})</div>`;
+      });
+      html += '</div>';
+    }
+    if (vencidasSinNota.length) {
+      html += '<div style="background:#fee2e2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
+      html += '<div style="font-weight:800;color:#b91c1c;margin-bottom:8px;font-size:.9rem;">⚠️ Evaluaciones vencidas sin nota</div>';
+      vencidasSinNota.slice(0, 4).forEach(a => {
+        const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
+        html += `<div style="font-size:.88rem;margin:4px 0;color:#991b1b;">${crit.nombre}: ${a.nombre} (venció ${formatearFecha(a.fechaFin)})</div>`;
+      });
+      html += '</div>';
+    }
+    vencBox.innerHTML = html;
+  }
+
+  // Criteria grid
+  const grid = document.getElementById('criteriaGridA');
+  if (grid) {
+    grid.innerHTML = '';
+    CRITERIOS.forEach(c => {
+      const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
+      // also check legacy online_workbook
+      let p = promC;
+      if (p === null && c.id === 'online_homework' && typeof promedioCriterio === 'function') {
+        p = promedioCriterio(currentStudentCode, 'online_workbook');
+      }
+      const card = document.createElement('div');
+      card.className = 'criterion-card ' + c.id;
+      card.innerHTML = `<div class="c-label">${c.nombre}</div><div class="c-valor${p === null ? ' vacio' : ''}">${p !== null ? p.toFixed(2) : '—'}</div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  // Detail by criterion
+  const det = document.getElementById('detalleCriteriosA');
+  if (det) {
+    det.innerHTML = '';
+    const hoy = new Date().toISOString().slice(0, 10);
+    const myGroupIds = groups.map(g => g.id);
+    CRITERIOS.forEach(c => {
+      let asgs = (state.assignments || []).filter(a => a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook'));
+      asgs = asgs.filter(a => !a.grupoId || !myGroupIds.length || myGroupIds.includes(a.grupoId));
+      if (!asgs.length) return;
+      const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
+      const block = document.createElement('div');
+      block.className = 'criterion-detail';
+      let rows = asgs.map(a => {
+        const nota = (state.grades[currentStudentCode] || {})[a.id];
+        const vencida = a.fechaFin && a.fechaFin < hoy;
+        const porVencer = a.fechaFin && a.fechaFin >= hoy && a.fechaFin <= new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+        let notaCls = 'assignment-nota pending';
+        let notaTxt = 'Pendiente';
+        if (nota !== undefined && nota !== null) {
+          notaTxt = Number(nota).toFixed(1);
+          notaCls = 'assignment-nota ' + (nota >= 16 ? 'alta' : nota >= 14 ? 'media' : 'baja');
+        }
+        const badge = vencida && (nota === undefined || nota === null)
+          ? '<span class="cerrado-badge" style="margin-left:6px;">Vencida</span>'
+          : (porVencer ? '<span style="display:inline-block;padding:2px 8px;background:#fef3c7;color:#b45309;border-radius:50px;font-size:.68rem;font-weight:800;margin-left:6px;">Por vencer</span>' : '');
+        return `<div class="assignment-row"><div class="assignment-info"><strong>${a.nombre}${badge}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="${notaCls}">${notaTxt}</div></div>`;
+      }).join('');
+      block.innerHTML = `<div class="criterion-detail-header"><h5>${c.nombre}</h5><span class="c-prom">${promC !== null ? promC.toFixed(2) : '—'}</span></div>${rows}`;
+      det.appendChild(block);
+    });
+    if (!det.innerHTML) det.innerHTML = '<div class="empty-state">Aún no hay evaluaciones registradas.</div>';
+  }
 }
+
 function renderStudentExams() {
   const cont = document.getElementById("studentExamsLista"); cont.innerHTML = ""; cont.style.display = "block";
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
@@ -2474,12 +2625,30 @@ function mostrarReportCardModal(rc) {
 function imprimirReportCard(rc) {
   const iframe = document.createElement('iframe'); iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe); const doc = iframe.contentWindow.document; doc.open();
-  doc.write(`<html><head><title>Report Card</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;color:#1f2937}.rc-letterhead{text-align:center;margin:0 0 20px 0;width:100%}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain;display:block;margin:0 auto}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004A8F;font-size:1.5rem;margin:0 0 5px 0}.rc-header p{color:#6b7280;font-size:0.9rem;margin:0}.rc-student-info{margin-bottom:20px;background:#f8fafc;padding:15px;border-radius:8px;border-left:4px solid #FDB913;display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc-student-info p{margin:0;font-size:0.95rem}.rc-status-banner{margin-bottom:20px;padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:1.05rem;border-width:2px;border-style:solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:0.9rem}.tabla-wrap th{background:#004A8F;color:#fff;text-align:left}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px;display:block;margin:0 auto 10px}.rc-signature p{font-size:0.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}@media print{body{padding:0}}</style></head><body>${buildReportCardHTML(rc)}</body></html>`); doc.close();
+  doc.write(`<html><head><title>Report Card</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;color:#1f2937}.rc-letterhead{text-align:center;margin:0 0 20px 0;width:100%}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain;display:block;margin:0 auto}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004A8F;font-size:1.5rem;margin:0 0 5px 0}.rc-header p{color:#6b7280;font-size:0.9rem;margin:0}.rc-student-info{margin-bottom:20px;background:#f8fafc;padding:15px;border-radius:8px;border-left:4px solid #FDB913;display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc-student-info p{margin:0;font-size:0.95rem}.rc-status-banner{margin-bottom:20px;padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:1.05rem;border-width:2px;border-style:solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:0.9rem}.tabla-wrap th{background:#004A8F;color:#fff;text-align:left}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px;display:block;margin:0 auto 10px}.rc-signature p{font-size:0.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}@media print{body{padding:0}}</style></head><body>${buildReportCardHTML(rc)}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`); doc.close();
   setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); document.body.removeChild(iframe); }, 500);
 }
 function descargarReportCard(rc) {
   const student = state.students[rc.studentCode];
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RC - ${student.nombre}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}.rc-letterhead{text-align:center;margin:0 0 20px 0}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004A8F}.rc-student-info{background:#f8fafc;padding:15px;border-left:4px solid #FDB913;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.rc-status-banner{padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;font-weight:800;margin-bottom:20px;border:2px solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:.9rem}.tabla-wrap th{background:#004A8F;color:#fff}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px}.rc-signature p{font-size:.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}</style></head><body>${buildReportCardHTML(rc)}</body></html>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RC - ${student.nombre}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}.rc-letterhead{text-align:center;margin:0 0 20px 0}.rc-letterhead img{width:100%;max-height:120px;object-fit:contain}.rc-header{display:flex;justify-content:space-between;margin-bottom:20px}.rc-header h2{color:#004A8F}.rc-student-info{background:#f8fafc;padding:15px;border-left:4px solid #FDB913;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.rc-status-banner{padding:16px 22px;border-radius:10px;display:flex;justify-content:space-between;font-weight:800;margin-bottom:20px;border:2px solid}.rc-status-banner.aprobado{background:#dcfce7;color:#15803d;border-color:#86efac}.rc-status-banner.desaprobado{background:#fee2e2;color:#b91c1c;border-color:#fecaca}.tabla-wrap{width:100%;border-collapse:collapse;margin-bottom:20px}.tabla-wrap th,.tabla-wrap td{padding:10px;border:1px solid #e5e7eb;font-size:.9rem}.tabla-wrap th{background:#004A8F;color:#fff}.tabla-wrap tfoot tr{background:#f1f5f9;font-weight:800}.rc-comment-box{background:#f0fdf4;padding:20px;border-radius:8px;border:1px solid #bbf7d0;margin-bottom:30px}.rc-footer{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0}.rc-signature{text-align:center}.rc-signature img{max-height:80px}.rc-signature p{font-size:.85rem;color:#6b7280;border-top:1px solid #9ca3af;padding-top:5px;width:200px;margin:0 auto}</style></head><body>${buildReportCardHTML(rc)}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' }); const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `ReportCard_${rc.studentCode}_${rc.date}.html`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -2492,12 +2661,131 @@ function puedeCerrarCurso(group) {
   if (!group || group.studentCodes.length === 0) return false;
   return group.studentCodes.every(code => state.reportCards.some(rc => rc.studentCode === code && rc.teacherCode === group.teacherCode));
 }
+let _cerrarCursoGroupId = null;
+let _ultimoComprobanteHTML = '';
+function nombreCursoCierre(group) {
+  const prog = group.programa || group.nombre || 'Curso';
+  const nivel = group.nivelTexto || (typeof getNivelInfo === 'function' ? getNivelInfo(group.nivel).nombre : group.nivel) || '';
+  return nivel ? `${prog} · ${nivel}` : prog;
+}
+function buildComprobanteEntregaHTML(group, historialEntry) {
+  const teacher = state.teachers[group.teacherCode] || {};
+  const fecha = historialEntry.fechaCierre || new Date().toISOString().slice(0, 10);
+  const alumnos = (group.studentCodes || []).map(code => {
+    const s = state.students[code];
+    const prom = typeof promedioGeneral === 'function' ? promedioGeneral(code) : null;
+    const est = typeof estadoCurso === 'function' ? estadoCurso(code) : { texto: '—' };
+    return {
+      code,
+      nombre: s ? s.nombre : code,
+      promedio: prom !== null ? prom.toFixed(2) : '—',
+      estado: est.texto || '—'
+    };
+  });
+  const lh = state.letterhead ? `<div style="text-align:center;margin-bottom:12px;"><img src="${state.letterhead}" style="max-height:70px;max-width:100%;"></div>` : '';
+  const rows = alumnos.map((a, i) => `<tr><td>${i+1}</td><td>${a.nombre}</td><td><code>${a.code}</code></td><td style="text-align:center;font-weight:700;">${a.promedio}</td><td>${a.estado}</td></tr>`).join('');
+  return `${lh}
+    <div style="text-align:center;margin-bottom:16px;">
+      <h2 style="color:#7c3aed;margin:0 0 4px;font-size:1.35rem;">Comprobante de Entrega de Notas</h2>
+      <p style="color:#6b7280;margin:0;font-size:.9rem;">Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
+      <p style="color:#6b7280;margin:4px 0 0;font-size:.85rem;">Coordinación Académica</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.9rem;">
+      <p style="margin:0;"><strong>Curso:</strong> ${nombreCursoCierre(group)}</p>
+      <p style="margin:0;"><strong>Grupo:</strong> ${group.nombre || '—'}</p>
+      <p style="margin:0;"><strong>Docente:</strong> ${teacher.nombre || group.teacherCode || '—'}</p>
+      <p style="margin:0;"><strong>Código docente:</strong> ${group.teacherCode || '—'}</p>
+      <p style="margin:0;"><strong>Horario:</strong> ${group.horario || '—'}</p>
+      <p style="margin:0;"><strong>Frecuencia:</strong> ${group.frecuencia || '—'}</p>
+      <p style="margin:0;"><strong>Fecha de cierre:</strong> ${typeof formatearFecha === 'function' ? formatearFecha(fecha) : fecha}</p>
+      <p style="margin:0;"><strong>Alumnos:</strong> ${alumnos.length}</p>
+    </div>
+    <p style="font-size:.88rem;color:#374151;margin:0 0 10px;"><strong>Descripción del curso dictado:</strong> ${historialEntry.descripcion || '—'}</p>
+    <div class="tabla-wrap" style="box-shadow:none;border:1px solid #e2e8f0;">
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
+        <thead><tr style="background:#004A8F;color:#fff;">
+          <th style="padding:8px;text-align:left;">#</th>
+          <th style="padding:8px;text-align:left;">Alumno</th>
+          <th style="padding:8px;text-align:left;">Código</th>
+          <th style="padding:8px;text-align:center;">Promedio</th>
+          <th style="padding:8px;text-align:left;">Estado</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="5" style="text-align:center;padding:12px;">Sin alumnos</td></tr>'}</tbody>
+      </table>
+    </div>
+    <p style="font-size:.8rem;color:#6b7280;margin-top:14px;">Este documento certifica la entrega de notas del curso cerrado a Coordinación Académica. Tras el cierre no es posible editar calificaciones del grupo.</p>
+    <p style="font-size:.78rem;color:#9ca3af;margin-top:6px;">ID de entrega: ${historialEntry.id || '—'}</p>`;
+}
 function cerrarCurso(groupId) {
   const group = state.groups.find(g => g.id === groupId); if (!group) return;
   if (!puedeCerrarCurso(group)) { alert("⚠️ Aún no puedes cerrar el grupo. Debes enviar los Report Cards de TODOS los alumnos."); return; }
-  if (!confirm(`¿Cerrar el grupo "${group.nombre}"? No podrás editar notas después.`)) return;
-  group.cerrado = true; group.fechaCierre = new Date().toISOString().slice(0, 10);
-  saveState(); alert("✅ Grupo cerrado correctamente.");
+  _cerrarCursoGroupId = groupId;
+  const cursoLabel = nombreCursoCierre(group);
+  const msg = document.getElementById('modalCerrarCursoMsg');
+  if (msg) {
+    msg.innerHTML = `Usted está por cerrar su curso <strong>${cursoLabel}</strong> y de entregar notas a Coordinación Académica. ¿Está seguro?`;
+  }
+  document.getElementById('modalCerrarCurso')?.classList.add('visible');
+}
+function ejecutarCierreCurso() {
+  const groupId = _cerrarCursoGroupId;
+  if (!groupId) return;
+  const group = state.groups.find(g => g.id === groupId);
+  if (!group) return;
+  const fechaCierre = new Date().toISOString().slice(0, 10);
+  group.cerrado = true;
+  group.fechaCierre = fechaCierre;
+
+  const teacher = state.teachers[group.teacherCode] || {};
+  const alumnosResumen = (group.studentCodes || []).map(code => {
+    const s = state.students[code];
+    const prom = typeof promedioGeneral === 'function' ? promedioGeneral(code) : null;
+    return `${s ? s.nombre : code} (${prom !== null ? prom.toFixed(2) : 'sin promedio'})`;
+  }).join('; ');
+
+  const descripcion = [
+    `Curso: ${nombreCursoCierre(group)}`,
+    `Grupo: ${group.nombre || '—'}`,
+    `Programa: ${group.programa || '—'}`,
+    `Nivel: ${group.nivelTexto || group.nivel || '—'}`,
+    `Horario: ${group.horario || '—'}`,
+    `Frecuencia: ${group.frecuencia || '—'}`,
+    `Total horas: ${group.totalHoras != null ? group.totalHoras : '—'}`,
+    `Docente: ${teacher.nombre || group.teacherCode || '—'}`,
+    `Alumnos (${(group.studentCodes || []).length}): ${alumnosResumen || 'ninguno'}`,
+    `Fecha de cierre y entrega de notas: ${fechaCierre}`
+  ].join('. ');
+
+  if (!state.historialCursos) state.historialCursos = [];
+  const entry = {
+    id: 'hist_' + Date.now(),
+    groupId: group.id,
+    nombreGrupo: group.nombre || '',
+    programa: group.programa || '',
+    nivel: group.nivelTexto || group.nivel || '',
+    horario: group.horario || '',
+    frecuencia: group.frecuencia || '',
+    teacherCode: group.teacherCode,
+    teacherName: teacher.nombre || group.teacherCode || '',
+    studentCodes: [...(group.studentCodes || [])],
+    fechaCierre,
+    descripcion
+  };
+  state.historialCursos.unshift(entry);
+
+  saveState();
+  document.getElementById('modalCerrarCurso')?.classList.remove('visible');
+  _cerrarCursoGroupId = null;
+
+  // Show comprobante
+  _ultimoComprobanteHTML = buildComprobanteEntregaHTML(group, entry);
+  const body = document.getElementById('comprobanteEntregaBody');
+  if (body) body.innerHTML = _ultimoComprobanteHTML;
+  document.getElementById('modalComprobanteEntrega')?.classList.add('visible');
+
+  try { refreshTeacherView(); } catch(e) {}
+  try { if (typeof renderAdminEstadosGrupos === 'function') renderAdminEstadosGrupos(); } catch(e) {}
+  try { if (typeof renderAdminHistorialCursos === 'function') renderAdminHistorialCursos(); } catch(e) {}
 }
 function reabrirCurso(groupId) {
   const group = state.groups.find(g => g.id === groupId); if (!group) return;
@@ -2505,6 +2793,70 @@ function reabrirCurso(groupId) {
   group.cerrado = false; delete group.fechaCierre;
   saveState(); alert("✅ Curso reabierto.");
 }
+function renderAdminHistorialCursos() {
+  const cont = document.getElementById('admHistorialCursosLista');
+  if (!cont) return;
+  const list = state.historialCursos || [];
+  const elT = document.getElementById('histCursosTotal');
+  const elA = document.getElementById('histCursosAlumnos');
+  if (elT) elT.textContent = list.length;
+  if (elA) {
+    const set = new Set();
+    list.forEach(h => (h.studentCodes || []).forEach(c => set.add(c)));
+    elA.textContent = set.size;
+  }
+  if (!list.length) {
+    cont.innerHTML = '<div class="empty-state">Aún no hay cursos cerrados en el historial.</div>';
+    return;
+  }
+  let html = '';
+  list.forEach(h => {
+    html += `<div class="group-card" style="margin-bottom:14px;">
+      <div class="group-card-head"><div class="group-info">
+        <span class="cerrado-badge">🔒 Cerrado</span>
+        <strong>${h.programa || h.nombreGrupo || 'Curso'}${h.nivel ? ' · ' + h.nivel : ''}</strong>
+        <small>Grupo: ${h.nombreGrupo || '—'} · Docente: ${h.teacherName || h.teacherCode || '—'} · Cierre: ${typeof formatearFecha === 'function' ? formatearFecha(h.fechaCierre) : h.fechaCierre}</small>
+        <small>Horario: ${h.horario || '—'} · ${h.frecuencia || '—'} · ${(h.studentCodes || []).length} alumno(s)</small>
+      </div>
+      <div class="asg-actions">
+        <button type="button" class="btn btn-mini btn-azul" data-ver-comprobante="${h.id}">📄 Ver comprobante</button>
+      </div></div>
+      <div class="group-card-body">
+        <p style="font-size:.88rem;color:var(--texto);line-height:1.5;margin:0;"><strong>Descripción:</strong> ${h.descripcion || '—'}</p>
+      </div>
+    </div>`;
+  });
+  cont.innerHTML = html;
+  cont.querySelectorAll('[data-ver-comprobante]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const h = (state.historialCursos || []).find(x => x.id === btn.dataset.verComprobante);
+      if (!h) return;
+      const group = state.groups.find(g => g.id === h.groupId) || {
+        nombre: h.nombreGrupo, programa: h.programa, nivelTexto: h.nivel,
+        teacherCode: h.teacherCode, studentCodes: h.studentCodes || [],
+        horario: h.horario, frecuencia: h.frecuencia
+      };
+      _ultimoComprobanteHTML = buildComprobanteEntregaHTML(group, h);
+      const body = document.getElementById('comprobanteEntregaBody');
+      if (body) body.innerHTML = _ultimoComprobanteHTML;
+      document.getElementById('modalComprobanteEntrega')?.classList.add('visible');
+    });
+  });
+}
+// Modal button listeners
+
+
+
+
+
+
+
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'historial_cursos') setTimeout(renderAdminHistorialCursos, 40);
+  });
+});
+
 function refreshTeacherView() {
   renderTeacherGroups();
   renderTeacherAlumnos();
@@ -2559,39 +2911,72 @@ function renderTeacherAlumnos() {
     body.appendChild(tr);
   });
 }
-document.getElementById("dNewAsgForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const criterio = document.getElementById("dAsgCriterio").value; const nombre = document.getElementById("dAsgNombre").value.trim();
-  const fechaInicio = document.getElementById("dAsgInicio").value; const fechaFin = document.getElementById("dAsgFin").value;
-  if (!criterio || !nombre || !fechaInicio || !fechaFin) { alert("Completa todos."); return; }
-  state.assignments.push({ id: "asg_" + Date.now(), criterio, nombre, fechaInicio, fechaFin }); saveState(); e.target.reset();
-});
+/* dNewAsgForm removed: only admin creates assignments */
 function renderTeacherAsignaciones() {
-  const cont = document.getElementById("dAsignacionesLista"); cont.innerHTML = "";
-  if (!state.assignments.length) { cont.innerHTML = `<p style="color:var(--gris);padding:14px 0;">Aún no hay asignaciones.</p>`; return; }
+  const cont = document.getElementById("dAsignacionesLista");
+  if (!cont) return;
+  cont.innerHTML = "";
+  if (!state.assignments || !state.assignments.length) {
+    cont.innerHTML = `<p style="color:var(--gris);padding:14px 0;">Aún no hay evaluaciones programadas por administración.</p>`;
+    return;
+  }
   const myStudents = getTeacherStudents(currentTeacherCode);
+  const myGroups = getTeacherGroups(currentTeacherCode).map(g => g.id);
   CRITERIOS.forEach(c => {
-    const asgs = state.assignments.filter(a => a.criterio === c.id); if (!asgs.length) return;
-    const h = document.createElement("h5"); h.style.cssText = "color:var(--azul);margin:22px 0 10px;font-size:.9rem;font-weight:800;text-transform:uppercase;"; h.textContent = c.nombre; cont.appendChild(h);
+    const asgs = state.assignments.filter(a => {
+      if (a.criterio !== c.id && !(c.id === 'online_homework' && a.criterio === 'online_workbook')) return false;
+      if (a.grupoId && myGroups.length && !myGroups.includes(a.grupoId)) return false;
+      return true;
+    });
+    if (!asgs.length) return;
+    const h = document.createElement("h5");
+    h.style.cssText = "color:var(--azul);margin:22px 0 10px;font-size:.9rem;font-weight:800;text-transform:uppercase;";
+    h.textContent = c.nombre;
+    cont.appendChild(h);
     asgs.forEach(a => {
-      const card = document.createElement("div"); card.className = "asg-card";
-      card.innerHTML = `<div class="asg-card-head"><div class="asg-title"><strong><span class="asg-badge ${c.id}">${c.nombre}</span> ${a.nombre}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="asg-actions"><button class="btn btn-mini btn-azul" data-toggle-grade="${a.id}">Calificar</button><button class="btn btn-mini btn-rojo" data-del-asg="${a.id}">Eliminar</button></div></div><div class="asg-grading" id="grading-${a.id}">${myStudents.map(code => { const s = state.students[code]; const cur = (state.grades[code] || {})[a.id]; const group = getStudentGroups(code).find(g => g.teacherCode === currentTeacherCode); const bloqueado = group && group.cerrado; return `<div class="grade-row"><span>${s.nombre} ${bloqueado ? '🔒' : ''} <small>${code}</small></span><input type="number" min="0" max="20" step="0.5" placeholder="—" value="${cur !== undefined && cur !== null ? cur : ''}" data-grade-student="${code}" data-grade-asg="${a.id}" ${bloqueado ? 'disabled' : ''}></div>`; }).join("")}<div style="margin-top:14px;"><button class="btn btn-mini btn-verde" data-save-grades="${a.id}">Guardar</button></div></div>`;
-      card.querySelector(`[data-toggle-grade="${a.id}"]`).addEventListener("click", () => { document.getElementById("grading-" + a.id).classList.toggle("visible"); });
-      card.querySelector(`[data-del-asg="${a.id}"]`).addEventListener("click", () => { if (confirm("¿Eliminar?")) { state.assignments = state.assignments.filter(x => x.id !== a.id); Object.keys(state.grades).forEach(code => { delete state.grades[code][a.id]; }); saveState(); } });
-      card.querySelector(`[data-save-grades="${a.id}"]`).addEventListener("click", () => {
-        card.querySelectorAll(`input[data-grade-asg="${a.id}"]`).forEach(inp => {
-          if (inp.disabled) return;
-          const sc = inp.dataset.gradeStudent; const val = inp.value.trim();
-          if (!state.grades[sc]) state.grades[sc] = {};
-          if (val === "") delete state.grades[sc][a.id];
-          else { const num = parseFloat(val); if (!isNaN(num) && num >= 0 && num <= 20) state.grades[sc][a.id] = num; }
-        });
-        saveState(); alert("✅ Calificaciones guardadas.");
-      });
+      const card = document.createElement("div");
+      card.className = "asg-card";
+      const open = !!(window._asgOpen && window._asgOpen[a.id]);
+      card.innerHTML = `<div class="asg-card-head"><div class="asg-title"><strong><span class="asg-badge ${c.id}">${c.nombre}</span> ${a.nombre}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="asg-actions"><button class="btn btn-mini btn-azul" data-toggle-grade="${a.id}">${open ? '▲ Replegar' : 'Calificar'}</button></div></div><div class="asg-grading${open ? ' visible' : ''}" id="grading-${a.id}">${myStudents.map(code => { const s = state.students[code]; if (!s) return ''; const cur = (state.grades[code] || {})[a.id]; const group = getStudentGroups(code).find(g => g.teacherCode === currentTeacherCode); const bloqueado = group && group.cerrado; return `<div class="grade-row"><span>${s.nombre} ${bloqueado ? '🔒' : ''} <small>${code}</small></span><input type="number" min="0" max="20" step="0.5" placeholder="—" value="${cur !== undefined && cur !== null ? cur : ''}" data-grade-student="${code}" data-grade-asg="${a.id}" ${bloqueado ? 'disabled' : ''}></div>`; }).join("")}<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-mini btn-verde" data-save-grades="${a.id}">Guardar</button><button class="btn btn-mini btn-slate" data-collapse-grade="${a.id}">▲ Replegar</button></div></div>`;
       cont.appendChild(card);
     });
   });
+  if (!window._asgOpen) window._asgOpen = {};
+  cont.querySelectorAll("[data-toggle-grade]").forEach(btn => btn.addEventListener("click", () => {
+    const id = btn.dataset.toggleGrade;
+    const panel = document.getElementById("grading-" + id);
+    if (!panel) return;
+    const willOpen = !panel.classList.contains("visible");
+    panel.classList.toggle("visible", willOpen);
+    window._asgOpen[id] = willOpen;
+    btn.textContent = willOpen ? "▲ Replegar" : "Calificar";
+  }));
+  cont.querySelectorAll("[data-collapse-grade]").forEach(btn => btn.addEventListener("click", () => {
+    const id = btn.dataset.collapseGrade;
+    const panel = document.getElementById("grading-" + id);
+    if (panel) panel.classList.remove("visible");
+    window._asgOpen[id] = false;
+    const tbtn = cont.querySelector(`[data-toggle-grade="${id}"]`);
+    if (tbtn) tbtn.textContent = "Calificar";
+  }));
+  cont.querySelectorAll("[data-save-grades]").forEach(btn => btn.addEventListener("click", () => {
+    const asgId = btn.dataset.saveGrades;
+    const card = btn.closest(".asg-card");
+    card.querySelectorAll(`input[data-grade-asg="${asgId}"]`).forEach(inp => {
+      if (inp.disabled) return;
+      const sc = inp.dataset.gradeStudent; const val = inp.value.trim();
+      if (!state.grades[sc]) state.grades[sc] = {};
+      if (val === "") delete state.grades[sc][asgId];
+      else { const num = parseFloat(val); if (!isNaN(num) && num >= 0 && num <= 20) state.grades[sc][asgId] = num; }
+    });
+    window._asgOpen[asgId] = true; // keep expanded
+    saveState();
+    alert("✅ Calificaciones guardadas.");
+    // Re-render but keep panel open
+    renderTeacherAsignaciones();
+  }));
 }
+
 function renderTeacherAsistencia() {
   const groupId = document.getElementById("dAsisGrupo").value; const fi = document.getElementById("dAsisFecha");
   if (!fi.value) fi.value = new Date().toISOString().slice(0, 10);
@@ -2707,11 +3092,29 @@ document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
 document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
   const iframe = document.createElement('iframe'); iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe); const doc = iframe.contentWindow.document; doc.open();
-  doc.write(`<html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px}</style></head><body>${document.getElementById("boletaPrintable").innerHTML}</body></html>`); doc.close();
+  doc.write(`<html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px}</style></head><body>${document.getElementById("boletaPrintable").innerHTML}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`); doc.close();
   setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); document.body.removeChild(iframe); }, 500);
 });
 document.getElementById("btnDescargarBoleta").addEventListener("click", () => {
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}</style></head><body>${document.getElementById("boletaPrintable").innerHTML}</body></html>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}</style></head><body>${document.getElementById("boletaPrintable").innerHTML}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' }); const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `Boleta_${currentTeacherCode}_${new Date().toISOString().slice(0,10)}.html`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -2745,6 +3148,8 @@ document.getElementById("btnSaveDirMembrete").addEventListener("click", () => ha
    VISTA ADMIN
    ============================================================ */
 function refreshAdminView() {
+  try { renderAdminHistorialCursos(); } catch(e) {}
+  try { renderAdminAsignaciones(); } catch(e) {}
   try { renderAdminCampos(); } catch(e) {}
   try { renderCustomFieldsInto("admAlumnoCamposExtra", "alumno"); } catch(e) {}
   try { renderCustomFieldsInto("admDocenteCamposExtra", "docente"); } catch(e) {}
@@ -3170,7 +3575,9 @@ function refreshAll() {
    ============================================================ */
 function renderFavicon() {
   const link = document.getElementById('dynamicFavicon');
-  if (link && state.favicon) link.href = state.favicon;
+  const src = state.favicon || (state.iconos && state.iconos.favicon) || null;
+  if (link && src) link.href = src;
+  else if (link && !src) { /* keep default */ }
   const box = document.getElementById('faviconPreviewBox');
   if (box) box.innerHTML = state.favicon ? `<img src="${state.favicon}" style="max-width:64px;max-height:64px;border-radius:8px;">` : `<p style="color:var(--gris);font-size:0.9rem;">No hay favicon cargado.</p>`;
 }
@@ -3310,13 +3717,31 @@ document.getElementById('admPagoPreliminar')?.addEventListener('click', () => {
 document.getElementById('admPagoImprimir')?.addEventListener('click', () => {
   const tc = document.getElementById('admPagoSelectTeacher').value;
   if (!tc) return;
-  const html = `<!DOCTYPE html><html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px} img{max-height:80px}</style></head><body>${buildBoletaPagoHTML(tc)}</body></html>`;
+  const html = `<!DOCTYPE html><html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px} img{max-height:80px}</style></head><body>${buildBoletaPagoHTML(tc)}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
   const w = window.open('', '_blank'); w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400);
 });
 document.getElementById('admPagoDescargar')?.addEventListener('click', () => {
   const tc = document.getElementById('admPagoSelectTeacher').value;
   if (!tc) return;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ${tc}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}</style></head><body>${buildBoletaPagoHTML(tc)}</body></html>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ${tc}</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004A8F;color:#fff} .boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px} .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}</style></head><body>${buildBoletaPagoHTML(tc)}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Boleta_${tc}_${new Date().toISOString().slice(0,10)}.html`;
   a.click();
@@ -3853,7 +4278,16 @@ document.getElementById('btnDescargarCarga')?.addEventListener('click', () => {
     <style>body{font-family:'Segoe UI',sans-serif;padding:16px;max-width:900px;margin:0 auto} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd;font-size:.9rem} th{background:#004A8F;color:#fff}
     .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
     .boleta-title{text-align:center;margin-bottom:16px}.boleta-title h2{color:#7c3aed;margin:0 0 4px}</style></head>
-    <body>${buildCargaHorariaHTML(tc)}</body></html>`;
+    <body>${buildCargaHorariaHTML(tc)}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -3869,7 +4303,16 @@ document.getElementById('btnImprimirCarga')?.addEventListener('click', () => {
     <style>body{font-family:'Segoe UI',sans-serif;padding:16px} table{width:100%;border-collapse:collapse} th,td{padding:8px;border:1px solid #ddd} th{background:#004A8F;color:#fff}
     .boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
     .boleta-title{text-align:center;margin-bottom:16px}@media print{body{padding:0}}</style></head>
-    <body>${buildCargaHorariaHTML(tc)}</body></html>`);
+    <body>${buildCargaHorariaHTML(tc)}
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 400);
 });
@@ -4049,6 +4492,133 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
   });
 });
 
+
+/* === GESTOR ASIGNACIONES + CALIF ALUMNO === */
+function renderAdminAsignaciones() {
+  const cont = document.getElementById('admAsignacionesLista');
+  const selG = document.getElementById('admAsgGrupo');
+  if (selG) {
+    const cur = selG.value;
+    selG.innerHTML = '<option value="">Todos los grupos</option>';
+    (state.groups || []).forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = `${g.nombre} · ${g.programa || ''}`;
+      selG.appendChild(opt);
+    });
+    if (cur) selG.value = cur;
+  }
+  if (!cont) return;
+  if (!state.assignments || !state.assignments.length) {
+    cont.innerHTML = '<div class="empty-state">Sin evaluaciones programadas.</div>';
+    return;
+  }
+  const sorted = [...state.assignments].sort((a, b) => (b.fechaInicio || '').localeCompare(a.fechaInicio || ''));
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table class="admin-table" style="min-width:800px;"><thead><tr><th>Criterio</th><th>Nombre</th><th>Inicio</th><th>Fin / Caducidad</th><th>Grupo</th><th></th></tr></thead><tbody>`;
+  sorted.forEach(a => {
+    const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
+    const g = a.grupoId ? state.groups.find(x => x.id === a.grupoId) : null;
+    const vencida = a.fechaFin && a.fechaFin < new Date().toISOString().slice(0, 10);
+    html += `<tr>
+      <td><span class="asg-badge ${a.criterio}">${crit.nombre}</span></td>
+      <td><strong>${a.nombre}</strong></td>
+      <td>${formatearFecha(a.fechaInicio)}</td>
+      <td>${formatearFecha(a.fechaFin)}${vencida ? ' <span class="cerrado-badge">Vencida</span>' : ''}</td>
+      <td>${g ? g.nombre : 'Todos'}</td>
+      <td><button type="button" class="btn btn-mini btn-rojo" data-del-adm-asg="${a.id}">🗑️</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+  cont.querySelectorAll('[data-del-adm-asg]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('¿Eliminar esta evaluación?')) return;
+      const id = btn.dataset.delAdmAsg;
+      state.assignments = state.assignments.filter(a => a.id !== id);
+      Object.keys(state.grades || {}).forEach(code => { if (state.grades[code]) delete state.grades[code][id]; });
+      saveState();
+      renderAdminAsignaciones();
+    });
+  });
+}
+document.getElementById('admNewAsgForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const criterio = document.getElementById('admAsgCriterio').value;
+  const nombre = document.getElementById('admAsgNombre').value.trim();
+  const fechaInicio = document.getElementById('admAsgInicio').value;
+  const fechaFin = document.getElementById('admAsgFin').value;
+  const grupoId = document.getElementById('admAsgGrupo')?.value || '';
+  if (!criterio || !nombre || !fechaInicio || !fechaFin) { alert('Completa los campos obligatorios.'); return; }
+  if (!state.assignments) state.assignments = [];
+  state.assignments.push({
+    id: 'asg_' + Date.now(),
+    criterio,
+    nombre,
+    fechaInicio,
+    fechaFin,
+    grupoId: grupoId || null,
+    createdBy: 'admin'
+  });
+  saveState();
+  e.target.reset();
+  renderAdminAsignaciones();
+  alert('✅ Evaluación programada. Los docentes ya pueden calificarla.');
+});
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'asignaciones') setTimeout(renderAdminAsignaciones, 40);
+  });
+});
+
+// Enhance student grades view (teacher photo + due dates)
+(function patchStudentCalif() {
+  const orig = window.renderStudentCalificaciones;
+  if (typeof orig !== 'function') return;
+})();
+
+
+/* Event delegation for cierre de curso modals */
+document.addEventListener('click', function(ev) {
+  const t = ev.target;
+  if (!t || !t.id) return;
+  if (t.id === 'btnCerrarCursoCancelar' || t.id === 'btnCerrarCursoModalX') {
+    ev.preventDefault();
+    document.getElementById('modalCerrarCurso')?.classList.remove('visible');
+    _cerrarCursoGroupId = null;
+    return;
+  }
+  if (t.id === 'btnCerrarCursoConfirmar') {
+    ev.preventDefault();
+    if (typeof ejecutarCierreCurso === 'function') ejecutarCierreCurso();
+    return;
+  }
+  if (t.id === 'btnCerrarComprobante' || t.id === 'btnComprobanteX') {
+    ev.preventDefault();
+    document.getElementById('modalComprobanteEntrega')?.classList.remove('visible');
+    return;
+  }
+  if (t.id === 'btnDescargarComprobante') {
+    ev.preventDefault();
+    if (typeof _ultimoComprobanteHTML === 'undefined' || !_ultimoComprobanteHTML) return;
+    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante Entrega de Notas</title><style>body{font-family:Segoe UI,sans-serif;padding:20px;max-width:900px;margin:0 auto;color:#1f2937}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #e5e7eb;font-size:.9rem}</style></head><body>' + _ultimoComprobanteHTML + '</body></html>';
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Comprobante_Entrega_Notas.html';
+    a.click();
+    return;
+  }
+  if (t.id === 'btnImprimirComprobante') {
+    ev.preventDefault();
+    if (typeof _ultimoComprobanteHTML === 'undefined' || !_ultimoComprobanteHTML) return;
+    const w = window.open('', '_blank');
+    w.document.write('<!DOCTYPE html><html><head><title>Comprobante</title><style>body{font-family:Segoe UI,sans-serif;padding:16px;color:#1f2937}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}@media print{body{padding:0}}</style></head><body>' + _ultimoComprobanteHTML + '</body></html>');
+    w.document.close();
+    setTimeout(function(){ w.print(); }, 400);
+    return;
+  }
+});
+
 function navigateToPortal(portal) {
   if (portal === 'main') {
     document.getElementById('portalCards').style.display = 'grid';
@@ -4096,5 +4666,39 @@ window.addEventListener('popstate', (e) => {
     <path d="M16 .4C7.4.4.4 7.4.4 16c0 2.8.7 5.5 2.1 7.9L.3 31.7l8-2.1A15.6 15.6 0 0 0 16 31.6C24.6 31.6 31.6 24.6 31.6 16S24.6.4 16 .4zm0 28.6c-2.5 0-4.9-.7-7-2l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.9 12.9 0 0 1 3 16C3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 13-13 13zm7.1-9.7c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.3 1.6-.2.3-.5.3-.9.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8.2-.2.4-.5.6-.7.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.8 0 1.7 1.2 3.3 1.4 3.5.2.2 2.4 3.7 5.9 5.2.8.3 1.5.5 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/>
   </svg>
 </a>
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modalCerrarCurso">
+  <div class="modal-box" style="max-width:520px;text-align:left;">
+    <button type="button" class="modal-close" id="btnCerrarCursoModalX">✕</button>
+    <h3 style="color:var(--morado);margin-bottom:12px;">🔒 Cerrar curso y entregar notas</h3>
+    <p id="modalCerrarCursoMsg" style="color:var(--texto);line-height:1.55;margin-bottom:20px;"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+      <button type="button" class="btn btn-slate btn-mini" id="btnCerrarCursoCancelar">Cancelar</button>
+      <button type="button" class="btn btn-rojo btn-mini" id="btnCerrarCursoConfirmar">Sí, cerrar y entregar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalComprobanteEntrega">
+  <div class="modal-box" style="max-width:720px;text-align:left;padding:24px;">
+    <button type="button" class="modal-close" id="btnComprobanteX">✕</button>
+    <h3 style="color:var(--morado);margin-bottom:8px;">📄 Comprobante de Entrega de notas</h3>
+    <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">Documento generado al cerrar el curso y entregar notas a Coordinación Académica.</p>
+    <div id="comprobanteEntregaBody" class="boleta-preview-container visible" style="box-shadow:none;border:1px solid var(--borde);padding:20px;margin:0;"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
