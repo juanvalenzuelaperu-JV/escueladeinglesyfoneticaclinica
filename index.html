@@ -6,6 +6,7 @@
 <title>Escuela de Inglés y Fonética Clínica Jotavalenzuela | por el Prof. Juan Valenzuela M.</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link rel="icon" id="dynamicFavicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004aad'/><text x='50' y='68' font-size='50' fill='white' text-anchor='middle' font-weight='bold'>JV</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -673,8 +674,39 @@
       <div class="portal-card portal-talento">
         <div class="portal-icon" id="iconoPortalTalento">🌟</div>
         <h3>Portal Talento</h3>
-        <p>Acceso unificado: Administrativo, Contabilidad y Finanzas, Dirección y Marketing.</p>
+        <p>Acceso unificado: Coordinación Académica, Contabilidad y Finanzas, Dirección y Marketing.</p>
         <button class="btn btn-talento" data-open-modal="talento">Ingresar</button>
+      </div>
+      <div class="portal-card" style="border-top:6px solid #10b981;">
+        <div class="portal-icon" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0);">👪</div>
+        <h3 style="color:#059669;">Portal Padres de Familia</h3>
+        <p>Consulta tu información y el progreso académico de tus hijos.</p>
+        <button class="btn btn-verde" data-open-modal="padre">Ingresar</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD PADRES -->
+    <div class="dashboard" id="dashboardPadre">
+      <div class="dash-top" style="background:linear-gradient(120deg,#059669,#10b981);color:#fff;">
+        <div class="dash-user">
+          <div class="dash-avatar" id="dashAvatarP">P</div>
+          <div><h3 id="dashNombreP">Padre/Madre</h3><p id="dashInfoP">Portal Padres de Familia</p></div>
+        </div>
+        <div class="dash-live"><span class="punto-live"></span><span>En vivo · <span id="relojP">--:--:--</span></span></div>
+        <button class="dash-salir" id="btnSalirP">Cerrar sesión</button>
+      </div>
+      <div class="dash-contenido">
+        <div class="tform" style="margin-bottom:20px;">
+          <h4 style="color:#059669;">👤 Mi información personal</h4>
+          <div id="padreInfoPersonal" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+        </div>
+        <div style="text-align:center;margin:24px 0;">
+          <button class="btn btn-verde" id="btnVerProgresoHijo">📊 Ver progreso de mi hijo</button>
+        </div>
+        <div id="padreProgresoBox" style="display:none;">
+          <h4 style="color:#059669;margin-bottom:14px;">Progreso de mis hijos</h4>
+          <div id="padreProgresoLista"></div>
+        </div>
       </div>
     </div>
 
@@ -786,7 +818,7 @@
       </div>
       <div class="dash-tabs">
         <button class="dash-tab activo" data-dtab="alumnos">👥 Mis grupos</button>
-        <button class="dash-tab" data-dtab="evaluaciones">📊 Evaluaciones</button>
+        <button class="dash-tab" data-dtab="evaluaciones">📊 Registro de Notas</button>
         <button class="dash-tab" data-dtab="asistencia">📅 Asistencia</button>
         <button class="dash-tab" data-dtab="examenes">📝 Exámenes</button>
         <button class="dash-tab" data-dtab="firma">✍️ Mi Firma</button>
@@ -794,7 +826,7 @@
         <button class="dash-tab" data-dtab="reportcard">📄 Generar Report Card</button>
         <button class="dash-tab" data-dtab="historial">📚 Historial de Reportes</button>
         <button class="dash-tab" data-dtab="pago">💰 Pago Docente</button>
-<button class="dash-tab" data-dtab="libros_grupos">📖 Libros por Grupo</button>
+        <button class="dash-tab" data-dtab="libros_grupos">📖 Libros por Grupo</button>
         <button class="dash-tab" data-dtab="solicitudes">📝 Solicitudes</button>
         <button class="dash-tab" data-dtab="disponibilidad">🗓️ Disponibilidad</button>
         <button class="dash-tab" data-dtab="carga_horaria">📋 Carga horaria</button>
@@ -809,21 +841,40 @@
           </div>
         </div>
         <div class="panel" id="dpanel-evaluaciones">
-          <p style="color:var(--gris);font-size:.9rem;margin-bottom:16px;">ℹ️ Las evaluaciones las programa el área administrativa (Gestor de asignaciones). Aquí solo puedes <strong>calificar</strong>.</p>
-          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">Evaluaciones para calificar</h4>
-          <div id="dAsignacionesLista"></div>
+          <h4 style="color:var(--morado);margin-bottom:14px;font-size:1rem;font-weight:800;">📊 Registro de Notas</h4>
+          <div class="campo" style="max-width:320px;margin-bottom:14px;">
+            <label>Grupo asignado <span class="req">*</span></label>
+            <select id="dNotasGrupo"><option value="">Selecciona un grupo...</option></select>
+          </div>
+          <div id="dNotasCalInfo" style="margin-bottom:12px;font-size:.88rem;color:var(--gris);"></div>
+          <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;overflow-x:auto;max-width:100%;">
+            <table id="dNotasTable" style="width:100%;min-width:100%;">
+              <thead id="dNotasHead"><tr><th>Alumnos</th></tr></thead>
+              <tbody id="dNotasBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <button class="btn btn-verde btn-mini" id="btnGuardarRegistroNotas" disabled>💾 Guardar registro</button>
+            <button type="button" class="btn btn-azul btn-mini" id="btnEditarNotas" disabled>✏️ Editar Notas</button>
+          </div>
         </div>
         <div class="panel" id="dpanel-asistencia">
-          <div class="tform">
-            <h4>📅 Pasar asistencia</h4>
-            <div class="tform-grid">
-              <div class="campo"><label>Grupo <span class="req">*</span></label><select id="dAsisGrupo" required><option value="">Selecciona un grupo...</option></select></div>
-              <div class="campo"><label>Fecha</label><input type="date" id="dAsisFecha"></div>
-            </div>
+          <h4 style="color:var(--morado);margin-bottom:14px;font-size:1rem;font-weight:800;">📅 Asistencia</h4>
+          <div class="campo" style="max-width:320px;margin-bottom:14px;">
+            <label>Grupo asignado <span class="req">*</span></label>
+            <select id="dAsisGrupo"><option value="">Selecciona un grupo...</option></select>
           </div>
-          <div id="dAsisLista" style="border:1px solid var(--borde);border-radius:12px;background:#fff;margin-bottom:16px;"></div>
-          <button class="btn btn-verde btn-mini" id="dBtnGuardarAsistencia" disabled>Guardar asistencia</button>
-          <div class="mensaje-exito" id="dAsisMsg">✅ Asistencia guardada</div>
+          <div id="dAsisCalInfo" style="margin-bottom:12px;font-size:.88rem;color:var(--gris);"></div>
+          <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;overflow-x:auto;max-width:100%;">
+            <table id="dAsisTable" style="width:100%;min-width:100%;">
+              <thead id="dAsisHead"><tr><th>Alumnos</th></tr></thead>
+              <tbody id="dAsisBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <button class="btn btn-verde btn-mini" id="dBtnGuardarAsistencia" disabled>💾 Guardar Asistencia</button>
+            <button type="button" class="btn btn-azul btn-mini" id="btnEditarAsistencia" disabled>✏️ Editar Asistencia</button>
+          </div>
         </div>
         <div class="panel" id="dpanel-examenes">
           <h4 style="color:var(--morado);margin-bottom:10px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
@@ -996,25 +1047,26 @@
         <button class="dash-salir" id="btnSalirTal">Cerrar sesión</button>
       </div>
       <div class="dash-tabs talento-tabs">
-        <button class="dash-tab activo" data-taltab="admin">⚙️ Administrativo</button>
+        <button class="dash-tab activo" data-taltab="admin">🎓 Coordinación Académica</button>
         <button class="dash-tab" data-taltab="contabilidad">💰 Contabilidad y Finanzas</button>
         <button class="dash-tab" data-taltab="direccion">🎯 Dirección</button>
         <button class="dash-tab" data-taltab="marketing">📣 Marketing</button>
       </div>
       <div class="dash-contenido">
 
-        <!-- SUBPORTAL ADMINISTRATIVO -->
+        <!-- SUBPORTAL COORDINACIÓN ACADÉMICA -->
         <div class="panel activo" id="tal-panel-admin">
-          <div class="dash-tabs sub-tabs">
+          <div class="dash-tabs sub-tabs" style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:10px;">
             <button class="dash-tab activo" data-admtab="alumnos">🎓 Alumnos</button>
             <button class="dash-tab" data-admtab="docentes">👨‍🏫 Docentes</button>
+            <button class="dash-tab" data-admtab="padres">👨‍👩‍👧 Padres de familia</button>
             <button class="dash-tab" data-admtab="grupos">📚 Grupos</button>
             <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
             <button class="dash-tab" data-admtab="programacion">🗓️ Programación</button>
+            <button class="dash-tab" data-admtab="calendarizacion">📅 Calendarización</button>
             <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
             <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
-            <button class="dash-tab" data-admtab="membrete">🖼️ Membrete</button>
-            <button class="dash-tab" data-admtab="fundador">👤 Foto Fundador</button>
+            <button class="dash-tab" data-admtab="reporte_dia">📋 Reporte del día</button>
             <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceso Alumno</button>
             <button class="dash-tab" data-admtab="pago_docente">💰 Gestor de pago docente</button>
             <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
@@ -1024,7 +1076,7 @@
             <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos dictados</button>
             <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
           </div>
-          <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo el administrador crea cuentas, grupos, cursos y exámenes.</div>
+          <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo Coordinación Académica crea cuentas, grupos, cursos y exámenes.</div>
 
           <div class="panel activo" id="adm-panel-alumnos">
             <div class="tform admin-form">
@@ -1046,6 +1098,7 @@
                 </div>
                 <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoDay" placeholder="Ej: 15" min="1" max="31" required></div>
                 <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admAlumnoDni" placeholder="Ej: 45513532" maxlength="8" required></div>
+                <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admAlumnoTelefono" placeholder="Ej: 51999111222" required></div>
                 <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
                 <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div></div>
                 <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div></div>
@@ -1191,27 +1244,7 @@
             </div>
           </div>
 
-          <div class="panel" id="adm-panel-membrete">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">🖼️ Membrete Institucional (para Report Cards)</h4>
-            <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Sube la imagen del membrete para Report Cards. Este es independiente de los membretes por subportal.</p>
-            <div class="tform admin-form">
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminLetterheadFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveLetterhead">Guardar Membrete</button></div>
-              <div class="mensaje-exito" id="letterheadMsg">✅ Membrete guardado.</div>
-            </div>
-            <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
-          </div>
-
-          <div class="panel" id="adm-panel-fundador">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">👤 Foto del Fundador</h4>
-            <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Sube una foto del fundador. Se mostrará al lado de su descripción en la página principal.</p>
-            <div class="tform admin-form">
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminFounderFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveFounder">Guardar Foto</button></div>
-              <div class="mensaje-exito" id="founderMsg">✅ Foto guardada.</div>
-            </div>
-            <div class="founder-preview-box" id="founderPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay foto cargada.</p></div>
-          </div>
+          <!-- Membrete y Foto Fundador eliminados de Coordinación; se gestionan en Marketing > Iconografía -->
 <div class="panel" id="adm-panel-pago_docente">
   <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
   <div class="tform admin-form">
@@ -1403,6 +1436,13 @@
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Gestor de asignaciones</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Programa las evaluaciones del ciclo. Los docentes solo podrán calificar; no crear nuevas desde su portal.</p>
             <div class="tform admin-form">
+              <h4>🧩 Crear criterio nuevo</h4>
+              <div class="tform-grid">
+                <div class="campo"><label>Nombre del criterio nuevo</label><input type="text" id="admNuevoCriterioNombre" placeholder="Ej: Project Work"></div>
+                <div class="campo" style="display:flex;align-items:flex-end;"><button type="button" class="btn btn-azul btn-mini" id="btnCrearCriterio">➕ Crear criterio</button></div>
+              </div>
+            </div>
+            <div class="tform admin-form">
               <h4>➕ Nueva evaluación</h4>
               <form id="admNewAsgForm" class="tform-grid">
                 <div class="campo">
@@ -1418,7 +1458,6 @@
                     <option value="final_exam">Final Exam</option>
                   </select>
                 </div>
-                <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admAsgNombre" placeholder="Ej: Oral Presentation 1" required></div>
                 <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="admAsgInicio" required></div>
                 <div class="campo"><label>Fecha fin / caducidad <span class="req">*</span></label><input type="date" id="admAsgFin" required></div>
                 <div class="campo"><label>Grupo (opcional)</label><select id="admAsgGrupo"><option value="">Todos los grupos</option></select></div>
@@ -1454,6 +1493,127 @@
             <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
               <table class="table-slate" style="min-width:640px;"><thead><tr><th>Alumno</th><th>Grupo</th><th>Promedio</th><th>Estado</th><th>Asistencia</th></tr></thead><tbody id="admResumenBody"></tbody></table>
             </div>
+          </div>
+
+          <!-- PADRES DE FAMILIA -->
+          <div class="panel" id="adm-panel-padres">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">👨‍👩‍👧 Padres de familia</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Crea cuentas de padres/madres vinculadas a alumnos. Ellos podrán ingresar al Portal Padres de Familia.</p>
+            <div class="tform admin-form">
+              <h4>➕ Crear cuenta de padre/madre</h4>
+              <form id="admNewPadreForm" class="tform-grid">
+                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admPadreNombre" required placeholder="Ej: Ana García"></div>
+                <div class="campo"><label>Número de celular <span class="req">*</span></label><input type="tel" id="admPadreCelular" required placeholder="51999111222"></div>
+                <div class="campo"><label>Correo electrónico</label><input type="email" id="admPadreEmail" placeholder="ana@email.com"></div>
+                <div class="campo"><label>Fecha de nacimiento</label><input type="date" id="admPadreNac"></div>
+                <div class="campo"><label>Edad actual</label><input type="number" id="admPadreEdad" readonly placeholder="Auto"></div>
+                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admPadreDni" maxlength="8" required></div>
+                <div class="campo completo"><label>Foto del DNI</label><input type="file" id="admPadreDniFile" accept="image/*"></div>
+                <div class="campo completo"><label>Padre/madre de: <span class="req">*</span></label>
+                  <input type="text" id="admPadreDeFiltro" placeholder="Escribe para filtrar alumnos..." autocomplete="off">
+                  <div id="admPadreDeSugerencias" style="border:1px solid var(--borde);border-radius:8px;max-height:160px;overflow-y:auto;display:none;background:#fff;margin-top:4px;"></div>
+                  <div id="admPadreHijosChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+                </div>
+                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admPadreUser" required><button type="button" class="btn-icon" id="btnGenPadreUser">🎲</button></div></div>
+                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admPadrePass" required><button type="button" class="btn-icon" id="btnGenPadrePass">🎲</button></div></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta padre/madre</button></div></div>
+              </form>
+              <div class="cred-box" id="credPadre"><strong>✅ Cuenta creada:</strong>
+                <div class="cred-row"><span>Usuario:</span><code id="credUserPadre">—</code><button data-copy="credUserPadre">📋</button></div>
+                <div class="cred-row"><span>Contraseña:</span><code id="credPassPadre">—</code><button data-copy="credPassPadre">📋</button></div>
+              </div>
+            </div>
+            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Padres registrados</h4>
+            <div id="admPadresLista"></div>
+          </div>
+
+          <!-- CALENDARIZACIÓN -->
+          <div class="panel" id="adm-panel-calendarizacion">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Selecciona el mes y haz clic en cualquier día del calendario. En el panel lateral podrás asignar grupos, tipos de evaluación, inicio/fin de curso u otros eventos.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
+              <div class="campo" style="margin:0;min-width:180px;"><label>Mes a programar</label><input type="month" id="calMesSelect"></div>
+              <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
+              <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
+            </div>
+            <div id="calLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:.78rem;"></div>
+            <div style="display:grid;grid-template-columns:1fr minmax(280px,360px);gap:20px;align-items:start;">
+              <div>
+                <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;"></div>
+                <div id="calMesResumen" style="display:none;margin-top:12px;"></div>
+              </div>
+              <div id="calEventPanel" style="display:none;background:#f9fafb;border:1px solid var(--borde);border-radius:14px;padding:18px;position:sticky;top:90px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+                  <h5 style="margin:0;color:var(--azul);font-size:1rem;">📌 <span id="calFechaSel">—</span></h5>
+                  <button type="button" class="btn btn-mini btn-slate" id="btnCalCerrarPanel" style="padding:4px 10px;">Cerrar</button>
+                </div>
+                <div class="campo"><label>Grupo <span class="req">*</span></label>
+                  <select id="calGrupoSel"><option value="">Selecciona grupo...</option></select>
+                </div>
+                <div class="campo"><label>Tipo de evento / evaluación <span class="req">*</span></label>
+                  <select id="calTipoSel">
+                    <option value="">Selecciona...</option>
+                    <optgroup label="Curso">
+                      <option value="inicio_curso">Inicio de curso</option>
+                      <option value="fin_curso">Fin de curso</option>
+                    </optgroup>
+                    <optgroup label="Evaluaciones" id="calTipoEvalGroup">
+                      <option value="class_participation">Class Participation</option>
+                      <option value="online_workbook">Online Workbook</option>
+                      <option value="readers">Readers</option>
+                      <option value="writing">Writing</option>
+                      <option value="speaking">Speaking</option>
+                      <option value="final_exam">Final Exam</option>
+                    </optgroup>
+                    <option value="otro">➕ Crear otro evento</option>
+                  </select>
+                </div>
+                <div class="campo" id="calOtroWrap" style="display:none;">
+                  <label>Nombre del nuevo evento</label>
+                  <input type="text" id="calOtroEvento" placeholder="Ej: Día del libro, Simulacro oral…">
+                </div>
+                <div class="campo">
+                  <label>Notas / detalle (opcional)</label>
+                  <input type="text" id="calNotaEvento" placeholder="Observación breve">
+                </div>
+                <div class="tform-acciones" style="margin-top:8px;">
+                  <button type="button" class="btn btn-verde btn-mini" id="btnAddCalEvent">➕ Agregar al día</button>
+                </div>
+                <div class="mensaje-exito" id="calAddMsg" style="margin-top:10px;">✅ Evento agregado</div>
+                <h5 style="margin:18px 0 10px;color:var(--slate);font-size:.9rem;font-weight:800;">Eventos de este día</h5>
+                <div id="calEventosDelDia"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REPORTE DEL DÍA -->
+          <div class="panel" id="adm-panel-reporte_dia">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Reporte del día</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Monitorea hasta medianoche las tareas del día: asistencia guardada por docentes, registros de notas y eventos calendarizados. Marca cumplido / no cumplido por grupo.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
+              <div class="campo" style="margin:0;min-width:180px;"><label>Fecha del reporte</label><input type="date" id="reporteDiaFecha"></div>
+              <div class="campo" style="margin:0;min-width:200px;"><label>Filtrar docente</label>
+                <select id="reporteDiaTeacher"><option value="">Todos los docentes</option></select>
+              </div>
+              <button type="button" class="btn btn-slate btn-mini" id="btnReporteHoy">Hoy</button>
+              <button type="button" class="btn btn-azul btn-mini" id="btnReporteRefresh">🔄 Actualizar</button>
+              <button type="button" class="btn btn-verde btn-mini" id="btnReporteExportar">⬇️ Exportar / PDF</button>
+            </div>
+            <div class="resumen-grid" id="reporteDiaResumen" style="margin-bottom:20px;">
+              <div class="resumen-card verde"><div class="et">Asistencias cumplidas</div><div class="val" id="repStatAsisOk">0</div></div>
+              <div class="resumen-card amarillo"><div class="et">Asistencias pendientes</div><div class="val" id="repStatAsisPend">0</div></div>
+              <div class="resumen-card morado"><div class="et">Registros de notas</div><div class="val" id="repStatNotas">0</div></div>
+              <div class="resumen-card azul"><div class="et">Eventos del día</div><div class="val" id="repStatEventos">0</div></div>
+            </div>
+            <div id="reporteDiaDeadline" class="aviso-tiempo-real" style="margin-bottom:16px;"></div>
+            <div class="dash-tabs sub-tabs" style="margin-bottom:16px;">
+              <button type="button" class="dash-tab activo" data-rep-tab="asistencia">📅 Asistencia</button>
+              <button type="button" class="dash-tab" data-rep-tab="notas">📊 Registro de notas</button>
+              <button type="button" class="dash-tab" data-rep-tab="eventos">📌 Eventos calendarizados</button>
+              <button type="button" class="dash-tab" data-rep-tab="detalle">🔍 Detalle expandido</button>
+            </div>
+            <div id="reporteDiaLista"></div>
+            <div id="reporteDiaDetalle" style="display:none;margin-top:16px;"></div>
           </div>
         </div>
 
@@ -1508,6 +1668,7 @@
             <button class="subportal-tab activo" data-mkt-subtab="galeria">🖼️ Galería de Fotos</button>
             <button class="subportal-tab" data-mkt-subtab="firma">✍️ Firma Digital</button>
             <button class="subportal-tab" data-mkt-subtab="iconografia">🎨 Iconografía</button>
+            <button class="subportal-tab" data-mkt-subtab="cumples">🎂 Cumpleaños</button>
           </div>
           <div class="subpanel activo" id="mkt-subpanel-galeria">
             <div class="aviso-tiempo-real" style="background:#fdf2f8;color:#9d174d;"><span class="punto-live" style="background:#ec4899;"></span> Las fotos se mostrarán automáticamente en la página principal de la escuela.</div>
@@ -1539,7 +1700,22 @@
           <div class="subpanel" id="mkt-subpanel-iconografia">
             <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">🎨 Iconografía de la Interfaz</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Sube imágenes para reemplazar los iconos del sistema. Los cambios se aplicarán automáticamente en toda la interfaz.</p>
+            <div class="oficina-section">
+              <h4>📄 Membrete institucional (Report Cards)</h4>
+              <p style="color:var(--gris);font-size:.85rem;margin-bottom:10px;">Este membrete se usa en Report Cards y documentos oficiales.</p>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminLetterheadFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveLetterhead">Guardar Membrete</button></div>
+              <div class="mensaje-exito" id="letterheadMsg">✅ Membrete guardado.</div>
+              <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
+            </div>
             <div id="iconografiaLista"></div>
+          </div>
+          <div class="subpanel" id="mkt-subpanel-cumples">
+            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">🎂 Cumpleaños · Docentes y Alumnos</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Lista de cumpleañeros. A <strong>2 semanas</strong> del cumpleaños aparece un recordatorio.</p>
+            <div id="mktCumplesAlertas" style="margin-bottom:18px;"></div>
+            <h5 style="color:var(--slate);margin-bottom:10px;">Próximos cumpleaños</h5>
+            <div id="mktCumplesLista"></div>
           </div>
         </div>
 
@@ -1610,6 +1786,21 @@
       <button type="submit" class="btn btn-talento">Entrar</button>
     </form>
     <div class="modal-error" id="errorTalento">Código incorrecto.</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPadre">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal="padre">✕</button>
+    <div class="modal-icon" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0);">👪</div>
+    <h3 style="color:#059669;">Portal Padres de Familia</h3>
+    <span class="modal-sub">Ingresa tu usuario y contraseña</span>
+    <form id="loginFormPadre">
+      <input type="text" id="userPadre" placeholder="Usuario" required>
+      <input type="password" id="passPadre" placeholder="Contraseña" required>
+      <button type="submit" class="btn btn-verde">Entrar</button>
+    </form>
+    <div class="modal-error" id="errorPadre">Usuario o contraseña incorrectos.</div>
   </div>
 </div>
 
@@ -1866,7 +2057,11 @@ const DEFAULT_STATE = {
   }
 };
 
-let state = null;
+let state = typeof DEFAULT_STATE !== 'undefined' ? JSON.parse(JSON.stringify(DEFAULT_STATE)) : {
+  students: {}, teachers: {}, groups: [], grades: {}, attendance: [], exams: [], assignments: [],
+  reportCards: [], courses: [], iconos: {}, letterhead: '', founderPhoto: '', marketingPhotos: [],
+  calendarEvents: {}, asistenciaDiaria: {}, padres: {}, customCriterios: [], historialCursos: []
+};
 let currentStudentCode = null;
 let currentStudent = null;
 let currentTeacherCode = null;
@@ -1906,6 +2101,20 @@ function backfillState(parsed) {
     if (g.cerrado === undefined) g.cerrado = false;
   });
   (parsed.registrations || []).forEach(r => { if (r.voucher === undefined) r.voucher = null; });
+  if (!parsed.calendarEvents) parsed.calendarEvents = {};
+  if (!parsed.asistenciaDiaria) parsed.asistenciaDiaria = {};
+  if (!parsed.padres) parsed.padres = {};
+  if (!parsed.customCriterios) parsed.customCriterios = [];
+  if (!parsed.historialCursos) parsed.historialCursos = [];
+  if (!parsed.solicitudes) parsed.solicitudes = [];
+  if (!parsed.disponibilidad) parsed.disponibilidad = {};
+  if (!parsed.programaciones) parsed.programaciones = {};
+  if (!parsed.cargaHoraria) parsed.cargaHoraria = {};
+  if (!parsed.pagosDocentes) parsed.pagosDocentes = {};
+  if (!Array.isArray(parsed.attendance)) parsed.attendance = [];
+  if (!parsed.exams) parsed.exams = [];
+  if (!parsed.assignments) parsed.assignments = [];
+  if (!parsed.grades) parsed.grades = {};
   return parsed;
 }
 
@@ -2017,6 +2226,8 @@ function fechaFinDeMes() { const d = new Date(); const ultimoDia = new Date(d.ge
    ============================================================ */
 function renderIconografia() {
   const cont = document.getElementById("iconografiaLista"); if (!cont) return;
+  if (!state) return;
+  if (!state.iconos) state.iconos = {};
   cont.innerHTML = "";
   ICONOS_DEFINIDOS.forEach(ic => {
     const item = document.createElement("div"); item.className = "icono-item";
@@ -2037,6 +2248,8 @@ function renderIconografia() {
   }));
 }
 function aplicarIconosInterfaz() {
+  if (!state) return;
+  if (!state.iconos) state.iconos = {};
   const logoHtml = state.iconos.logo_jv ? `<img src="${state.iconos.logo_jv}">` : "JV";
   ["logoIconoHeader", "logoIconoFooter"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = logoHtml; });
   const iconoMap = { "portal_alumno": "iconoPortalAlumno", "portal_docente": "iconoPortalDocente", "portal_talento": "iconoPortalTalento" };
@@ -2176,14 +2389,20 @@ document.getElementById('formCita').addEventListener('submit', (e) => {
 });
 document.querySelectorAll("[data-open-modal]").forEach(btn => btn.addEventListener("click", () => {
   const tipo = btn.dataset.openModal;
-  const modalId = tipo === "alumno" ? "modalAlumno" : tipo === "docente" ? "modalDocente" : "modalTalento";
+  const modalMap = { alumno: "modalAlumno", docente: "modalDocente", talento: "modalTalento", padre: "modalPadre" };
+  const focusMap = { alumno: "userAlumno", docente: "userDocente", talento: "codigoTalento", padre: "userPadre" };
+  const modalId = modalMap[tipo];
+  if (!modalId) return;
+  // Cerrar otros modales de portal para evitar solapamiento
+  Object.values(modalMap).forEach(id => document.getElementById(id)?.classList.remove("visible"));
   const modal = document.getElementById(modalId); if (!modal) return;
   modal.classList.add("visible");
-  setTimeout(() => { const input = document.getElementById(tipo === "alumno" ? "userAlumno" : tipo === "docente" ? "userDocente" : "codigoTalento"); if (input) input.focus(); }, 100);
+  setTimeout(() => { const input = document.getElementById(focusMap[tipo]); if (input) input.focus(); }, 100);
 }));
 document.querySelectorAll("[data-close-modal]").forEach(btn => btn.addEventListener("click", () => {
   const tipo = btn.dataset.closeModal;
-  const modalId = tipo === "alumno" ? "modalAlumno" : tipo === "docente" ? "modalDocente" : "modalTalento";
+  const modalMap = { alumno: "modalAlumno", docente: "modalDocente", talento: "modalTalento", padre: "modalPadre" };
+  const modalId = modalMap[tipo];
   const modal = document.getElementById(modalId); if (!modal) return;
   modal.classList.remove("visible");
   modal.querySelectorAll("input").forEach(i => i.value = "");
@@ -2286,14 +2505,24 @@ function loginTeacher(code) {
 }
 function loginTalento() {
   adminLoggedIn = true; currentStudentCode = null; currentStudent = null; currentTeacherCode = null; currentTeacher = null;
+  if (!state) state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  if (!state.groups) state.groups = [];
+  if (!state.teachers) state.teachers = {};
+  if (!state.students) state.students = {};
+  if (!state.iconos) state.iconos = {};
   document.getElementById("portalCards").style.display = "none";
   document.getElementById("dashboardAlumno").classList.remove("visible");
   document.getElementById("dashboardDocente").classList.remove("visible");
   document.getElementById("dashboardTalento").classList.add("visible");
   const selAdmAsis = document.getElementById("admAsisGrupo");
-  if (selAdmAsis) { selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>'; state.groups.forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAdmAsis.appendChild(opt); }); }
-  renderAdminLetterhead(); renderAdminFounder(); renderAdminCourses(); refreshAdminView(); renderIconografia(); aplicarIconosInterfaz();
-  document.getElementById("relojTal").textContent = horaActual();
+  if (selAdmAsis) { selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>'; (state.groups || []).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAdmAsis.appendChild(opt); }); }
+  try { renderAdminLetterhead(); } catch (e) {}
+  try { renderAdminFounder(); } catch (e) {}
+  try { renderAdminCourses(); } catch (e) {}
+  try { refreshAdminView(); } catch (e) {}
+  try { renderIconografia(); } catch (e) {}
+  try { aplicarIconosInterfaz(); } catch (e) {}
+  const reloj = document.getElementById("relojTal"); if (reloj) reloj.textContent = horaActual();
 }
 document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
@@ -2324,12 +2553,13 @@ document.querySelectorAll("[data-taltab]").forEach(tab => tab.addEventListener("
 }));
 document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(t => t.classList.remove("activo"));
-  document.querySelectorAll("#tal-panel-admin > .panel").forEach(p => p.classList.remove("activo"));
+  document.querySelectorAll("#tal-panel-admin .panel").forEach(p => p.classList.remove("activo"));
   tab.classList.add("activo");
-  document.getElementById("adm-panel-" + tab.dataset.admtab).classList.add("activo");
-  if (tab.dataset.admtab === "grupos") refreshAdminTeacherSelects();
-  if (tab.dataset.admtab === "examenes") refreshAdminExamGroups();
-  if (tab.dataset.admtab === "programacion") renderAdminCourses();
+  const panel = document.getElementById("adm-panel-" + tab.dataset.admtab);
+  if (panel) panel.classList.add("activo");
+  if (tab.dataset.admtab === "grupos") try { refreshAdminTeacherSelects(); } catch (e) {}
+  if (tab.dataset.admtab === "examenes") try { refreshAdminExamGroups(); } catch (e) {}
+  if (tab.dataset.admtab === "programacion") try { renderAdminCourses(); } catch (e) {}
 }));
 document.querySelectorAll("[data-cont-subtab]").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("[data-cont-subtab]").forEach(t => t.classList.remove("activo"));
@@ -3051,30 +3281,41 @@ function renderTeacherAsignaciones() {
 }
 
 function renderTeacherAsistencia() {
-  const groupId = document.getElementById("dAsisGrupo").value; const fi = document.getElementById("dAsisFecha");
-  if (!fi.value) fi.value = new Date().toISOString().slice(0, 10);
-  const lista = document.getElementById("dAsisLista"); const btnGuardar = document.getElementById("dBtnGuardarAsistencia"); lista.innerHTML = "";
+  /* Compat: panel antiguo (dAsisFecha / dAsisLista). El flujo nuevo usa generador + dAsisTable. */
+  const groupId = document.getElementById("dAsisGrupo")?.value;
+  const fi = document.getElementById("dAsisFecha");
+  const lista = document.getElementById("dAsisLista");
+  const btnGuardar = document.getElementById("dBtnGuardarAsistencia");
+  if (!lista || !btnGuardar) return; // UI nueva sin lista clásica
+  if (fi && !fi.value) fi.value = new Date().toISOString().slice(0, 10);
+  lista.innerHTML = "";
   if (!groupId) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Selecciona un grupo.</p>`; btnGuardar.disabled = true; return; }
+  if (!state || !state.groups) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Cargando...</p>`; return; }
   const group = state.groups.find(g => g.id === groupId);
-  if (!group || group.studentCodes.length === 0) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Grupo sin alumnos.</p>`; btnGuardar.disabled = true; return; }
+  if (!group || !(group.studentCodes || []).length) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:#6b7280;">Grupo sin alumnos.</p>`; btnGuardar.disabled = true; return; }
   if (group.cerrado) { lista.innerHTML = `<p style="padding:20px;text-align:center;color:var(--rojo);">🔒 Curso cerrado.</p>`; btnGuardar.disabled = true; return; }
   btnGuardar.disabled = false;
-  const claseNombre = `${group.nombre} - ${formatearFecha(fi.value)}`;
-  const existentes = {}; state.attendance.filter(a => a.fecha === fi.value && a.clase.includes(group.nombre)).forEach(a => { existentes[a.studentCode] = a.estado; });
-  group.studentCodes.forEach(code => { const s = state.students[code]; if (!s) return; const actual = existentes[code] || "Present"; const row = document.createElement("div"); row.className = "alumno-row"; row.innerHTML = `<div class="alumno-info"><strong>${s.nombre}</strong><small>${code}</small></div><select data-code="${code}"><option value="Present" ${actual === "Present" ? "selected" : ""}>Present</option><option value="Late" ${actual === "Late" ? "selected" : ""}>Late</option><option value="Absent" ${actual === "Absent" ? "selected" : ""}>Absent</option></select>`; lista.appendChild(row); });
+  const fechaVal = fi ? fi.value : new Date().toISOString().slice(0, 10);
+  const claseNombre = `${group.nombre} - ${typeof formatearFecha === 'function' ? formatearFecha(fechaVal) : fechaVal}`;
+  const existentes = {};
+  (Array.isArray(state.attendance) ? state.attendance : []).filter(a => a.fecha === fechaVal && String(a.clase || '').includes(group.nombre)).forEach(a => { existentes[a.studentCode] = a.estado; });
+  group.studentCodes.forEach(code => {
+    const s = state.students[code]; if (!s) return;
+    const actual = existentes[code] || "Present";
+    const row = document.createElement("div"); row.className = "alumno-row";
+    row.innerHTML = `<div class="alumno-info"><strong>${s.nombre}</strong><small>${code}</small></div><select data-code="${code}"><option value="Present" ${actual === "Present" ? "selected" : ""}>Present</option><option value="Late" ${actual === "Late" ? "selected" : ""}>Late</option><option value="Absent" ${actual === "Absent" ? "selected" : ""}>Absent</option></select>`;
+    lista.appendChild(row);
+  });
   btnGuardar.dataset.claseNombre = claseNombre; btnGuardar.dataset.groupId = groupId;
 }
-document.getElementById("dAsisGrupo").addEventListener("change", renderTeacherAsistencia);
-document.getElementById("dAsisFecha").addEventListener("change", renderTeacherAsistencia);
-document.getElementById("dBtnGuardarAsistencia").addEventListener("click", () => {
-  const btn = document.getElementById("dBtnGuardarAsistencia"); const groupId = btn.dataset.groupId;
-  if (!groupId) return;
-  const fecha = document.getElementById("dAsisFecha").value; const group = state.groups.find(g => g.id === groupId);
-  if (group.cerrado) { alert("Curso cerrado."); return; }
-  state.attendance = state.attendance.filter(a => !(a.fecha === fecha && a.clase.includes(group.nombre)));
-  document.querySelectorAll("#dAsisLista select").forEach(sel => { state.attendance.push({ fecha, clase: btn.dataset.claseNombre, studentCode: sel.dataset.code, estado: sel.value }); });
-  saveState(); const msg = document.getElementById("dAsisMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3500);
+// Listeners del flujo antiguo solo si existen los elementos (la UI nueva usa generador)
+document.getElementById("dAsisGrupo")?.addEventListener("change", () => {
+  if (document.getElementById("dAsisLista")) renderTeacherAsistencia();
 });
+document.getElementById("dAsisFecha")?.addEventListener("change", () => {
+  if (document.getElementById("dAsisLista")) renderTeacherAsistencia();
+});
+// El click de guardar del flujo antiguo se omite si no hay dAsisFecha (UI nueva tiene su propio handler)
 function renderTeacherExamsReadOnly() {
   const cont = document.getElementById("dExamenesLista"); cont.innerHTML = "";
   const myGroups = getTeacherGroups(currentTeacherCode).map(g => g.id);
@@ -3087,7 +3328,7 @@ document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
   if (!groupId) return; const group = state.groups.find(g => g.id === groupId); if (!group) return;
   group.studentCodes.forEach(code => { const s = state.students[code]; if (s) { const opt = document.createElement("option"); opt.value = code; opt.textContent = s.nombre; selStudent.appendChild(opt); } });
 });
-document.getElementById("btnGenerateRC").addEventListener("click", () => {
+document.getElementById("btnGenerateRC")?.addEventListener("click", () => {
   const groupId = document.getElementById("rcGroupSelect").value; const studentCode = document.getElementById("rcStudentSelect").value;
   const comment = document.getElementById("rcComment").value.trim(); const signature = state.signatures[currentTeacherCode];
   if (!groupId || !studentCode) { alert("Selecciona grupo y alumno."); return; }
@@ -3122,8 +3363,16 @@ document.getElementById("btnGenerateRC").addEventListener("click", () => {
   rcChartInstance = new Chart(ctx, { type: 'bar', data: { labels: CRITERIOS.map(c => c.nombre), datasets: [{ label: 'Nota', data: CRITERIOS.map(c => gradesObj[c.id] === "—" ? 0 : gradesObj[c.id]), backgroundColor: CRITERIOS.map(c => c.color), borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 20 } } } });
   preview.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-document.getElementById("btnConfirmSendRC").addEventListener("click", () => { if (!currentRcData) return; state.reportCards.push(currentRcData); saveState(); alert("✅ RC enviado."); document.getElementById("rcPreviewContainer").classList.remove("visible"); document.getElementById("rcComment").value = ""; currentRcData = null; });
-document.getElementById("btnDownloadRC").addEventListener("click", () => { if (currentRcData) imprimirReportCard(currentRcData); });
+document.getElementById("btnConfirmSendRC")?.addEventListener("click", () => { if (!currentRcData) return; state.reportCards.push(currentRcData); saveState(); alert("✅ RC enviado."); document.getElementById("rcPreviewContainer").classList.remove("visible"); document.getElementById("rcComment").value = ""; currentRcData = null; });
+document.getElementById("btnDownloadRC")?.addEventListener("click", () => {
+  if (!currentRcData) { alert('Primero genera el Report Card.'); return; }
+  const html = typeof buildReportCardHTML === 'function' ? buildReportCardHTML(currentRcData) : (document.getElementById('rcPrintableArea')?.innerHTML || '');
+  if (typeof window.descargarComoPDF === 'function') {
+    window.descargarComoPDF(html, 'ReportCard_' + (currentRcData.studentCode || 'alumno') + '_' + (currentRcData.date || ''));
+  } else if (typeof imprimirReportCard === 'function') {
+    imprimirReportCard(currentRcData);
+  }
+});
 function renderTeacherHistorialRC() {
   const cont = document.getElementById("dHistorialRCLista"); cont.innerHTML = "";
   const myRCs = state.reportCards.filter(rc => rc.teacherCode === currentTeacherCode);
@@ -3385,12 +3634,21 @@ function refreshAdminView() {
   }
 }
 function refreshAdminTeacherSelects() {
+  if (!state) return;
+  if (!state.teachers) state.teachers = {};
+  if (!state.groups) state.groups = [];
   const sel = document.getElementById("admGroupTeacher");
   if (sel) { const cur = sel.value; sel.innerHTML = '<option value="">Selecciona docente</option>'; Object.keys(state.teachers).forEach(code => { const t = state.teachers[code]; const opt = document.createElement("option"); opt.value = code; opt.textContent = `${t.nombre} (${code})`; sel.appendChild(opt); }); if (cur && state.teachers[cur]) sel.value = cur; }
   const selAlu = document.getElementById("admAlumnoGrupo");
-  if (selAlu) { const cur = selAlu.value; selAlu.innerHTML = '<option value="">Sin grupo</option>'; state.groups.forEach(g => { const nivel = getNivelInfo(g.nivel); const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; selAlu.appendChild(opt); }); if (cur) selAlu.value = cur; }
+  if (selAlu) { const cur = selAlu.value; selAlu.innerHTML = '<option value="">Sin grupo</option>'; state.groups.forEach(g => { const nivel = typeof getNivelInfo === 'function' ? getNivelInfo(g.nivel) : { nombre: g.nivel || '' }; const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; selAlu.appendChild(opt); }); if (cur) selAlu.value = cur; }
 }
-function refreshAdminExamGroups() { const sel = document.getElementById("admExamGroup"); if (!sel) return; const cur = sel.value; sel.innerHTML = '<option value="">Selecciona grupo</option>'; state.groups.forEach(g => { const nivel = getNivelInfo(g.nivel); const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; sel.appendChild(opt); }); if (cur) sel.value = cur; }
+function refreshAdminExamGroups() {
+  if (!state || !state.groups) return;
+  const sel = document.getElementById("admExamGroup"); if (!sel) return;
+  const cur = sel.value; sel.innerHTML = '<option value="">Selecciona grupo</option>';
+  state.groups.forEach(g => { const nivel = typeof getNivelInfo === 'function' ? getNivelInfo(g.nivel) : { nombre: g.nivel || '' }; const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; sel.appendChild(opt); });
+  if (cur) sel.value = cur;
+}
 function renderAdminAlumnos() {
   const body = document.getElementById("admAlumnosBody"); body.innerHTML = "";
   const codes = Object.keys(state.students);
@@ -3550,18 +3808,43 @@ function renderAdminAsistencia() {
   });
   html += `</tbody></table>`; cont.innerHTML = html;
 }
-document.getElementById("admAsisGrupo").addEventListener("change", renderAdminAsistencia);
-function renderAdminLetterhead() { const box = document.getElementById("letterheadPreviewBox"); if (state.letterhead) box.innerHTML = `<img src="${state.letterhead}">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">Sin membrete.</p>`; }
-document.getElementById("btnSaveLetterhead").addEventListener("click", async () => {
-  const fileInput = document.getElementById("adminLetterheadFile"); if (!fileInput.files || !fileInput.files[0]) return;
- try { const url = await procesarImagen(fileInput.files[0], "membretes"); state.letterhead = url; saveState(); renderAdminLetterhead(); document.getElementById("letterheadMsg").classList.add("visible"); setTimeout(() => document.getElementById("letterheadMsg").classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
+document.getElementById("admAsisGrupo")?.addEventListener("change", renderAdminAsistencia);
+function renderAdminLetterhead() {
+  const box = document.getElementById("letterheadPreviewBox");
+  if (!box || !state) return;
+  if (state.letterhead) box.innerHTML = `<img src="${state.letterhead}">`;
+  else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">Sin membrete.</p>`;
+}
+document.getElementById("btnSaveLetterhead")?.addEventListener("click", async () => {
+  const fileInput = document.getElementById("adminLetterheadFile");
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+  try {
+    const url = await procesarImagen(fileInput.files[0], "membretes");
+    state.letterhead = url; saveState(); renderAdminLetterhead();
+    const msg = document.getElementById("letterheadMsg");
+    if (msg) { msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); }
+    fileInput.value = "";
+  } catch (e) { alert("Error."); }
 });
-function renderAdminFounder() { const box = document.getElementById("founderPreviewBox"); if (state.founderPhoto) box.innerHTML = `<img src="${state.founderPhoto}">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">Sin foto.</p>`; }
-document.getElementById("btnSaveFounder").addEventListener("click", async () => {
-  const fileInput = document.getElementById("adminFounderFile"); if (!fileInput.files || !fileInput.files[0]) return;
-  try { const url = await procesarImagen(fileInput.files[0], "fundador"); state.founderPhoto = url; saveState(); renderAdminFounder(); renderFounderPhoto(); document.getElementById("founderMsg").classList.add("visible"); setTimeout(() => document.getElementById("founderMsg").classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
+function renderAdminFounder() {
+  const box = document.getElementById("founderPreviewBox");
+  if (!box || !state) return;
+  if (state.founderPhoto) box.innerHTML = `<img src="${state.founderPhoto}">`;
+  else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">Sin foto.</p>`;
+}
+document.getElementById("btnSaveFounder")?.addEventListener("click", async () => {
+  const fileInput = document.getElementById("adminFounderFile");
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+  try {
+    const url = await procesarImagen(fileInput.files[0], "fundador");
+    state.founderPhoto = url; saveState(); renderAdminFounder();
+    try { renderFounderPhoto(); } catch (e) {}
+    const msg = document.getElementById("founderMsg");
+    if (msg) { msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); }
+    fileInput.value = "";
+  } catch (e) { alert("Error."); }
 });
-document.getElementById("admBtnAddPregunta").addEventListener("click", () => {
+document.getElementById("admBtnAddPregunta")?.addEventListener("click", () => {
   const cont = document.getElementById("admExamPreguntas"); const div = document.createElement("div"); div.className = "qblock";
   div.innerHTML = `<div class="qblock-head"><strong>Pregunta</strong><button type="button" class="btn btn-mini btn-rojo btn-remove-q">✕</button></div><div class="campo"><label>Enunciado</label><input type="text" class="q-enunciado"></div><div class="opciones-inputs"><input type="text" class="q-op" placeholder="A"><input type="text" class="q-op" placeholder="B"><input type="text" class="q-op" placeholder="C"><input type="text" class="q-op" placeholder="D"></div><div class="campo"><label>Correcta</label><select class="q-correcta"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>`;
   div.querySelector(".btn-remove-q").addEventListener("click", () => div.remove());
@@ -3627,16 +3910,17 @@ document.getElementById("admNewAlumnoForm").addEventListener("submit", async (e)
   const programa = document.getElementById("admAlumnoPrograma").value.trim(); const groupId = document.getElementById("admAlumnoGrupo").value;
   const year = document.getElementById("admAlumnoYear").value; const month = document.getElementById("admAlumnoMonth").value;
   const day = document.getElementById("admAlumnoDay").value; const dni = document.getElementById("admAlumnoDni").value.trim();
+  const telefono = (document.getElementById("admAlumnoTelefono")?.value || "").trim();
   const user = document.getElementById("admAlumnoUser").value.trim().toUpperCase(); const pass = document.getElementById("admAlumnoPass").value;
   const dniFileInput = document.getElementById("admAlumnoDniFile");
-  if (!nombre || !user || !pass || !year || !month || !day || !dni) { alert("Completa todos."); return; }
+  if (!nombre || !user || !pass || !year || !month || !day || !dni || !telefono) { alert("Completa todos (incluye teléfono)."); return; }
   if (!dniFileInput.files || !dniFileInput.files[0]) { alert("Foto DNI obligatoria."); return; }
   if (state.students[user] || state.teachers[user]) { alert("Usuario ya existe."); return; }
   try {
     const dniPhotoUrl = await procesarImagen(dniFileInput.files[0], "dni-alumnos");
 if (!validateCustomFields("admAlumnoCamposExtra", "alumno")) return;
     const extrasA = collectCustomFields("admAlumnoCamposExtra");
-state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, dniPhoto: dniPhotoUrl, custom: extrasA };
+state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, telefono, dniPhoto: dniPhotoUrl, custom: extrasA };
     state.grades[user] = {};
     if (groupId) { const g = state.groups.find(x => x.id === groupId); if (g && !g.studentCodes.includes(user)) g.studentCodes.push(user); }
     saveState();
@@ -4988,14 +5272,44 @@ function renderAdminAsignaciones() {
     });
   });
 }
+function refreshCriterioSelect() {
+  const sel = document.getElementById('admAsgCriterio');
+  if (!sel) return;
+  const cur = sel.value;
+  const extras = state.customCriterios || [];
+  sel.innerHTML = '<option value="">Selecciona...</option>';
+  CRITERIOS.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.nombre;
+    sel.appendChild(opt);
+  });
+  extras.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.nombre;
+    sel.appendChild(opt);
+  });
+  if (cur) sel.value = cur;
+}
+document.getElementById('btnCrearCriterio')?.addEventListener('click', () => {
+  const nombre = (document.getElementById('admNuevoCriterioNombre')?.value || '').trim();
+  if (!nombre) { alert('Escribe el nombre del criterio.'); return; }
+  if (!state.customCriterios) state.customCriterios = [];
+  const id = 'custom_' + Date.now();
+  state.customCriterios.push({ id, nombre, color: '#6366f1' });
+  saveState();
+  document.getElementById('admNuevoCriterioNombre').value = '';
+  refreshCriterioSelect();
+  alert('✅ Criterio «' + nombre + '» creado y agregado a la lista.');
+});
 document.getElementById('admNewAsgForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   const criterio = document.getElementById('admAsgCriterio').value;
-  const nombre = document.getElementById('admAsgNombre').value.trim();
   const fechaInicio = document.getElementById('admAsgInicio').value;
   const fechaFin = document.getElementById('admAsgFin').value;
   const grupoId = document.getElementById('admAsgGrupo')?.value || '';
-  if (!criterio || !nombre || !fechaInicio || !fechaFin) { alert('Completa los campos obligatorios.'); return; }
+  if (!criterio || !fechaInicio || !fechaFin) { alert('Completa los campos obligatorios.'); return; }
+  const critObj = CRITERIOS.find(c => c.id === criterio) || (state.customCriterios || []).find(c => c.id === criterio);
+  const nombre = critObj ? critObj.nombre : criterio;
   if (!state.assignments) state.assignments = [];
   state.assignments.push({
     id: 'asg_' + Date.now(),
@@ -5008,12 +5322,16 @@ document.getElementById('admNewAsgForm')?.addEventListener('submit', (e) => {
   });
   saveState();
   e.target.reset();
+  refreshCriterioSelect();
   renderAdminAsignaciones();
   alert('✅ Evaluación programada. Los docentes ya pueden calificarla.');
 });
 document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
   tab.addEventListener('click', () => {
-    if (tab.dataset.admtab === 'asignaciones') setTimeout(renderAdminAsignaciones, 40);
+    if (tab.dataset.admtab === 'asignaciones') setTimeout(() => { refreshCriterioSelect(); renderAdminAsignaciones(); }, 40);
+    if (tab.dataset.admtab === 'calendarizacion') setTimeout(renderCalendarizacion, 40);
+    if (tab.dataset.admtab === 'reporte_dia') setTimeout(renderReporteDia, 40);
+    if (tab.dataset.admtab === 'padres') setTimeout(renderAdminPadres, 40);
   });
 });
 
@@ -5098,30 +5416,1311 @@ window.addEventListener('popstate', (e) => {
   aplicarIconosInterfaz();
   renderIconografia();
   console.log("🚀 App lista. Datos sincronizados con Supabase.");
+  try { refreshCriterioSelect(); } catch(e) {}
 })();
+</script>
+<script>
+/* ============================================================
+   NUEVAS FUNCIONES v4 — Coordinación, Asistencia, Notas, Padres, Cumples, PDF
+   ============================================================ */
+let currentPadreCode = null, currentPadre = null;
+let asisClaseCount = 0, asisTimerInterval = null, asisDeadline = null;
+let notasClaseCount = 0, notasTimerInterval = null, notasDeadline = null;
+let padreHijosSel = [];
+
+document.getElementById('loginFormPadre')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  const userRaw = (document.getElementById('userPadre').value || '').trim();
+  const user = userRaw.toUpperCase();
+  const pass = document.getElementById('passPadre').value;
+  // Buscar por usuario exacto o por DNI (usuario = DNI)
+  const padres = state.padres || {};
+  let p = padres[user] || padres[userRaw] || null;
+  if (!p) {
+    const key = Object.keys(padres).find(k => k === userRaw || k === user || (padres[k].dni && String(padres[k].dni) === userRaw));
+    if (key) p = padres[key];
+  }
+  if (!p || String(p.password) !== String(pass)) {
+    document.getElementById('errorPadre')?.classList.add('visible');
+    return;
+  }
+  document.getElementById('errorPadre')?.classList.remove('visible');
+  // Cerrar TODOS los modales de portal (evita que quede Talento abierto)
+  ['modalPadre','modalTalento','modalAlumno','modalDocente'].forEach(id => document.getElementById(id)?.classList.remove('visible'));
+  currentPadreCode = Object.keys(padres).find(k => padres[k] === p) || user;
+  currentPadre = p;
+  adminLoggedIn = false;
+  currentStudentCode = null; currentStudent = null;
+  currentTeacherCode = null; currentTeacher = null;
+  document.getElementById('portalCards').style.display = 'none';
+  ['dashboardAlumno','dashboardDocente','dashboardTalento'].forEach(id => document.getElementById(id)?.classList.remove('visible'));
+  document.getElementById('dashboardPadre')?.classList.add('visible');
+  const nombreEl = document.getElementById('dashNombreP');
+  if (nombreEl) nombreEl.textContent = p.nombre || user;
+  const av = document.getElementById('dashAvatarP');
+  if (av) av.textContent = (p.nombre || 'P').slice(0,2).toUpperCase();
+  const info = document.getElementById('padreInfoPersonal');
+  if (info) {
+    info.innerHTML = `<p><strong>Nombre:</strong> ${p.nombre||'—'}</p><p><strong>Celular:</strong> ${p.celular||'—'}</p>
+      <p><strong>Email:</strong> ${p.email||'—'}</p><p><strong>DNI:</strong> ${p.dni||'—'}</p>
+      <p><strong>Fecha nac.:</strong> ${p.fechaNac||'—'}</p><p><strong>Edad:</strong> ${p.edad!=null?p.edad:'—'}</p>`;
+  }
+});
+document.getElementById('btnSalirP')?.addEventListener('click', () => {
+  currentPadreCode = null; currentPadre = null;
+  document.getElementById('dashboardPadre')?.classList.remove('visible');
+  document.getElementById('portalCards').style.display = 'grid';
+});
+document.getElementById('btnVerProgresoHijo')?.addEventListener('click', () => {
+  const box = document.getElementById('padreProgresoBox');
+  const lista = document.getElementById('padreProgresoLista');
+  if (!box || !lista || !currentPadre) return;
+  box.style.display = 'block';
+  const hijos = currentPadre.hijos || [];
+  if (!hijos.length) { lista.innerHTML = '<div class="empty-state">No hay hijos vinculados.</div>'; return; }
+  let html = '';
+  hijos.forEach(code => {
+    const s = state.students[code];
+    if (!s) return;
+    const prom = typeof promedioGeneral === 'function' ? promedioGeneral(code) : null;
+    const asis = typeof porcentajeAsistencia === 'function' ? porcentajeAsistencia(typeof asistenciaDe === 'function' ? asistenciaDe(code) : []) : null;
+    const est = typeof estadoCurso === 'function' ? estadoCurso(code) : { texto: '—', clase: 'pendiente' };
+    html += `<div class="exam-link-card"><div class="exam-link-info"><h4>${s.nombre}</h4>
+      <p>Programa: ${s.programa||'—'} · Usuario: ${code}</p>
+      <p>Promedio: <strong>${prom!=null?prom.toFixed(2):'—'}</strong> · Asistencia: <strong>${asis!=null?asis+'%':'—'}</strong></p>
+      <span class="calif-estado ${est.clase}">${est.texto}</span></div></div>`;
+  });
+  lista.innerHTML = html || '<div class="empty-state">Sin datos.</div>';
+});
+
+document.getElementById('admPadreNac')?.addEventListener('change', () => {
+  const v = document.getElementById('admPadreNac').value;
+  if (!v) return;
+  const birth = new Date(v), today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  document.getElementById('admPadreEdad').value = age;
+});
+document.getElementById('admPadreDeFiltro')?.addEventListener('input', () => {
+  const q = (document.getElementById('admPadreDeFiltro').value || '').toLowerCase();
+  const box = document.getElementById('admPadreDeSugerencias');
+  if (!box) return;
+  if (!q) { box.style.display = 'none'; return; }
+  const matches = Object.keys(state.students||{}).filter(c => (state.students[c].nombre||'').toLowerCase().includes(q)).slice(0,12);
+  box.innerHTML = matches.map(c => `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;" data-hijo="${c}">${state.students[c].nombre} (${c})</div>`).join('') || '<div style="padding:8px;color:#6b7280;">Sin coincidencias</div>';
+  box.style.display = 'block';
+  box.querySelectorAll('[data-hijo]').forEach(el => el.addEventListener('click', () => {
+    if (!padreHijosSel.includes(el.dataset.hijo)) padreHijosSel.push(el.dataset.hijo);
+    renderPadreHijosChips();
+    document.getElementById('admPadreDeFiltro').value = '';
+    box.style.display = 'none';
+  }));
+});
+function renderPadreHijosChips() {
+  const cont = document.getElementById('admPadreHijosChips');
+  if (!cont) return;
+  cont.innerHTML = padreHijosSel.map(c => `<span class="student-chip">${state.students[c]?.nombre||c} <button type="button" data-rm-hijo="${c}">×</button></span>`).join('');
+  cont.querySelectorAll('[data-rm-hijo]').forEach(b => b.addEventListener('click', () => {
+    padreHijosSel = padreHijosSel.filter(x => x !== b.dataset.rmHijo);
+    renderPadreHijosChips();
+  }));
+}
+document.getElementById('btnGenPadreUser')?.addEventListener('click', () => {
+  const dni = (document.getElementById('admPadreDni')?.value || '').trim().replace(/\D/g, '');
+  if (!dni) { alert('Primero escribe el número de DNI.'); document.getElementById('admPadreDni')?.focus(); return; }
+  document.getElementById('admPadreUser').value = dni;
+});
+document.getElementById('btnGenPadrePass')?.addEventListener('click', () => {
+  const tel = (document.getElementById('admPadreCelular')?.value || '').trim().replace(/\D/g, '');
+  if (!tel) { alert('Primero escribe el número de teléfono.'); document.getElementById('admPadreCelular')?.focus(); return; }
+  document.getElementById('admPadrePass').value = tel;
+});
+document.getElementById('admNewPadreForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nombre = document.getElementById('admPadreNombre').value.trim();
+  const celular = document.getElementById('admPadreCelular').value.trim();
+  const email = document.getElementById('admPadreEmail').value.trim();
+  const fechaNac = document.getElementById('admPadreNac').value;
+  const edad = parseInt(document.getElementById('admPadreEdad').value) || null;
+  const dni = document.getElementById('admPadreDni').value.trim();
+  const user = document.getElementById('admPadreUser').value.trim().toUpperCase();
+  const pass = document.getElementById('admPadrePass').value;
+  if (!nombre || !celular || !dni || !user || !pass || !padreHijosSel.length) {
+    alert('Completa los campos obligatorios e indica al menos un hijo.'); return;
+  }
+  if (!state.padres) state.padres = {};
+  if (state.padres[user] || state.students[user] || state.teachers[user]) { alert('Usuario ya existe.'); return; }
+  let dniPhoto = null;
+  const f = document.getElementById('admPadreDniFile')?.files?.[0];
+  if (f) { try { dniPhoto = await procesarImagen(f, 'dni-padres'); } catch(err) {} }
+  state.padres[user] = { password: pass, nombre, celular, email: email||'—', fechaNac, edad, dni, dniPhoto, hijos: [...padreHijosSel] };
+  saveState();
+  document.getElementById('credUserPadre').textContent = user;
+  document.getElementById('credPassPadre').textContent = pass;
+  document.getElementById('credPadre').classList.add('visible');
+  e.target.reset(); padreHijosSel = []; renderPadreHijosChips(); renderAdminPadres();
+});
+function renderAdminPadres() {
+  const cont = document.getElementById('admPadresLista');
+  if (!cont) return;
+  const keys = Object.keys(state.padres || {});
+  if (!keys.length) { cont.innerHTML = '<div class="empty-state">Sin padres registrados.</div>'; return; }
+  let html = '<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table class="admin-table" style="min-width:800px;"><thead><tr><th>Usuario</th><th>Nombre</th><th>Celular</th><th>Hijos</th><th>DNI</th></tr></thead><tbody>';
+  keys.forEach(u => {
+    const p = state.padres[u];
+    const hijos = (p.hijos||[]).map(c => state.students[c]?.nombre||c).join(', ');
+    html += `<tr><td><code>${u}</code></td><td>${p.nombre}</td><td>${p.celular||'—'}</td><td>${hijos||'—'}</td><td>${p.dni||'—'}</td></tr>`;
+  });
+  cont.innerHTML = html + '</tbody></table></div>';
+}
+
+const CAL_TIPO_META = {
+  inicio_curso: { label: 'Inicio de curso', color: '#16a34a', emoji: '🟢' },
+  fin_curso: { label: 'Fin de curso', color: '#dc2626', emoji: '🔴' },
+  class_participation: { label: 'Class Participation', color: '#16a34a', emoji: '📝' },
+  online_workbook: { label: 'Online Workbook', color: '#7c3aed', emoji: '💻' },
+  readers: { label: 'Readers', color: '#0891b2', emoji: '📗' },
+  writing: { label: 'Writing', color: '#f97316', emoji: '✍️' },
+  speaking: { label: 'Speaking', color: '#f59e0b', emoji: '🗣️' },
+  final_exam: { label: 'Final Exam', color: '#dc2626', emoji: '📋' },
+  otro: { label: 'Otro evento', color: '#6366f1', emoji: '📌' }
+};
+let calSelectedDate = null;
+
+function calTipoLabel(tipo, customName) {
+  if (tipo === 'otro' && customName) return customName;
+  if (CAL_TIPO_META[tipo]) return CAL_TIPO_META[tipo].label;
+  const extra = (state.customCriterios || []).find(c => c.id === tipo);
+  return extra ? extra.nombre : (customName || tipo);
+}
+function calTipoColor(tipo) {
+  if (CAL_TIPO_META[tipo]) return CAL_TIPO_META[tipo].color;
+  return '#6366f1';
+}
+function calTipoEmoji(tipo) {
+  if (CAL_TIPO_META[tipo]) return CAL_TIPO_META[tipo].emoji;
+  return '📌';
+}
+function formatearFechaCal(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-').map(Number);
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${d} ${meses[m-1]} ${y}`;
+}
+function fillCalTipoSelect() {
+  const sel = document.getElementById('calTipoSel');
+  if (!sel) return;
+  const cur = sel.value;
+  const group = document.getElementById('calTipoEvalGroup');
+  if (group) {
+    // base options already in HTML; append custom criterios
+    group.querySelectorAll('option[data-custom="1"]').forEach(o => o.remove());
+    (state.customCriterios || []).forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.nombre; o.dataset.custom = '1';
+      group.appendChild(o);
+    });
+  }
+  if (cur) sel.value = cur;
+}
+function fillCalGrupoSelect() {
+  const selG = document.getElementById('calGrupoSel');
+  if (!selG) return;
+  const cur = selG.value;
+  selG.innerHTML = '<option value="">Selecciona grupo...</option>';
+  (state.groups || []).filter(g => !g.cerrado).forEach(g => {
+    const o = document.createElement('option');
+    o.value = g.id;
+    o.textContent = `${g.nombre || g.programa || g.id}${g.horario ? ' · ' + g.horario : ''}`;
+    selG.appendChild(o);
+  });
+  if (cur) selG.value = cur;
+}
+function renderCalLegend() {
+  const leg = document.getElementById('calLegend');
+  if (!leg) return;
+  leg.innerHTML = Object.keys(CAL_TIPO_META).filter(k => k !== 'otro').map(k => {
+    const m = CAL_TIPO_META[k];
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--borde);padding:4px 10px;border-radius:50px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${m.color};display:inline-block;"></span>${m.label}</span>`;
+  }).join('');
+}
+function openCalDay(key) {
+  calSelectedDate = key;
+  const panel = document.getElementById('calEventPanel');
+  if (!panel) return;
+  panel.style.display = 'block';
+  panel.dataset.fecha = key;
+  const label = document.getElementById('calFechaSel');
+  if (label) label.textContent = formatearFechaCal(key);
+  fillCalGrupoSelect();
+  fillCalTipoSelect();
+  document.getElementById('calTipoSel').value = '';
+  document.getElementById('calOtroWrap').style.display = 'none';
+  document.getElementById('calOtroEvento').value = '';
+  const nota = document.getElementById('calNotaEvento');
+  if (nota) nota.value = '';
+  renderCalEventosDelDia(key);
+  // highlight selected cell
+  document.querySelectorAll('#calGrid [data-cal-day]').forEach(el => {
+    el.style.outline = el.dataset.calDay === key ? '2px solid var(--azul-medio)' : 'none';
+    el.style.boxShadow = el.dataset.calDay === key ? '0 0 0 3px rgba(0,102,204,.18)' : 'none';
+  });
+}
+function renderCalendarizacion() {
+  const mesInp = document.getElementById('calMesSelect');
+  if (!mesInp) return;
+  if (!mesInp.value) {
+    const d = new Date();
+    mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  const [yy, mm] = mesInp.value.split('-').map(Number);
+  const first = new Date(yy, mm - 1, 1);
+  const last = new Date(yy, mm, 0);
+  const startDay = first.getDay();
+  const grid = document.getElementById('calGrid');
+  if (!grid) return;
+  if (!state.calendarEvents) state.calendarEvents = {};
+
+  renderCalLegend();
+  fillCalTipoSelect();
+
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  let html = dias.map(d => `<div style="text-align:center;font-weight:700;font-size:.78rem;color:var(--gris);padding:8px 4px;">${d}</div>`).join('');
+  for (let i = 0; i < startDay; i++) html += '<div></div>';
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  for (let day = 1; day <= last.getDate(); day++) {
+    const key = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const evs = state.calendarEvents[key] || [];
+    const isToday = key === todayIso;
+    const isSelected = key === calSelectedDate;
+    const dots = evs.slice(0, 4).map(ev =>
+      `<span style="width:7px;height:7px;border-radius:50%;background:${calTipoColor(ev.tipo)};display:inline-block;" title="${calTipoLabel(ev.tipo, ev.nombre)}"></span>`
+    ).join('');
+    const more = evs.length > 4 ? `<span style="font-size:.65rem;color:var(--gris);">+${evs.length - 4}</span>` : '';
+    html += `<div data-cal-day="${key}" role="button" tabindex="0"
+      style="border:1px solid ${isToday ? 'var(--azul-medio)' : 'var(--borde)'};border-radius:10px;min-height:78px;padding:8px;cursor:pointer;background:${evs.length ? '#f0f7ff' : '#fff'};transition:box-shadow .15s,transform .15s;outline:${isSelected ? '2px solid var(--azul-medio)' : 'none'};box-shadow:${isSelected ? '0 0 0 3px rgba(0,102,204,.18)' : 'none'};"
+      onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:800;font-size:.95rem;color:${isToday ? 'var(--azul-medio)' : 'var(--texto)'};">${day}</span>
+        ${isToday ? '<span style="font-size:.65rem;font-weight:700;color:var(--azul-medio);">HOY</span>' : ''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;align-items:center;">${dots}${more}</div>
+      ${evs.length ? `<div style="font-size:.68rem;color:var(--azul);margin-top:4px;font-weight:600;">${evs.length} evento${evs.length > 1 ? 's' : ''}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-cal-day]').forEach(el => {
+    el.addEventListener('click', () => openCalDay(el.dataset.calDay));
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCalDay(el.dataset.calDay); } });
+  });
+
+  if (calSelectedDate && calSelectedDate.startsWith(mesInp.value)) {
+    openCalDay(calSelectedDate);
+  } else {
+    document.getElementById('calEventPanel').style.display = 'none';
+  }
+  renderCalMesResumen();
+}
+
+function renderCalEventosDelDia(fecha) {
+  const cont = document.getElementById('calEventosDelDia');
+  if (!cont) return;
+  const evs = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+  if (!evs.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin eventos este día. Agrégalos con el formulario de arriba.</div>';
+    return;
+  }
+  cont.innerHTML = evs.map(ev => {
+    const g = (state.groups || []).find(x => x.id === ev.grupoId);
+    const color = calTipoColor(ev.tipo);
+    const emoji = calTipoEmoji(ev.tipo);
+    const nombre = calTipoLabel(ev.tipo, ev.nombre);
+    return `<div class="libro-card" style="border-left:4px solid ${color};">
+      <div class="libro-info">
+        <strong>${emoji} ${nombre}</strong>
+        <small style="display:block;color:var(--gris);margin-top:2px;">${g ? g.nombre : 'Sin grupo'}${ev.nota ? ' · ' + ev.nota : ''}</small>
+      </div>
+      <button type="button" class="btn btn-mini btn-rojo" data-del-cev="${ev.id}" data-fecha="${fecha}" title="Eliminar">🗑️</button>
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-del-cev]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('¿Eliminar este evento del calendario?')) return;
+    const f = b.dataset.fecha;
+    state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== b.dataset.delCev);
+    if (!state.calendarEvents[f].length) delete state.calendarEvents[f];
+    saveState();
+    renderCalEventosDelDia(f);
+    renderCalendarizacion();
+  }));
+}
+
+function renderCalMesResumen() {
+  const cont = document.getElementById('calMesResumen');
+  const mesInp = document.getElementById('calMesSelect');
+  if (!cont || !mesInp || !mesInp.value) return;
+  const prefix = mesInp.value; // YYYY-MM
+  const entries = [];
+  Object.keys(state.calendarEvents || {}).filter(k => k.startsWith(prefix)).sort().forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => entries.push({ fecha, ...ev }));
+  });
+  if (!entries.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:12px;">No hay eventos programados en este mes.</div>';
+    return;
+  }
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table class="admin-table" style="min-width:100%;"><thead><tr><th>Fecha</th><th>Evento</th><th>Grupo</th><th>Detalle</th><th></th></tr></thead><tbody>`;
+  entries.forEach(ev => {
+    const g = (state.groups || []).find(x => x.id === ev.grupoId);
+    html += `<tr>
+      <td>${formatearFechaCal(ev.fecha)}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${calTipoColor(ev.tipo)};"></span>${calTipoLabel(ev.tipo, ev.nombre)}</span></td>
+      <td>${g ? g.nombre : '—'}</td>
+      <td>${ev.nota || '—'}</td>
+      <td><button type="button" class="btn btn-mini btn-rojo" data-del-cev-res="${ev.id}" data-fecha="${ev.fecha}">🗑️</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+  cont.querySelectorAll('[data-del-cev-res]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('¿Eliminar este evento?')) return;
+    const f = b.dataset.fecha;
+    state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== b.dataset.delCevRes);
+    if (!state.calendarEvents[f].length) delete state.calendarEvents[f];
+    saveState();
+    renderCalendarizacion();
+  }));
+}
+
+// Event listeners (idempotent via optional chaining)
+document.getElementById('calTipoSel')?.addEventListener('change', (e) => {
+  document.getElementById('calOtroWrap').style.display = e.target.value === 'otro' ? '' : 'none';
+});
+document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
+  const panel = document.getElementById('calEventPanel');
+  const fecha = panel?.dataset.fecha || calSelectedDate;
+  if (!fecha) { alert('Selecciona un día en el calendario.'); return; }
+  const grupoId = document.getElementById('calGrupoSel').value;
+  const tipo = document.getElementById('calTipoSel').value;
+  const nota = (document.getElementById('calNotaEvento')?.value || '').trim();
+  let nombre = calTipoLabel(tipo);
+  if (tipo === 'otro') {
+    nombre = (document.getElementById('calOtroEvento').value || '').trim();
+    if (!nombre) { alert('Escribe el nombre del nuevo evento.'); return; }
+  }
+  if (!tipo) { alert('Selecciona el tipo de evento.'); return; }
+  if (!grupoId && tipo !== 'otro') { alert('Selecciona un grupo.'); return; }
+  if (!state.calendarEvents) state.calendarEvents = {};
+  if (!state.calendarEvents[fecha]) state.calendarEvents[fecha] = [];
+  state.calendarEvents[fecha].push({
+    id: 'cev_' + Date.now(),
+    grupoId: grupoId || null,
+    tipo,
+    nombre,
+    nota: nota || null,
+    createdAt: new Date().toISOString()
+  });
+  // Si es evaluación, opcionalmente crear asignación programada ese día
+  const evalTipos = ['class_participation','online_workbook','readers','writing','speaking','final_exam'];
+  const isCustomCrit = (state.customCriterios || []).some(c => c.id === tipo);
+  if ((evalTipos.includes(tipo) || isCustomCrit) && grupoId) {
+    if (!state.assignments) state.assignments = [];
+    state.assignments.push({
+      id: 'asg_cal_' + Date.now(),
+      criterio: tipo === 'online_workbook' ? 'online_homework' : tipo,
+      nombre: `${nombre} · ${formatearFechaCal(fecha)}`,
+      fechaInicio: fecha,
+      fechaFin: fecha,
+      grupoId,
+      createdBy: 'calendarizacion'
+    });
+  }
+  saveState();
+  document.getElementById('calOtroEvento').value = '';
+  if (document.getElementById('calNotaEvento')) document.getElementById('calNotaEvento').value = '';
+  const msg = document.getElementById('calAddMsg');
+  if (msg) { msg.classList.add('visible'); setTimeout(() => msg.classList.remove('visible'), 2000); }
+  renderCalEventosDelDia(fecha);
+  renderCalendarizacion();
+});
+document.getElementById('btnCalCerrarPanel')?.addEventListener('click', () => {
+  calSelectedDate = null;
+  document.getElementById('calEventPanel').style.display = 'none';
+  document.querySelectorAll('#calGrid [data-cal-day]').forEach(el => {
+    el.style.outline = 'none';
+    el.style.boxShadow = 'none';
+  });
+});
+document.getElementById('btnCalHoy')?.addEventListener('click', () => {
+  const d = new Date();
+  const mesInp = document.getElementById('calMesSelect');
+  if (mesInp) mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderCalendarizacion();
+  openCalDay(d.toISOString().slice(0, 10));
+});
+document.getElementById('btnCalResumen')?.addEventListener('click', () => {
+  const cont = document.getElementById('calMesResumen');
+  if (!cont) return;
+  const visible = cont.style.display !== 'none';
+  cont.style.display = visible ? 'none' : 'block';
+  if (!visible) renderCalMesResumen();
+});
+document.getElementById('calMesSelect')?.addEventListener('change', () => {
+  calSelectedDate = null;
+  renderCalendarizacion();
+});
+
+let reporteDiaTab = 'asistencia';
+
+function getAsistenciaDia(groupId, fecha) {
+  if (!state.asistenciaDiaria) return null;
+  return state.asistenciaDiaria[groupId + '_' + fecha] || null;
+}
+
+function getNotasDelDia(groupId, fecha) {
+  // Assignments created that day for the group (from registro de notas or calendar)
+  const asgs = (state.assignments || []).filter(a =>
+    a.grupoId === groupId &&
+    (a.fechaInicio === fecha || (a.nombre && a.nombre.includes(fecha)))
+  );
+  const grades = state.grades || {};
+  let gradedCount = 0, totalSlots = 0;
+  asgs.forEach(a => {
+    const g = (state.groups || []).find(x => x.id === groupId);
+    const codes = g?.studentCodes || [];
+    codes.forEach(code => {
+      totalSlots++;
+      if (grades[code] && grades[code][a.id] != null && grades[code][a.id] !== '') gradedCount++;
+    });
+  });
+  return { asgs, gradedCount, totalSlots, hasAny: asgs.length > 0 };
+}
+
+function getEventosDelDia(fecha, groupId) {
+  const all = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+  if (!groupId) return all;
+  return all.filter(e => !e.grupoId || e.grupoId === groupId);
+}
+
+function fillReporteTeacherSelect() {
+  const sel = document.getElementById('reporteDiaTeacher');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos los docentes</option>';
+  Object.keys(state.teachers || {}).forEach(code => {
+    const t = state.teachers[code];
+    const o = document.createElement('option');
+    o.value = code;
+    o.textContent = t.nombre || code;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+function updateReporteDeadlineBanner(fecha) {
+  const el = document.getElementById('reporteDiaDeadline');
+  if (!el) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (fecha < today) {
+    el.innerHTML = '<span class="punto-live" style="background:#64748b;"></span> Día cerrado · El plazo de medianoche ya venció. Se muestra el estado final del día.';
+    el.style.background = '#f1f5f9';
+    el.style.color = '#475569';
+  } else if (fecha === today) {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const leftMs = midnight - now;
+    const h = Math.floor(leftMs / 3600000);
+    const m = Math.floor((leftMs % 3600000) / 60000);
+    el.innerHTML = `<span class="punto-live"></span> Plazo hasta medianoche · Quedan <strong>${h}h ${m}min</strong> para que los docentes guarden asistencia y notas del día.`;
+    el.style.background = '#ecfdf5';
+    el.style.color = '#065f46';
+  } else {
+    el.innerHTML = '<span class="punto-live" style="background:#f59e0b;"></span> Fecha futura · Aún no aplica el cierre de medianoche.';
+    el.style.background = '#fffbeb';
+    el.style.color = '#b45309';
+  }
+}
+
+function collectReporteDiaData(fecha, teacherFilter) {
+  let groups = (state.groups || []).filter(g => !g.cerrado);
+  if (teacherFilter) groups = groups.filter(g => g.teacherCode === teacherFilter);
+  return groups.map(g => {
+    const teacher = state.teachers[g.teacherCode];
+    const asis = getAsistenciaDia(g.id, fecha);
+    const notas = getNotasDelDia(g.id, fecha);
+    const eventos = getEventosDelDia(fecha, g.id);
+    return {
+      group: g,
+      teacher,
+      teacherCode: g.teacherCode,
+      asisOk: !!asis,
+      asisData: asis,
+      notas,
+      eventos,
+      alumnos: (g.studentCodes || []).length
+    };
+  });
+}
+
+function renderReporteDia() {
+  const fechaInp = document.getElementById('reporteDiaFecha');
+  if (!fechaInp) return;
+  if (!fechaInp.value) fechaInp.value = new Date().toISOString().slice(0, 10);
+  const fecha = fechaInp.value;
+  const teacherFilter = document.getElementById('reporteDiaTeacher')?.value || '';
+  fillReporteTeacherSelect();
+  if (teacherFilter) document.getElementById('reporteDiaTeacher').value = teacherFilter;
+
+  updateReporteDeadlineBanner(fecha);
+  const rows = collectReporteDiaData(fecha, teacherFilter);
+
+  let asisOk = 0, asisPend = 0, notasCount = 0;
+  rows.forEach(r => {
+    if (r.asisOk) asisOk++; else asisPend++;
+    if (r.notas.hasAny) notasCount++;
+  });
+  const eventosDia = getEventosDelDia(fecha);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('repStatAsisOk', asisOk);
+  set('repStatAsisPend', asisPend);
+  set('repStatNotas', notasCount);
+  set('repStatEventos', eventosDia.length);
+
+  const cont = document.getElementById('reporteDiaLista');
+  const det = document.getElementById('reporteDiaDetalle');
+  if (!cont) return;
+
+  if (reporteDiaTab === 'asistencia') {
+    if (det) det.style.display = 'none';
+    if (!rows.length) {
+      cont.innerHTML = '<div class="empty-state">No hay grupos abiertos para reportar.</div>';
+      return;
+    }
+    let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+      <table class="admin-table" style="min-width:820px;">
+        <thead><tr>
+          <th>Grupo</th><th>Docente</th><th>Horario</th><th>Alumnos</th><th>Asistencia</th><th>Guardado</th><th>Estado</th>
+        </tr></thead><tbody>`;
+    rows.forEach(r => {
+      const savedAt = r.asisData?.savedAt
+        ? new Date(r.asisData.savedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+        : '—';
+      const nReg = r.asisData?.registros ? Object.keys(r.asisData.registros).length : 0;
+      html += `<tr>
+        <td><strong>${r.group.nombre || r.group.programa || r.group.id}</strong><br><small style="color:var(--gris);">${r.group.programa || ''}</small></td>
+        <td>${r.teacher ? r.teacher.nombre : (r.teacherCode || 'Sin asignar')}</td>
+        <td>${r.group.horario || '—'}</td>
+        <td>${r.alumnos}</td>
+        <td>${r.asisOk ? nReg + ' registrados' : '—'}</td>
+        <td>${savedAt}</td>
+        <td>${r.asisOk
+          ? '<span class="estado estado-present">Cumplido</span>'
+          : '<span class="estado estado-absent">No cumplido</span>'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    cont.innerHTML = html;
+  } else if (reporteDiaTab === 'notas') {
+    if (det) det.style.display = 'none';
+    if (!rows.length) {
+      cont.innerHTML = '<div class="empty-state">No hay grupos abiertos.</div>';
+      return;
+    }
+    let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+      <table class="admin-table" style="min-width:820px;">
+        <thead><tr>
+          <th>Grupo</th><th>Docente</th><th>Evaluaciones del día</th><th>Notas cargadas</th><th>Estado</th>
+        </tr></thead><tbody>`;
+    rows.forEach(r => {
+      const nAsg = r.notas.asgs.length;
+      const ok = r.notas.hasAny && r.notas.totalSlots > 0 && r.notas.gradedCount >= r.notas.totalSlots;
+      const parcial = r.notas.hasAny && r.notas.gradedCount > 0 && !ok;
+      html += `<tr>
+        <td><strong>${r.group.nombre || r.group.id}</strong></td>
+        <td>${r.teacher ? r.teacher.nombre : '—'}</td>
+        <td>${nAsg ? nAsg + ' evaluación(es)<br><small style="color:var(--gris);">' + r.notas.asgs.map(a => a.nombre || a.criterio).join(', ') + '</small>' : 'Ninguna programada'}</td>
+        <td>${r.notas.hasAny ? r.notas.gradedCount + ' / ' + r.notas.totalSlots : '—'}</td>
+        <td>${!r.notas.hasAny
+          ? '<span class="estado" style="background:#f1f5f9;color:#64748b;">Sin registro</span>'
+          : ok
+            ? '<span class="estado estado-present">Completo</span>'
+            : parcial
+              ? '<span class="estado estado-late">Parcial</span>'
+              : '<span class="estado estado-absent">Pendiente</span>'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    cont.innerHTML = html;
+  } else if (reporteDiaTab === 'eventos') {
+    if (det) det.style.display = 'none';
+    const eventos = getEventosDelDia(fecha).filter(ev => {
+      if (!teacherFilter) return true;
+      if (!ev.grupoId) return true;
+      const g = (state.groups || []).find(x => x.id === ev.grupoId);
+      return g && g.teacherCode === teacherFilter;
+    });
+    if (!eventos.length) {
+      cont.innerHTML = '<div class="empty-state">No hay eventos calendarizados para esta fecha.</div>';
+      return;
+    }
+    cont.innerHTML = eventos.map(ev => {
+      const g = (state.groups || []).find(x => x.id === ev.grupoId);
+      const t = g ? state.teachers[g.teacherCode] : null;
+      const color = typeof calTipoColor === 'function' ? calTipoColor(ev.tipo) : '#6366f1';
+      const label = typeof calTipoLabel === 'function' ? calTipoLabel(ev.tipo, ev.nombre) : (ev.nombre || ev.tipo);
+      return `<div class="exam-link-card" style="border-left:4px solid ${color};">
+        <div class="exam-link-info">
+          <h4>${label}</h4>
+          <p>Grupo: ${g ? g.nombre : '—'} · Docente: ${t ? t.nombre : '—'}</p>
+          ${ev.nota ? '<small>' + ev.nota + '</small>' : ''}
+        </div>
+        <span class="estado estado-present">Programado</span>
+      </div>`;
+    }).join('');
+  } else if (reporteDiaTab === 'detalle') {
+    cont.innerHTML = '<p style="color:var(--gris);font-size:.9rem;margin-bottom:12px;">Expandir un grupo para ver la asistencia alumno por alumno del día seleccionado.</p>';
+    if (det) det.style.display = 'block';
+    if (!rows.length) {
+      if (det) det.innerHTML = '<div class="empty-state">Sin grupos.</div>';
+      return;
+    }
+    let html = '';
+    rows.forEach(r => {
+      const asis = r.asisData;
+      html += `<div class="group-card" style="margin-bottom:14px;">
+        <div class="group-card-head">
+          <div class="group-info">
+            <strong>${r.group.nombre || r.group.id}</strong>
+            <small>${r.teacher ? r.teacher.nombre : 'Sin docente'} · ${r.group.horario || ''} · ${r.asisOk ? '✅ Asistencia guardada' : '⏳ Sin asistencia'}</small>
+          </div>
+          <button type="button" class="btn btn-mini btn-azul" data-rep-expand="${r.group.id}">Ver detalle</button>
+        </div>
+        <div class="group-card-body" id="repDetalle_${r.group.id}" style="display:none;"></div>
+      </div>`;
+    });
+    det.innerHTML = html;
+    det.querySelectorAll('[data-rep-expand]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.repExpand;
+        const box = document.getElementById('repDetalle_' + gid);
+        if (!box) return;
+        if (box.style.display === 'block') { box.style.display = 'none'; btn.textContent = 'Ver detalle'; return; }
+        const g = (state.groups || []).find(x => x.id === gid);
+        const asis = getAsistenciaDia(gid, fecha);
+        const codes = g?.studentCodes || [];
+        const mapEstado = { present: 'Presente', late: 'Tardanza', absent: 'Ausente', justified: 'Falta justificada' };
+        const mapClass = { present: 'estado-present', late: 'estado-late', absent: 'estado-absent', justified: 'estado-late' };
+        if (!asis || !asis.registros) {
+          box.innerHTML = '<div class="empty-state" style="padding:10px;">El docente aún no ha guardado la asistencia de este día.</div>';
+        } else {
+          let t = '<table style="width:100%;font-size:.88rem;border-collapse:collapse;"><thead><tr style="background:#f1f5f9;"><th style="padding:8px;text-align:left;">Alumno</th><th style="padding:8px;">Estado</th></tr></thead><tbody>';
+          codes.forEach(code => {
+            const st = asis.registros[code] || '';
+            const nombre = state.students[code]?.nombre || code;
+            t += `<tr style="border-bottom:1px solid #e5e7eb;"><td style="padding:8px;">${nombre}</td>
+              <td style="padding:8px;text-align:center;"><span class="estado ${mapClass[st] || ''}">${mapEstado[st] || 'Sin marca'}</span></td></tr>`;
+          });
+          t += '</tbody></table>';
+          if (asis.savedAt) t += `<p style="font-size:.8rem;color:var(--gris);margin-top:8px;">Guardado: ${new Date(asis.savedAt).toLocaleString('es')}</p>`;
+          box.innerHTML = t;
+        }
+        box.style.display = 'block';
+        btn.textContent = 'Ocultar';
+      });
+    });
+  }
+}
+
+function buildReporteDiaHTML(fecha) {
+  const teacherFilter = document.getElementById('reporteDiaTeacher')?.value || '';
+  const rows = collectReporteDiaData(fecha, teacherFilter);
+  let asisOk = 0, asisPend = 0;
+  rows.forEach(r => { if (r.asisOk) asisOk++; else asisPend++; });
+  const eventos = getEventosDelDia(fecha);
+  let rowsHtml = rows.map(r => {
+    const savedAt = r.asisData?.savedAt ? new Date(r.asisData.savedAt).toLocaleString('es') : '—';
+    return `<tr>
+      <td>${r.group.nombre || r.group.id}</td>
+      <td>${r.teacher ? r.teacher.nombre : '—'}</td>
+      <td>${r.group.horario || '—'}</td>
+      <td>${r.alumnos}</td>
+      <td>${r.asisOk ? 'Cumplido (' + savedAt + ')' : 'No cumplido'}</td>
+      <td>${r.notas.hasAny ? r.notas.gradedCount + '/' + r.notas.totalSlots : 'Sin registro'}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div style="text-align:center;margin-bottom:16px;">
+      <h2 style="color:#004aad;margin:0;">Reporte del día</h2>
+      <p style="color:#6b7280;margin:4px 0;">Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
+      <p><strong>Fecha:</strong> ${fecha} · Generado: ${new Date().toLocaleString('es')}</p>
+    </div>
+    <p><strong>Resumen:</strong> Asistencias cumplidas ${asisOk} · Pendientes ${asisPend} · Eventos ${eventos.length}</p>
+    <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+      <thead><tr style="background:#004aad;color:#fff;">
+        <th style="padding:8px;text-align:left;">Grupo</th>
+        <th style="padding:8px;text-align:left;">Docente</th>
+        <th style="padding:8px;text-align:left;">Horario</th>
+        <th style="padding:8px;">Alumnos</th>
+        <th style="padding:8px;text-align:left;">Asistencia</th>
+        <th style="padding:8px;text-align:left;">Notas</th>
+      </tr></thead>
+      <tbody>${rowsHtml || '<tr><td colspan="6" style="text-align:center;padding:12px;">Sin datos</td></tr>'}</tbody>
+    </table>
+    <p style="font-size:.8rem;color:#6b7280;margin-top:16px;">Documento de Coordinación Académica · Plazo de registro hasta medianoche del día indicado.</p>`;
+}
+
+// Listeners reporte del día
+document.getElementById('reporteDiaFecha')?.addEventListener('change', renderReporteDia);
+document.getElementById('reporteDiaTeacher')?.addEventListener('change', renderReporteDia);
+document.getElementById('btnReporteHoy')?.addEventListener('click', () => {
+  const inp = document.getElementById('reporteDiaFecha');
+  if (inp) inp.value = new Date().toISOString().slice(0, 10);
+  renderReporteDia();
+});
+document.getElementById('btnReporteRefresh')?.addEventListener('click', renderReporteDia);
+document.getElementById('btnReporteExportar')?.addEventListener('click', () => {
+  const fecha = document.getElementById('reporteDiaFecha')?.value || new Date().toISOString().slice(0, 10);
+  const html = buildReporteDiaHTML(fecha);
+  if (typeof window.descargarComoPDF === 'function') {
+    window.descargarComoPDF(html, 'Reporte_dia_' + fecha);
+  } else {
+    const w = window.open('', '_blank');
+    w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte ' + fecha + '</title></head><body>' + html + '</body></html>');
+    w.document.close();
+    setTimeout(() => w.print(), 300);
+  }
+});
+document.querySelectorAll('[data-rep-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-rep-tab]').forEach(t => t.classList.remove('activo'));
+    tab.classList.add('activo');
+    reporteDiaTab = tab.dataset.repTab;
+    renderReporteDia();
+  });
+});
+
+function fillTeacherGroupSelects() {
+  if (!currentTeacherCode) return;
+  const groups = typeof getTeacherGroups === 'function' ? getTeacherGroups(currentTeacherCode) : (state.groups||[]).filter(g => g.teacherCode === currentTeacherCode);
+  ['dAsisGrupo','dNotasGrupo'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Selecciona un grupo...</option>';
+    groups.forEach(g => { const o=document.createElement('option'); o.value=g.id; o.textContent=g.nombre||g.programa||g.id; sel.appendChild(o); });
+    if (cur) sel.value = cur;
+  });
+}
+/* ===== Asistencia conectada a Calendarización ===== */
+let asisCalColumns = [];
+let asisEditMode = false;
+
+function getCalEventsForGroup(gid, onlyEval) {
+  const events = [];
+  const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
+  Object.keys(state.calendarEvents || {}).forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => {
+      if (ev.grupoId !== gid) return;
+      const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
+      const isEval = evalTypes.includes(ev.tipo) || isCustom;
+      if (onlyEval && !isEval) return;
+      if (!onlyEval && (ev.tipo === 'inicio_curso' || ev.tipo === 'fin_curso')) return;
+      events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo, id: ev.id });
+    });
+  });
+  if (!onlyEval && !events.length) {
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      (state.calendarEvents[fecha] || []).forEach(ev => {
+        if (ev.grupoId === gid) events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || 'Clase', id: ev.id });
+      });
+    });
+  }
+  events.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return events;
+}
+
+function loadAsisFromCalendar() {
+  const gid = document.getElementById('dAsisGrupo')?.value;
+  const info = document.getElementById('dAsisCalInfo');
+  const btnSave = document.getElementById('dBtnGuardarAsistencia');
+  const btnEdit = document.getElementById('btnEditarAsistencia');
+  asisEditMode = false;
+  if (!gid) {
+    if (info) info.textContent = '';
+    asisCalColumns = []; asisClaseCount = 0;
+    buildAsisTableFromCal(true);
+    if (btnSave) btnSave.disabled = true;
+    if (btnEdit) btnEdit.disabled = true;
+    return;
+  }
+  asisCalColumns = getCalEventsForGroup(gid, false);
+  const byFecha = {};
+  asisCalColumns.forEach(e => { if (!byFecha[e.fecha]) byFecha[e.fecha] = e; });
+  asisCalColumns = Object.values(byFecha).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  asisClaseCount = asisCalColumns.length;
+  if (info) {
+    info.innerHTML = asisClaseCount
+      ? `✅ ${asisClaseCount} día(s) de clase desde Calendarización.`
+      : '⚠️ No hay eventos calendarizados para este grupo. Programa clases en <strong>Coordinación Académica → Calendarización</strong>.';
+  }
+  buildAsisTableFromCal(false);
+  if (btnSave) btnSave.disabled = !asisClaseCount;
+  if (btnEdit) btnEdit.disabled = !asisClaseCount;
+  try { renderAsisHistorial(); } catch (e) {}
+}
+
+function buildAsisTableFromCal(locked) {
+  const gid = document.getElementById('dAsisGrupo')?.value;
+  const head = document.getElementById('dAsisHead'), body = document.getElementById('dAsisBody');
+  if (!head || !body) return;
+  if (!gid || !asisCalColumns.length) {
+    head.innerHTML = '<tr><th style="position:sticky;left:0;background:#fff;">Alumnos</th></tr>';
+    body.innerHTML = gid ? '<tr><td class="empty-state">Sin días calendarizados.</td></tr>' : '';
+    return;
+  }
+  const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
+  let th = '<tr><th style="position:sticky;left:0;background:#fff;z-index:1;">Alumnos</th>';
+  asisCalColumns.forEach((col, i) => {
+    const idx = i + 1;
+    th += `<th style="min-width:120px;">
+      <div style="font-size:.8rem;font-weight:800;color:var(--morado);">${col.nombre || 'Clase'}</div>
+      <input type="date" data-asis-fecha="${idx}" value="${col.fecha || ''}" style="font-size:.78rem;padding:4px;border-radius:6px;border:1px solid var(--borde);width:100%;margin-top:4px;">
+    </th>`;
+  });
+  head.innerHTML = th + '</tr>';
+  body.innerHTML = codes.map(c => {
+    let tds = `<td style="position:sticky;left:0;background:#fff;z-index:1;"><strong>${state.students[c]?.nombre || c}</strong><br><small>${c}</small></td>`;
+    asisCalColumns.forEach((col, i) => {
+      const idx = i + 1;
+      const key = gid + '_' + col.fecha;
+      const saved = (state.asistenciaDiaria && state.asistenciaDiaria[key] && state.asistenciaDiaria[key].registros)
+        ? state.asistenciaDiaria[key].registros[c] : '';
+      const cur = saved || '';
+      const dis = (locked && !asisEditMode) ? 'disabled' : '';
+      tds += `<td><select data-asis-st="${c}" data-asis-cl="${idx}" ${dis} style="padding:6px;border-radius:6px;border:1.5px solid var(--borde);font-size:.85rem;width:100%;">
+        <option value="">—</option>
+        <option value="present" ${cur==='present'||cur==='Present'?'selected':''}>Presente</option>
+        <option value="late" ${cur==='late'||cur==='Late'?'selected':''}>Tardanza</option>
+        <option value="absent" ${cur==='absent'||cur==='Absent'?'selected':''}>Ausente</option>
+        <option value="justified" ${cur==='justified'?'selected':''}>Falta justificada</option>
+      </select></td>`;
+    });
+    return `<tr>${tds}</tr>`;
+  }).join('') || '<tr><td class="empty-state">Sin alumnos.</td></tr>';
+}
+
+document.getElementById('dAsisGrupo')?.addEventListener('change', loadAsisFromCalendar);
+
+document.getElementById('dBtnGuardarAsistencia')?.addEventListener('click', () => {
+  const gid = document.getElementById('dAsisGrupo')?.value;
+  if (!gid || !asisCalColumns.length) { alert('Selecciona un grupo con días calendarizados.'); return; }
+  if (!state.asistenciaDiaria) state.asistenciaDiaria = {};
+  for (let i = 1; i <= asisCalColumns.length; i++) {
+    const fecha = document.querySelector(`[data-asis-fecha="${i}"]`)?.value || asisCalColumns[i - 1].fecha;
+    const key = gid + '_' + fecha;
+    const rows = {};
+    document.querySelectorAll(`[data-asis-cl="${i}"]`).forEach(sel => {
+      if (sel.value) rows[sel.dataset.asisSt] = sel.value;
+    });
+    state.asistenciaDiaria[key] = {
+      fecha, grupoId: gid, teacherCode: currentTeacherCode,
+      registros: rows, savedAt: new Date().toISOString()
+    };
+  }
+  saveState();
+  asisEditMode = false;
+  buildAsisTableFromCal(true);
+  document.getElementById('dAsisMsg')?.classList.add('visible');
+  setTimeout(() => document.getElementById('dAsisMsg')?.classList.remove('visible'), 3000);
+  try { renderAsisHistorial(); } catch (e) {}
+  alert('✅ Asistencia guardada.');
+});
+
+document.getElementById('btnEditarAsistencia')?.addEventListener('click', () => {
+  if (!document.getElementById('dAsisGrupo')?.value || !asisCalColumns.length) {
+    alert('Selecciona un grupo con días calendarizados.'); return;
+  }
+  asisEditMode = true;
+  buildAsisTableFromCal(false);
+  document.getElementById('dBtnGuardarAsistencia').disabled = false;
+  alert('Modo edición activado. Corrige las marcas y pulsa Guardar Asistencia.');
+});
+
+/* ===== Registro de Notas conectado a Calendarización ===== */
+let notasEditMode = false;
+
+document.getElementById('dNotasGrupo')?.addEventListener('change', () => {
+  notasEditMode = false;
+  loadNotasFromCalendar();
+});
+
+function buildNotasTable() {
+  if (notasCalColumns && notasCalColumns.length) buildNotasTableFromCalendar();
+  else {
+    const head = document.getElementById('dNotasHead'), body = document.getElementById('dNotasBody');
+    if (head) head.innerHTML = '<tr><th>Alumnos</th></tr>';
+    if (body) body.innerHTML = '';
+  }
+}
+
+document.getElementById('btnGuardarRegistroNotas')?.addEventListener('click', () => {
+  const gid = document.getElementById('dNotasGrupo')?.value;
+  const nCols = (notasCalColumns && notasCalColumns.length) ? notasCalColumns.length : notasClaseCount;
+  if (!gid || !nCols) { alert('Selecciona un grupo con evaluaciones calendarizadas.'); return; }
+  if (!state.assignments) state.assignments = [];
+  if (!state.grades) state.grades = {};
+  for (let i = 1; i <= nCols; i++) {
+    const fecha = document.querySelector(`[data-notas-fecha="${i}"]`)?.value || (notasCalColumns[i - 1] && notasCalColumns[i - 1].fecha) || new Date().toISOString().slice(0, 10);
+    const criterio = document.querySelector(`[data-notas-crit="${i}"]`)?.value || 'class_participation';
+    const asgId = 'asg_' + gid + '_' + fecha + '_' + criterio + '_' + i;
+    if (!state.assignments.find(a => a.id === asgId)) {
+      state.assignments.push({
+        id: asgId, grupoId: gid, criterio,
+        nombre: (notasCalColumns[i - 1] && notasCalColumns[i - 1].nombre) || (criterio + ' · ' + fecha),
+        fechaInicio: fecha, teacherCode: currentTeacherCode
+      });
+    }
+    document.querySelectorAll(`[data-notas-cl="${i}"]`).forEach(inp => {
+      const code = inp.dataset.notasSt;
+      if (!state.grades[code]) state.grades[code] = {};
+      if (inp.value !== '') state.grades[code][asgId] = parseFloat(inp.value);
+    });
+  }
+  saveState();
+  notasEditMode = false;
+  document.querySelectorAll('#dNotasBody input[type="number"]').forEach(inp => { inp.disabled = true; });
+  document.getElementById('dNotasMsg')?.classList.add('visible');
+  setTimeout(() => document.getElementById('dNotasMsg')?.classList.remove('visible'), 3000);
+  alert('✅ Registro de notas guardado.');
+});
+
+document.getElementById('btnEditarNotas')?.addEventListener('click', () => {
+  if (!document.getElementById('dNotasGrupo')?.value || !(notasCalColumns && notasCalColumns.length)) {
+    alert('Selecciona un grupo con evaluaciones calendarizadas.'); return;
+  }
+  notasEditMode = true;
+  document.querySelectorAll('#dNotasBody input[type="number"]').forEach(inp => { inp.disabled = false; });
+  document.querySelectorAll('#dNotasHead select, #dNotasHead input').forEach(el => { el.disabled = false; });
+  document.getElementById('btnGuardarRegistroNotas').disabled = false;
+  alert('Modo edición activado. Corrige las notas y pulsa Guardar registro.');
+});
+
+function getBirthdayList() {
+  const list = [], now = new Date();
+  if (!state) return list;
+  const add = (nombre, tipo, fechaNac, code) => {
+    if (!fechaNac) return;
+    const d = new Date(fechaNac); if (isNaN(d)) return;
+    let next = new Date(now.getFullYear(), d.getMonth(), d.getDate());
+    if (next < now) next = new Date(now.getFullYear()+1, d.getMonth(), d.getDate());
+    list.push({ nombre, tipo, next, diff: Math.ceil((next-now)/(1000*60*60*24)), code });
+  };
+  Object.keys(state.teachers || {}).forEach(c => {
+    const t = state.teachers[c]; if (!t) return;
+    if (t.birthDate) add(t.nombre,'Docente',t.birthDate,c);
+    else if (t.month&&t.day) add(t.nombre,'Docente',`2000-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')}`,c);
+  });
+  Object.keys(state.students || {}).forEach(c => {
+    const s = state.students[c]; if (!s) return;
+    if (s.birthDate) add(s.nombre,'Alumno',s.birthDate,c);
+    else if (s.month&&s.day) add(s.nombre,'Alumno',`2000-${String(s.month).padStart(2,'0')}-${String(s.day).padStart(2,'0')}`,c);
+  });
+  return list.sort((a,b)=>a.diff-b.diff);
+}
+function renderMktCumples() {
+  const lista = document.getElementById('mktCumplesLista');
+  const alertas = document.getElementById('mktCumplesAlertas');
+  if (!lista || !state) return;
+  const items = getBirthdayList();
+  const soon = items.filter(x => x.diff>=0 && x.diff<=14);
+  if (alertas) {
+    alertas.innerHTML = soon.length
+      ? soon.map(x => `<div class="aviso-tiempo-real" style="background:#fef3c7;color:#b45309;margin-bottom:8px;">🎂 En ${x.diff} día(s): <strong>${x.nombre}</strong> (${x.tipo}) — ${x.next.toLocaleDateString('es')}</div>`).join('')
+      : '<div class="empty-state" style="padding:10px;">No hay cumpleaños en las próximas 2 semanas.</div>';
+    const docSoon = soon.filter(x=>x.tipo==='Docente');
+    if (docSoon.length) alertas.innerHTML += `<div class="aviso-tiempo-real" style="background:#fee2e2;color:#b91c1c;margin-top:8px;">⚠️ Cumpleaños docente(s) que se cruzan con la programación mensual: ${docSoon.map(x=>x.nombre).join(', ')}</div>`;
+  }
+  lista.innerHTML = items.slice(0,40).map(x => `<div class="libro-card"><div class="libro-info">${x.tipo==='Docente'?'👨‍🏫':'🎓'} <strong>${x.nombre}</strong> · ${x.tipo}
+    <small style="display:block;color:var(--gris);">${x.next.toLocaleDateString('es')} (${x.diff} días)</small></div></div>`).join('')
+    || '<div class="empty-state">Sin fechas de cumpleaños registradas.</div>';
+}
+document.querySelectorAll('#tal-panel-marketing [data-mkt-subtab]').forEach(tab => {
+  tab.addEventListener('click', () => { if (tab.dataset.mktSubtab === 'cumples') setTimeout(renderMktCumples, 40); });
+});
+
+function addWhatsAppAvisoRC() {
+  if (document.getElementById('btnAvisoRCWhatsApp')) return;
+  const panel = document.getElementById('dpanel-historial') || document.getElementById('dpanel-reportcard');
+  if (!panel) return;
+  const btn = document.createElement('button');
+  btn.id = 'btnAvisoRCWhatsApp';
+  btn.className = 'btn btn-verde btn-mini';
+  btn.style.margin = '12px 0';
+  btn.textContent = '📱 Enviar «Aviso de Reporte de Notas disponible» por WhatsApp';
+  btn.addEventListener('click', () => {
+    if (!currentTeacherCode) return;
+    const groups = typeof getTeacherGroups === 'function' ? getTeacherGroups(currentTeacherCode) : [];
+    const codes = new Set();
+    groups.forEach(g => (g.studentCodes||[]).forEach(c => codes.add(c)));
+    let sent = 0;
+    codes.forEach(code => {
+      const s = state.students[code]; if (!s) return;
+      const phone = (s.telefono||s.celular||(s.custom&&(s.custom.telefono||s.custom.celular))||'').toString().replace(/\D/g,'');
+      if (!phone) return;
+      const msg = encodeURIComponent(`Hola ${s.nombre}. Tu Reporte de Notas ya está disponible en el Portal del Alumno de la Escuela de Inglés y Fonética Clínica Jotavalenzuela.`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+      sent++;
+    });
+    alert(sent ? `Se abrieron ${sent} conversación(es) de WhatsApp.` : 'No se encontraron números de WhatsApp de los alumnos.');
+  });
+  const hist = document.getElementById('dHistorialRCLista');
+  if (hist && hist.parentNode) hist.parentNode.insertBefore(btn, hist);
+  else panel.appendChild(btn);
+}
+
+window.descargarComoPDF = function(htmlContent, filename) {
+  const name = (filename || 'documento').replace(/\.pdf$/i, '') + '.pdf';
+  const container = document.createElement('div');
+  container.innerHTML = htmlContent;
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;padding:20px;background:#fff;font-family:Segoe UI,sans-serif;';
+  document.body.appendChild(container);
+  const opt = {
+    margin: 10,
+    filename: name,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  if (typeof html2pdf !== 'undefined') {
+    html2pdf().set(opt).from(container).save().then(() => {
+      document.body.removeChild(container);
+    }).catch(() => {
+      document.body.removeChild(container);
+      fallbackPrintPDF(htmlContent, name);
+    });
+  } else {
+    document.body.removeChild(container);
+    fallbackPrintPDF(htmlContent, name);
+  }
+};
+function fallbackPrintPDF(htmlContent, filename) {
+  const w = window.open('', '_blank');
+  if (!w) { alert('Permite ventanas emergentes para guardar como PDF.'); return; }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename||'Documento'}</title>
+    <style>body{font-family:'Segoe UI',sans-serif;padding:16px;max-width:900px;margin:0 auto}
+    table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd;font-size:.9rem}
+    th{background:#004aad;color:#fff}@media print{body{padding:0}}
+    </style></head>
+    <body>${htmlContent}
+    <p style="color:#6b7280;font-size:.85rem;margin-top:16px;">En el diálogo de impresión elige <strong>«Guardar como PDF»</strong> como destino.</p>
+    <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script></body></html>`);
+  w.document.close();
+}
+// Helper: descargar un elemento DOM visible como PDF
+window.descargarElementoPDF = function(elementOrId, filename) {
+  const el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+  if (!el) { alert('No se encontró el contenido a descargar.'); return; }
+  const name = (filename || 'documento').replace(/\.pdf$/i, '') + '.pdf';
+  if (typeof html2pdf === 'undefined') {
+    fallbackPrintPDF(el.innerHTML, name);
+    return;
+  }
+  const opt = {
+    margin: 10,
+    filename: name,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(el).save();
+};
+
+/* --- Historial de asistencias guardadas + editar --- */
+function renderAsisHistorial() {
+  const cont = document.getElementById('dAsisHistorialLista');
+  if (!cont || !currentTeacherCode) return;
+  const gid = document.getElementById('dAsisGrupo')?.value;
+  if (!gid) { cont.innerHTML = '<div class="empty-state">Selecciona un grupo para ver asistencias guardadas.</div>'; return; }
+  if (!state.asistenciaDiaria) state.asistenciaDiaria = {};
+  const keys = Object.keys(state.asistenciaDiaria)
+    .filter(k => state.asistenciaDiaria[k] && state.asistenciaDiaria[k].grupoId === gid)
+    .sort((a, b) => (state.asistenciaDiaria[b].fecha || '').localeCompare(state.asistenciaDiaria[a].fecha || ''));
+  if (!keys.length) {
+    cont.innerHTML = '<div class="empty-state">Aún no hay asistencias guardadas para este grupo.</div>';
+    return;
+  }
+  const mapEst = { present: 'Presente', late: 'Tardanza', absent: 'Ausente', justified: 'Falta justificada', Present: 'Presente', Late: 'Tardanza', Absent: 'Ausente' };
+  cont.innerHTML = keys.map(key => {
+    const rec = state.asistenciaDiaria[key];
+    const n = rec.registros ? Object.keys(rec.registros).length : 0;
+    const saved = rec.savedAt ? new Date(rec.savedAt).toLocaleString('es') : '—';
+    return `<div class="exam-link-card">
+      <div class="exam-link-info">
+        <h4>📅 ${rec.fecha || key}</h4>
+        <p>${n} alumno(s) registrados · Guardado: ${saved}</p>
+      </div>
+      <div class="exam-link-actions">
+        <button type="button" class="btn btn-mini btn-azul" data-edit-asis="${key}">✏️ Editar asistencia</button>
+      </div>
+    </div>
+    <div id="asisEditBox_${key.replace(/[^a-zA-Z0-9]/g,'_')}" style="display:none;margin:0 0 14px;padding:14px;border:1px solid var(--borde);border-radius:12px;background:#f9fafb;"></div>`;
+  }).join('');
+  cont.querySelectorAll('[data-edit-asis]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.editAsis;
+      const boxId = 'asisEditBox_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+      const box = document.getElementById(boxId);
+      if (!box) return;
+      if (box.style.display === 'block') { box.style.display = 'none'; return; }
+      const rec = state.asistenciaDiaria[key];
+      const g = (state.groups || []).find(x => x.id === rec.grupoId);
+      const codes = g?.studentCodes || Object.keys(rec.registros || {});
+      let html = `<p style="font-size:.88rem;margin-bottom:10px;"><strong>Editando asistencia del ${rec.fecha}</strong></p>
+        <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;font-size:.88rem;"><thead><tr><th>Alumno</th><th>Estado</th></tr></thead><tbody>`;
+      codes.forEach(code => {
+        const cur = (rec.registros || {})[code] || '';
+        const nombre = state.students[code]?.nombre || code;
+        html += `<tr><td>${nombre}<br><small>${code}</small></td><td>
+          <select data-edit-st="${code}" data-edit-key="${key}" style="padding:6px;border-radius:6px;border:1.5px solid var(--borde);">
+            <option value="">—</option>
+            <option value="present" ${cur==='present'||cur==='Present'?'selected':''}>Presente</option>
+            <option value="late" ${cur==='late'||cur==='Late'?'selected':''}>Tardanza</option>
+            <option value="absent" ${cur==='absent'||cur==='Absent'?'selected':''}>Ausente</option>
+            <option value="justified" ${cur==='justified'?'selected':''}>Falta justificada</option>
+          </select></td></tr>`;
+      });
+      html += `</tbody></table></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-verde btn-mini" data-save-edit-asis="${key}">💾 Guardar cambios</button>
+          <button type="button" class="btn btn-slate btn-mini" data-cancel-edit-asis="${boxId}">Cancelar</button>
+        </div>`;
+      box.innerHTML = html;
+      box.style.display = 'block';
+      box.querySelector(`[data-save-edit-asis="${key}"]`)?.addEventListener('click', () => {
+        const rows = {};
+        box.querySelectorAll('[data-edit-st]').forEach(sel => {
+          if (sel.value) rows[sel.dataset.editSt] = sel.value;
+        });
+        state.asistenciaDiaria[key].registros = rows;
+        state.asistenciaDiaria[key].savedAt = new Date().toISOString();
+        state.asistenciaDiaria[key].editado = true;
+        // sync attendance array/object
+        if (!state.attendance) state.attendance = Array.isArray(state.attendance) ? [] : {};
+        saveState();
+        alert('✅ Asistencia actualizada.');
+        box.style.display = 'none';
+        renderAsisHistorial();
+      });
+      box.querySelector('[data-cancel-edit-asis]')?.addEventListener('click', () => { box.style.display = 'none'; });
+    });
+  });
+}
+
+/* --- Registro de notas desde Calendarización --- */
+let notasCalColumns = []; // { fecha, tipo, nombre, id }
+function loadNotasFromCalendar() {
+  const gid = document.getElementById('dNotasGrupo')?.value;
+  const info = document.getElementById('dNotasCalInfo');
+  const btnSave = document.getElementById('btnGuardarRegistroNotas');
+  const btnEdit = document.getElementById('btnEditarNotas');
+  notasEditMode = false;
+  if (!gid) {
+    if (info) info.textContent = '';
+    notasCalColumns = [];
+    notasClaseCount = 0;
+    buildNotasTable();
+    if (btnSave) btnSave.disabled = true;
+    if (btnEdit) btnEdit.disabled = true;
+    return;
+  }
+  const events = [];
+  Object.keys(state.calendarEvents || {}).forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => {
+      if (ev.grupoId !== gid) return;
+      const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
+      const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
+      if (evalTypes.includes(ev.tipo) || isCustom) {
+        events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo, id: ev.id });
+      }
+    });
+  });
+  events.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  if (!events.length) {
+    if (info) info.innerHTML = '⚠️ No hay evaluaciones calendarizadas para este grupo. Programa eventos en <strong>Coordinación Académica → Calendarización</strong>.';
+    notasCalColumns = [];
+    notasClaseCount = 0;
+    buildNotasTable();
+    if (btnSave) btnSave.disabled = true;
+    if (btnEdit) btnEdit.disabled = true;
+    return;
+  }
+  notasCalColumns = events;
+  notasClaseCount = events.length;
+  if (info) info.innerHTML = `✅ ${events.length} evaluación(es) cargada(s) desde Calendarización.`;
+  buildNotasTableFromCalendar();
+  if (btnSave) btnSave.disabled = false;
+  if (btnEdit) btnEdit.disabled = false;
+}
+function buildNotasTableFromCalendar() {
+  const gid = document.getElementById('dNotasGrupo')?.value;
+  const head = document.getElementById('dNotasHead');
+  const body = document.getElementById('dNotasBody');
+  if (!head || !body || !gid) return;
+  const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
+  const critOpts = ['class_participation|Class participation','online_workbook|Online workbook','readers|Readers','writing|Writing','speaking|Speaking','final_exam|Final exam']
+    .map(x => { const [v, n] = x.split('|'); return `<option value="${v}">${n}</option>`; }).join('');
+  let th = '<tr><th style="position:sticky;left:0;background:#fff;z-index:1;">Alumnos</th>';
+  notasCalColumns.forEach((col, i) => {
+    const idx = i + 1;
+    th += `<th style="min-width:130px;">
+      <div style="font-size:.78rem;font-weight:800;color:var(--morado);margin-bottom:4px;">${col.nombre || col.tipo}</div>
+      <input type="date" data-notas-fecha="${idx}" value="${col.fecha || ''}" style="font-size:.78rem;padding:4px;border-radius:6px;border:1px solid var(--borde);margin-bottom:4px;display:block;width:100%;">
+      <select data-notas-crit="${idx}" style="font-size:.78rem;padding:4px;border-radius:6px;border:1px solid var(--borde);width:100%;">${critOpts}</select>
+    </th>`;
+  });
+  head.innerHTML = th + '</tr>';
+  // set criterio selects
+  setTimeout(() => {
+    notasCalColumns.forEach((col, i) => {
+      const sel = document.querySelector(`[data-notas-crit="${i + 1}"]`);
+      if (sel) {
+        const t = col.tipo === 'online_homework' ? 'online_workbook' : col.tipo;
+        if ([...sel.options].some(o => o.value === t)) sel.value = t;
+        else if ([...sel.options].some(o => o.value === col.tipo)) sel.value = col.tipo;
+      }
+    });
+  }, 0);
+  body.innerHTML = codes.map(c => {
+    let tds = `<td style="position:sticky;left:0;background:#fff;z-index:1;"><strong>${state.students[c]?.nombre || c}</strong><br><small>${c}</small></td>`;
+    for (let i = 1; i <= notasCalColumns.length; i++) {
+      tds += `<td><input type="number" min="0" max="20" step="0.5" data-notas-st="${c}" data-notas-cl="${i}" placeholder="0-20" style="width:70px;padding:6px;border-radius:6px;border:1.5px solid var(--borde);font-weight:700;text-align:center;"></td>`;
+    }
+    return `<tr>${tds}</tr>`;
+  }).join('') || '<tr><td class="empty-state">Sin alumnos.</td></tr>';
+}
+
+// Tras guardar asistencia: refrescar historial y no ocultar datos
+const _origAsisSave = document.getElementById('dBtnGuardarAsistencia');
+// Patch after existing handler by listening again
+document.getElementById('dAsisGrupo')?.addEventListener('change', () => {
+  setTimeout(renderAsisHistorial, 50);
+});
+document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.dtab === 'asistencia') setTimeout(() => { fillTeacherGroupSelects(); loadAsisFromCalendar(); }, 60);
+    if (tab.dataset.dtab === 'evaluaciones') setTimeout(() => { fillTeacherGroupSelects(); loadNotasFromCalendar(); }, 60);
+  });
+});
+
+console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
    class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="#fff"><path d="M16 .4C7.4.4.4 7.4.4 16c0 2.8.7 5.5 2.1 7.9L.3 31.7l8-2.1A15.6 15.6 0 0 0 16 31.6C24.6 31.6 31.6 24.6 31.6 16S24.6.4 16 .4zm0 28.6c-2.5 0-4.9-.7-7-2l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.9 12.9 0 0 1 3 16C3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 13-13 13zm7.1-9.7c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.3 1.6-.2.3-.5.3-.9.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8.2-.2.4-.5.6-.7.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.8 0 1.7 1.2 3.3 1.4 3.5.2.2 2.4 3.7 5.9 5.2.8.3 1.5.5 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg>
 </a>
-<!-- WHATSAPP FLOAT -->
-<a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
-   class="whatsapp-float" 
-   target="_blank" 
-   rel="noopener" 
-   aria-label="Escríbenos por WhatsApp">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64" fill="#fff">
-    <path d="M16 .4C7.4.4.4 7.4.4 16c0 2.8.7 5.5 2.1 7.9L.3 31.7l8-2.1A15.6 15.6 0 0 0 16 31.6C24.6 31.6 31.6 24.6 31.6 16S24.6.4 16 .4zm0 28.6c-2.5 0-4.9-.7-7-2l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.9 12.9 0 0 1 3 16C3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 13-13 13zm7.1-9.7c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.3 1.6-.2.3-.5.3-.9.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8.2-.2.4-.5.6-.7.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.8 0 1.7 1.2 3.3 1.4 3.5.2.2 2.4 3.7 5.9 5.2.8.3 1.5.5 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/>
-  </svg>
-</a>
-<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
-      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
-      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
-      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
-    </div>
-  </div>
-</div>
-
 
 <div class="modal-overlay" id="modalCerrarCurso">
   <div class="modal-box" style="max-width:520px;text-align:left;">
