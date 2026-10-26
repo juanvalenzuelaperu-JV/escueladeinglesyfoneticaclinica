@@ -2111,44 +2111,115 @@ function backfillState(parsed) {
   if (!parsed.programaciones) parsed.programaciones = {};
   if (!parsed.cargaHoraria) parsed.cargaHoraria = {};
   if (!parsed.pagosDocentes) parsed.pagosDocentes = {};
-  if (!Array.isArray(parsed.attendance)) parsed.attendance = [];
+  // attendance debe ser array (código legacy usa .filter)
+  if (!Array.isArray(parsed.attendance)) {
+    // Si venía como objeto { codigo: [...] }, aplanar
+    if (parsed.attendance && typeof parsed.attendance === 'object') {
+      const flat = [];
+      Object.keys(parsed.attendance).forEach(code => {
+        const arr = parsed.attendance[code];
+        if (Array.isArray(arr)) arr.forEach(r => flat.push({ studentCode: code, ...r }));
+      });
+      parsed.attendance = flat;
+    } else {
+      parsed.attendance = [];
+    }
+  }
   if (!parsed.exams) parsed.exams = [];
   if (!parsed.assignments) parsed.assignments = [];
   if (!parsed.grades) parsed.grades = {};
+  if (!parsed.students) parsed.students = {};
+  if (!parsed.teachers) parsed.teachers = {};
+  if (!Array.isArray(parsed.groups)) parsed.groups = [];
   return parsed;
 }
 
 async function loadState() {
+  // 1) Intentar leer SIEMPRE primero desde Supabase (fuente de verdad)
+  let remoteOk = false;
+  let remotePayload = null;
   try {
-    const { data, error } = await supabase.from('app_state').select('data').eq('id', 'main').maybeSingle();
-    if (error) throw error;
-    if (data && data.data) { console.log("☁️ Estado cargado desde Supabase"); return backfillState(data.data); }
-  } catch (e) { console.warn("⚠️ No se pudo leer Supabase, usando fallback local:", e); }
+    const sb = window.supabase;
+    if (!sb || typeof sb.from !== 'function') {
+      throw new Error('Cliente Supabase no inicializado (window.supabase.from no existe)');
+    }
+    const { data, error } = await sb.from('app_state').select('data, updated_at').eq('id', 'main').maybeSingle();
+    if (error) {
+      console.warn("⚠️ Error leyendo app_state:", error.message || error);
+      throw error;
+    }
+    remoteOk = true;
+    // data puede venir como objeto JSON (columna jsonb) o string
+    if (data && data.data != null) {
+      remotePayload = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+      // Algunos esquemas envuelven el estado en { data: {...} }
+      if (remotePayload && remotePayload.data && !remotePayload.students && !remotePayload.teachers) {
+        remotePayload = remotePayload.data;
+      }
+      const nStudents = Object.keys(remotePayload.students || {}).length;
+      const nTeachers = Object.keys(remotePayload.teachers || {}).length;
+      const nGroups = (remotePayload.groups || []).length;
+      console.log(`☁️ Estado cargado desde Supabase (${nStudents} alumnos, ${nTeachers} docentes, ${nGroups} grupos)`);
+      // Sincronizar copia local sin volver a escribir a remoto innecesariamente
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(remotePayload)); } catch (e) {}
+      return backfillState(remotePayload);
+    }
+    console.log("☁️ Supabase respondió OK pero no hay fila id=main todavía.");
+  } catch (e) {
+    console.warn("⚠️ No se pudo leer Supabase, usando fallback local:", e);
+  }
+
+  // 2) Fallback: localStorage (NO sobrescribir Supabase si la lectura falló)
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      console.log("📦 Migrando datos locales a Supabase...");
       const parsed = backfillState(JSON.parse(raw));
-      await saveStateRaw(parsed);
+      const nStudents = Object.keys(parsed.students || {}).length;
+      console.log(`📦 Estado cargado desde localStorage (${nStudents} alumnos)`);
+      // Solo migrar a Supabase si la lectura remota funcionó y realmente estaba vacía
+      if (remoteOk && !remotePayload) {
+        console.log("📦 Migrando datos locales a Supabase (remoto vacío)...");
+        await saveStateRaw(parsed);
+      }
       return parsed;
     }
-  } catch (e) {}
-  console.log("🌱 Inicializando estado por defecto");
+  } catch (e) {
+    console.warn("⚠️ localStorage no disponible:", e);
+  }
+
+  // 3) Estado vacío por defecto — solo escribir a Supabase si el remoto está accesible y vacío
+  console.log("🌱 Inicializando estado por defecto (sin datos previos)");
   const clon = JSON.parse(JSON.stringify(DEFAULT_STATE));
-  await saveStateRaw(clon);
+  if (remoteOk && !remotePayload) {
+    await saveStateRaw(clon);
+  } else {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(clon)); } catch (e) {}
+  }
   return clon;
 }
 async function saveStateRaw(s) {
+  if (!s || typeof s !== 'object') {
+    console.error("❌ saveStateRaw: estado inválido, no se guarda.");
+    return;
+  }
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) { memoriaFallback = s; }
   try {
     const jsonStr = JSON.stringify(s);
     const sizeMB = jsonStr.length / (1024 * 1024);
     if (sizeMB > 5) console.warn(`⚠️ El estado pesa ${sizeMB.toFixed(1)} MB.`);
-    if (sizeMB > 20) { console.error("❌ Estado >20MB, no se guardará."); return; }
-    const { error } = await supabase.from('app_state').upsert({ id: 'main', data: s, updated_at: new Date().toISOString() });
+    if (sizeMB > 20) { console.error("❌ Estado >20MB, no se guardará en Supabase."); return; }
+    const sb = window.supabase;
+    if (!sb || typeof sb.from !== 'function') throw new Error('Cliente Supabase no inicializado');
+    const { error } = await sb.from('app_state').upsert({
+      id: 'main',
+      data: s,
+      updated_at: new Date().toISOString()
+    });
     if (error) throw error;
     console.log("☁️ Estado guardado en Supabase (" + sizeMB.toFixed(2) + " MB)");
-  } catch (e) { console.error("❌ Error guardando en Supabase:", e); }
+  } catch (e) {
+    console.error("❌ Error guardando en Supabase:", e);
+  }
 }
 let _saveDebounce = null;
 function saveState() {
@@ -2164,7 +2235,13 @@ function formatearFecha(iso) { if (!iso) return "—"; const [a, m, d] = iso.spl
 function claseNota(n) { if (n >= 16) return "alta"; if (n >= 12) return "media"; return "baja"; }
 function claseEstadoAsistencia(e) { const val = e ? e.toLowerCase() : ""; if (val === "present") return "estado-present"; if (val === "late") return "estado-late"; if (val === "absent") return "estado-absent"; return ""; }
 function horaActual() { return new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
-function asistenciaDe(code) { return state.attendance.filter(a => a.studentCode === code); }
+function asistenciaDe(code) {
+  if (!state || !state.attendance) return [];
+  if (Array.isArray(state.attendance)) return state.attendance.filter(a => a.studentCode === code);
+  // compat objeto
+  const arr = state.attendance[code];
+  return Array.isArray(arr) ? arr : [];
+}
 function porcentajeAsistencia(regs) { if (!regs || !regs.length) return null; const p = regs.filter(r => r.estado === "Present" || r.estado === "Late").length; return Math.round((p / regs.length) * 100); }
 function promedioGeneral(code) { const grades = state.grades[code] || {}; const valores = Object.values(grades).filter(v => v !== null && v !== undefined && !isNaN(v)); if (!valores.length) return null; return +(valores.reduce((s, v) => s + v, 0) / valores.length).toFixed(2); }
 function promedioCriterio(code, criterioId) { const grades = state.grades[code] || {}; const asgs = state.assignments.filter(a => a.criterio === criterioId); const valores = asgs.map(a => grades[a.id]).filter(v => v !== null && v !== undefined && !isNaN(v)); if (!valores.length) return null; return +(valores.reduce((s, v) => s + v, 0) / valores.length).toFixed(2); }
@@ -5404,18 +5481,27 @@ window.addEventListener('popstate', (e) => {
   navigateToPortal(s.portal);
 });
  (async () => {
-  state = await loadState();
-  renderHorariosTable();
-  renderFounderPhoto();
-  renderPublicGallery();
-  refreshAdminTeacherSelects();
-  refreshAdminExamGroups();
-  renderOficinaImagenes("marketing");
-  renderOficinaImagenes("contabilidad");
-  renderOficinaImagenes("direccion");
-  aplicarIconosInterfaz();
-  renderIconografia();
-  console.log("🚀 App lista. Datos sincronizados con Supabase.");
+  try {
+    state = await loadState();
+  } catch (err) {
+    console.error("❌ Falló loadState:", err);
+    state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  }
+  if (!state) state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  try { renderHorariosTable(); } catch (e) { console.warn(e); }
+  try { renderFounderPhoto(); } catch (e) { console.warn(e); }
+  try { renderPublicGallery(); } catch (e) { console.warn(e); }
+  try { refreshAdminTeacherSelects(); } catch (e) { console.warn(e); }
+  try { refreshAdminExamGroups(); } catch (e) { console.warn(e); }
+  try { renderOficinaImagenes("marketing"); } catch (e) { console.warn(e); }
+  try { renderOficinaImagenes("contabilidad"); } catch (e) { console.warn(e); }
+  try { renderOficinaImagenes("direccion"); } catch (e) { console.warn(e); }
+  try { aplicarIconosInterfaz(); } catch (e) { console.warn(e); }
+  try { renderIconografia(); } catch (e) { console.warn(e); }
+  const ns = Object.keys(state.students || {}).length;
+  const nt = Object.keys(state.teachers || {}).length;
+  const ng = (state.groups || []).length;
+  console.log(`🚀 App lista. Supabase → alumnos:${ns} docentes:${nt} grupos:${ng}`);
   try { refreshCriterioSelect(); } catch(e) {}
 })();
 </script>
