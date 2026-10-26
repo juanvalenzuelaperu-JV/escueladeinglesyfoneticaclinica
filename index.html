@@ -1245,51 +1245,7 @@
           </div>
 
           <!-- Membrete y Foto Fundador eliminados de Coordinación; se gestionan en Marketing > Iconografía -->
-<div class="panel" id="adm-panel-pago_docente">
-  <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
-  <div class="tform admin-form">
-    <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
-  </div>
-  <div id="admPagoEditor" style="display:none;">
-    <div class="resumen-grid">
-      <div class="resumen-card azul"><div class="et">Pago/hora base</div><div class="val" id="admPagoBase">—</div></div>
-      <div class="resumen-card"><div class="et">Horas ped.</div><div class="val" id="admPagoSubH">—</div></div>
-      <div class="resumen-card"><div class="et">Horas extra</div><div class="val" id="admPagoSubHE">—</div></div>
-      <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val" id="admPagoSubB">—</div></div>
-      <div class="resumen-card morado"><div class="et">Descuentos</div><div class="val" id="admPagoSubD">—</div></div>
-      <div class="resumen-card verde"><div class="et">Total neto</div><div class="val" id="admPagoSubTotal">—</div></div>
-    </div>
-    <div class="tform">
-      <h4>⏱️ Horas trabajadas</h4>
-      <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
-      <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
-      <div class="tform-grid">
-        <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
-        <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
-        <div class="campo"><label>Pago por hora extra (S/)</label><input type="number" id="admPagoHoraExtra" min="0" step="0.01" value="0"></div>
-      </div>
-    </div>
-    <div class="tform">
-      <h4>➕ Bonificaciones</h4>
-      <div id="admPagoBonifList"></div>
-      <button type="button" class="btn btn-mini btn-verde" id="admPagoAddBonif">+ Agregar bonificación</button>
-    </div>
-    <div class="tform">
-      <h4>➖ Descuentos</h4>
-      <div id="admPagoDescList"></div>
-      <button type="button" class="btn btn-mini btn-rojo" id="admPagoAddDesc">+ Agregar descuento</button>
-    </div>
-    <div class="tform-acciones">
-      <button class="btn btn-azul" id="admPagoPreliminar">👁️ Preliminar</button>
-      <button class="btn btn-verde" id="admPagoDescargar">⬇️ Descargar</button>
-      <button class="btn btn-slate" id="admPagoImprimir">🖨️ Imprimir</button>
-      <button class="btn btn-morado" id="admPagoGuardar">💾 Guardar cambios</button>
-    </div>
-    <div class="boleta-preview-container" id="admPagoPreview"></div>
-  </div>
-</div>
-          
-          <div class="panel" id="adm-panel-acceso_alumno">
+<div class="panel" id="adm-panel-acceso_alumno">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceso directo a cuenta de alumno</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Selecciona un alumno e ingresa a su portal sin necesidad de contraseña.</p>
             <div class="tform admin-form">
@@ -2637,6 +2593,11 @@ document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(tab => tab.a
   if (tab.dataset.admtab === "grupos") try { refreshAdminTeacherSelects(); } catch (e) {}
   if (tab.dataset.admtab === "examenes") try { refreshAdminExamGroups(); } catch (e) {}
   if (tab.dataset.admtab === "programacion") try { renderAdminCourses(); } catch (e) {}
+  if (tab.dataset.admtab === "pago_docente") {
+    try { fillPagoTeacherSelect(); } catch (e) {}
+    const tc = document.getElementById('admPagoSelectTeacher')?.value;
+    if (tc) try { renderAdmPagoEditor(tc); } catch (e) {}
+  }
 }));
 document.querySelectorAll("[data-cont-subtab]").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("[data-cont-subtab]").forEach(t => t.classList.remove("activo"));
@@ -3702,13 +3663,7 @@ function refreshAdminView() {
   refreshAdminTeacherSelects(); refreshAdminExamGroups(); renderAdminLetterhead(); renderAdminFounder();
   renderMarketingGallery(); renderFavicon();
   renderOficinaImagenes("marketing"); renderOficinaImagenes("contabilidad"); renderOficinaImagenes("direccion");
-  const selPago = document.getElementById('admPagoSelectTeacher');
-  if (selPago) {
-    const cur = selPago.value;
-    selPago.innerHTML = '<option value="">Selecciona...</option>';
-    Object.keys(state.teachers).forEach(code => { const t = state.teachers[code]; const opt = document.createElement('option'); opt.value = code; opt.textContent = `${t.nombre} (${code})`; selPago.appendChild(opt); });
-    if (cur) selPago.value = cur;
-  }
+  try { fillPagoTeacherSelect(); } catch (e) {}
 }
 function refreshAdminTeacherSelects() {
   if (!state) return;
@@ -4239,14 +4194,23 @@ async function procesarArchivo(file, carpeta = "general") {
 
 
 function getPagoDocente(teacherCode) {
+  if (!state) return { horasPed: 0, horasExt: 0, pagoHoraExtra: 0, bonificaciones: [], descuentos: [] };
   if (!state.pagosDocentes) state.pagosDocentes = {};
   if (!state.pagosDocentes[teacherCode]) {
-    state.pagosDocentes[teacherCode] = { horasPed: 0, horasExt: 0, pagoHoraExtra: 0, bonificaciones: [], descuentos: [] };
+    const groups = (state.groups || []).filter(g => g.teacherCode === teacherCode);
+    const totalCiclo = groups.reduce((s, g) => s + (parseFloat(g.totalHoras) || 0), 0);
+    state.pagosDocentes[teacherCode] = {
+      horasPed: totalCiclo || 0,
+      horasExt: 0,
+      pagoHoraExtra: 0,
+      bonificaciones: [],
+      descuentos: []
+    };
   }
   return state.pagosDocentes[teacherCode];
 }
 function calcPagoDocente(teacherCode) {
-  const t = state.teachers[teacherCode];
+  const t = (state.teachers || {})[teacherCode];
   const p = getPagoDocente(teacherCode);
   const base = parseFloat(t?.pagoHora) || 0;
   const subPed = (parseFloat(p.horasPed) || 0) * base;
@@ -4254,13 +4218,31 @@ function calcPagoDocente(teacherCode) {
   const subB = (p.bonificaciones || []).reduce((s, b) => s + (parseFloat(b.monto) || 0), 0);
   const subD = (p.descuentos || []).reduce((s, d) => s + (parseFloat(d.monto) || 0), 0);
   const total = subPed + subExt + subB - subD;
-  return { base, subPed, subExt, subB, subD, total, p };
+  return { base, subPed, subExt, subB, subD, total, p, teacher: t };
+}
+function fillPagoTeacherSelect() {
+  const selPago = document.getElementById('admPagoSelectTeacher');
+  if (!selPago || !state || !state.teachers) return;
+  const cur = selPago.value;
+  selPago.innerHTML = '<option value="">Selecciona...</option>';
+  Object.keys(state.teachers).forEach(code => {
+    const t = state.teachers[code];
+    const opt = document.createElement('option');
+    opt.value = code;
+    const ph = (parseFloat(t.pagoHora) || 0).toFixed(2);
+    opt.textContent = `${t.nombre || code} (${code}) · S/ ${ph}/h`;
+    selPago.appendChild(opt);
+  });
+  if (cur && state.teachers[cur]) selPago.value = cur;
 }
 function renderAdmPagoEditor(teacherCode) {
   const editor = document.getElementById('admPagoEditor');
-  if (!teacherCode || !state.teachers[teacherCode]) { if (editor) editor.style.display = 'none'; return; }
+  if (!state || !teacherCode || !state.teachers || !state.teachers[teacherCode]) {
+    if (editor) editor.style.display = 'none';
+    return;
+  }
   if (editor) editor.style.display = 'block';
-  try { fillPagoGrupos(teacherCode); } catch(e) {}
+  try { fillPagoGrupos(teacherCode); } catch (e) { console.warn(e); }
   // Cursos asignados + horas totales del ciclo
   const cursosBox = document.getElementById('admPagoCursosAsignados');
   if (cursosBox) {
@@ -4309,24 +4291,27 @@ function renderAdmPagoEditor(teacherCode) {
         </div>`;
       // Sugerir horas pedagógicas = total del ciclo si aún está en 0
       const p0 = getPagoDocente(teacherCode);
-      if ((!p0.horasPed || p0.horasPed === 0) && totalCiclo > 0) {
-        // only suggest in UI default when empty — don't overwrite saved values
+      if ((!p0.horasPed || Number(p0.horasPed) === 0) && totalCiclo > 0) {
+        p0.horasPed = totalCiclo;
       }
     }
   }
   const p = getPagoDocente(teacherCode);
-  document.getElementById('admPagoHorasPed').value = p.horasPed || 0;
-  document.getElementById('admPagoHorasExt').value = p.horasExt || 0;
-  document.getElementById('admPagoHoraExtra').value = p.pagoHoraExtra || 0;
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setVal('admPagoHorasPed', p.horasPed || 0);
+  setVal('admPagoHorasExt', p.horasExt || 0);
+  setVal('admPagoHoraExtra', p.pagoHoraExtra || 0);
   const c = calcPagoDocente(teacherCode);
-  document.getElementById('admPagoBase').textContent = 'S/ ' + c.base.toFixed(2);
-  document.getElementById('admPagoSubH').textContent = 'S/ ' + c.subPed.toFixed(2);
-  document.getElementById('admPagoSubHE').textContent = 'S/ ' + c.subExt.toFixed(2);
-  document.getElementById('admPagoSubB').textContent = 'S/ ' + c.subB.toFixed(2);
-  document.getElementById('admPagoSubD').textContent = 'S/ ' + c.subD.toFixed(2);
-  document.getElementById('admPagoSubTotal').textContent = 'S/ ' + c.total.toFixed(2);
+  setTxt('admPagoBase', 'S/ ' + c.base.toFixed(2));
+  setTxt('admPagoSubH', 'S/ ' + c.subPed.toFixed(2));
+  setTxt('admPagoSubHE', 'S/ ' + c.subExt.toFixed(2));
+  setTxt('admPagoSubB', 'S/ ' + c.subB.toFixed(2));
+  setTxt('admPagoSubD', 'S/ ' + c.subD.toFixed(2));
+  setTxt('admPagoSubTotal', 'S/ ' + c.total.toFixed(2));
   const renderLista = (arr, tipo) => {
     const cont = document.getElementById(tipo === 'bonif' ? 'admPagoBonifList' : 'admPagoDescList');
+    if (!cont) return;
     cont.innerHTML = arr.length ? arr.map((it, i) => `
       <div class="pago-row">
         <input type="text" value="${it.concepto || ''}" data-${tipo}-concepto="${i}" placeholder="Concepto / justificación">
