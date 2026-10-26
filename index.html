@@ -195,6 +195,12 @@
   .dash-tabs.talento-tabs .dash-tab.activo { color: var(--talento); border-bottom-color: var(--talento); }
   .dash-tabs.sub-tabs { padding: 0; margin-bottom: 22px; border-bottom: 2px solid var(--borde); background: transparent; }
   .dash-tabs.sub-tabs .dash-tab.activo { color: var(--talento); border-bottom-color: var(--talento); }
+  .tab-group-label {
+    font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: #94a3b8; padding: 4px 8px; margin-left: 6px; border-left: 2px solid #e2e8f0;
+    align-self: center; white-space: nowrap;
+  }
+  .tab-group-label:first-child { border-left: none; margin-left: 0; }
   .dash-contenido { padding: 30px 32px 38px; background: #fff; }
   .panel { display: none; animation: fadeIn .3s ease; }
   .panel.activo { display: block; }
@@ -722,11 +728,12 @@
       </div>
       <div class="dash-tabs">
         <button class="dash-tab activo" data-atab="calificaciones">📊 Mis calificaciones</button>
+        <button class="dash-tab" data-atab="calendario">📅 Calendario</button>
         <button class="dash-tab" data-atab="examenes">📝 Exámenes online</button>
         <button class="dash-tab" data-atab="asistencia">📅 Mi asistencia</button>
         <button class="dash-tab" data-atab="reportcard">📄 Recojo de Report Card</button>
         <button class="dash-tab" data-atab="matricula">🎫 Matrícula</button>
-               <button class="dash-tab" data-atab="libros">📚 Mis libros</button>
+        <button class="dash-tab" data-atab="libros">📚 Mis libros</button>
       </div>
       <div class="dash-contenido">
         <div class="resumen-grid">
@@ -753,6 +760,26 @@
           <div class="criteria-grid" id="criteriaGridA"></div>
           <h4 style="color:var(--azul);font-size:1rem;font-weight:800;margin-bottom:16px;">Detalle de evaluaciones por criterio</h4>
           <div id="detalleCriteriosA"></div>
+        </div>
+        <div class="panel" id="panel-calendario">
+          <h4 style="color:var(--azul);margin-bottom:8px;font-size:1rem;font-weight:800;">📅 Calendario académico</h4>
+          <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Vista del mes programada por Coordinación Académica. Solo consulta (no se puede editar).</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px;">
+            <div class="campo" style="margin:0;min-width:180px;">
+              <label>Mes</label>
+              <input type="month" id="alumnoCalMes">
+            </div>
+            <button type="button" class="btn btn-slate btn-mini" id="btnAlumnoCalHoy">Hoy</button>
+          </div>
+          <div id="alumnoCalLeyenda" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;font-size:.78rem;"></div>
+          <div id="alumnoCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
+          <div id="alumnoCalDiaPanel" style="display:none;background:#f9fafb;border:1px solid var(--borde);border-radius:12px;padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <h5 style="margin:0;color:var(--slate);font-size:.95rem;font-weight:800;">Eventos del <span id="alumnoCalDiaTitulo">—</span></h5>
+              <button type="button" class="btn btn-mini btn-slate" id="btnAlumnoCalCerrarDia">Cerrar</button>
+            </div>
+            <div id="alumnoCalEventosDia"></div>
+          </div>
         </div>
         <div class="panel" id="panel-examenes">
           <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">ℹ️ Los exámenes son creados por el área administrativa.</p>
@@ -854,8 +881,9 @@
             </table>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-            <button class="btn btn-verde btn-mini" id="btnGuardarRegistroNotas" disabled>💾 Guardar registro</button>
+            <button class="btn btn-verde btn-mini" id="btnGuardarRegistroNotas" disabled>💾 Guardar</button>
             <button type="button" class="btn btn-azul btn-mini" id="btnEditarNotas" disabled>✏️ Editar Notas</button>
+            <button type="button" class="btn btn-slate btn-mini" id="btnVolverNotas">← Volver</button>
           </div>
         </div>
         <div class="panel" id="dpanel-asistencia">
@@ -872,8 +900,9 @@
             </table>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-            <button class="btn btn-verde btn-mini" id="dBtnGuardarAsistencia" disabled>💾 Guardar Asistencia</button>
+            <button class="btn btn-verde btn-mini" id="dBtnGuardarAsistencia" disabled>💾 Guardar</button>
             <button type="button" class="btn btn-azul btn-mini" id="btnEditarAsistencia" disabled>✏️ Editar Asistencia</button>
+            <button type="button" class="btn btn-slate btn-mini" id="btnVolverAsistencia">← Volver</button>
           </div>
         </div>
         <div class="panel" id="dpanel-examenes">
@@ -1056,25 +1085,30 @@
 
         <!-- SUBPORTAL COORDINACIÓN ACADÉMICA -->
         <div class="panel activo" id="tal-panel-admin">
-          <div class="dash-tabs sub-tabs" style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:10px;">
+          <div class="dash-tabs sub-tabs" style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:10px;align-items:center;">
+            <span class="tab-group-label">Personas</span>
             <button class="dash-tab activo" data-admtab="alumnos">🎓 Alumnos</button>
             <button class="dash-tab" data-admtab="docentes">👨‍🏫 Docentes</button>
             <button class="dash-tab" data-admtab="padres">👨‍👩‍👧 Padres de familia</button>
+            <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceso Alumno</button>
+            <span class="tab-group-label">Estructura</span>
             <button class="dash-tab" data-admtab="grupos">📚 Grupos</button>
             <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
-            <button class="dash-tab" data-admtab="programacion">🗓️ Programación</button>
+            <button class="dash-tab" data-admtab="programacion">🗓️ Programación de cursos</button>
             <button class="dash-tab" data-admtab="calendarizacion">📅 Calendarización</button>
-            <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
+            <span class="tab-group-label">Operación</span>
             <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
             <button class="dash-tab" data-admtab="reporte_dia">📋 Reporte del día</button>
-            <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceso Alumno</button>
-            <button class="dash-tab" data-admtab="pago_docente">💰 Gestor de pago docente</button>
+            <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad docente</button>
             <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
-            <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad Docente</button>
-            <button class="dash-tab" data-admtab="campos">🧩 Campos personalizados</button>
+            <span class="tab-group-label">Evaluación</span>
             <button class="dash-tab" data-admtab="asignaciones">📋 Gestor de asignaciones</button>
-            <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos dictados</button>
+            <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
+            <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos</button>
+            <span class="tab-group-label">Cierre</span>
             <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
+            <span class="tab-group-label">Ajustes</span>
+            <button class="dash-tab" data-admtab="campos">🧩 Campos personalizados</button>
           </div>
           <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo Coordinación Académica crea cuentas, grupos, cursos y exámenes.</div>
 
@@ -1255,54 +1289,6 @@
               <div class="tform-acciones">
                 <button type="button" class="btn btn-azul" id="btnAdmEntrarAlumno">Entrar a la cuenta</button>
               </div>
-            </div>
-          </div>
-
-          <div class="panel" id="adm-panel-pago_docente">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
-            <div class="tform admin-form">
-              <div class="tform-grid">
-                <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
-                <div class="campo"><label>Grupos a cargo</label><select id="admPagoSelectGrupo"><option value="">Todos los grupos del docente</option></select></div>
-              </div>
-            </div>
-            <div id="admPagoGruposInfo" style="margin-bottom:14px;"></div>
-            <div id="admPagoEditor" style="display:none;">
-              <div class="resumen-grid">
-                <div class="resumen-card azul"><div class="et">Pago/hora base</div><div class="val" id="admPagoBase">—</div></div>
-                <div class="resumen-card"><div class="et">Horas ped.</div><div class="val" id="admPagoSubH">—</div></div>
-                <div class="resumen-card"><div class="et">Horas extra</div><div class="val" id="admPagoSubHE">—</div></div>
-                <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val" id="admPagoSubB">—</div></div>
-                <div class="resumen-card morado"><div class="et">Descuentos</div><div class="val" id="admPagoSubD">—</div></div>
-                <div class="resumen-card verde"><div class="et">Total neto</div><div class="val" id="admPagoSubTotal">—</div></div>
-              </div>
-              <div class="tform">
-                <h4>⏱️ Horas trabajadas</h4>
-                <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
-                <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
-                <div class="tform-grid">
-                  <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
-                  <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
-                  <div class="campo"><label>Pago por hora extra (S/)</label><input type="number" id="admPagoHoraExtra" min="0" step="0.01" value="0"></div>
-                </div>
-              </div>
-              <div class="tform">
-                <h4>➕ Bonificaciones</h4>
-                <div id="admPagoBonifList"></div>
-                <button type="button" class="btn btn-mini btn-verde" id="admPagoAddBonif">+ Agregar bonificación</button>
-              </div>
-              <div class="tform">
-                <h4>➖ Descuentos</h4>
-                <div id="admPagoDescList"></div>
-                <button type="button" class="btn btn-mini btn-rojo" id="admPagoAddDesc">+ Agregar descuento</button>
-              </div>
-              <div class="tform-acciones">
-                <button class="btn btn-azul" id="admPagoPreliminar">👁️ Preliminar</button>
-                <button class="btn btn-verde" id="admPagoDescargar">⬇️ Descargar</button>
-                <button class="btn btn-slate" id="admPagoImprimir">🖨️ Imprimir</button>
-                <button class="btn btn-morado" id="admPagoGuardar">💾 Guardar cambios</button>
-              </div>
-              <div class="boleta-preview-container" id="admPagoPreview"></div>
             </div>
           </div>
 
@@ -1576,9 +1562,58 @@
         <!-- SUBPORTAL CONTABILIDAD Y FINANZAS -->
         <div class="panel" id="tal-panel-contabilidad">
           <div class="subportal-tabs">
-            <button class="subportal-tab activo" data-cont-subtab="firma">✍️ Firma Digital</button>
+            <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
+            <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
           </div>
-          <div class="subpanel activo" id="cont-subpanel-firma">
+          <div class="subpanel activo" id="cont-subpanel-pago">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
+            <div class="tform admin-form">
+              <div class="tform-grid">
+                <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
+                <div class="campo"><label>Grupos a cargo</label><select id="admPagoSelectGrupo"><option value="">Todos los grupos del docente</option></select></div>
+              </div>
+            </div>
+            <div id="admPagoGruposInfo" style="margin-bottom:14px;"></div>
+            <div id="admPagoEditor" style="display:none;">
+              <div class="resumen-grid">
+                <div class="resumen-card azul"><div class="et">Pago/hora base</div><div class="val" id="admPagoBase">—</div></div>
+                <div class="resumen-card"><div class="et">Horas ped.</div><div class="val" id="admPagoSubH">—</div></div>
+                <div class="resumen-card"><div class="et">Horas extra</div><div class="val" id="admPagoSubHE">—</div></div>
+                <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val" id="admPagoSubB">—</div></div>
+                <div class="resumen-card morado"><div class="et">Descuentos</div><div class="val" id="admPagoSubD">—</div></div>
+                <div class="resumen-card verde"><div class="et">Total neto</div><div class="val" id="admPagoSubTotal">—</div></div>
+              </div>
+              <div class="tform">
+                <h4>⏱️ Horas trabajadas</h4>
+                <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
+                <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
+                <div class="tform-grid">
+                  <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
+                  <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
+                  <div class="campo"><label>Pago por hora extra (S/)</label><input type="number" id="admPagoHoraExtra" min="0" step="0.01" value="0"></div>
+                </div>
+              </div>
+              <div class="tform">
+                <h4>➕ Bonificaciones</h4>
+                <div id="admPagoBonifList"></div>
+                <button type="button" class="btn btn-mini btn-verde" id="admPagoAddBonif">+ Agregar bonificación</button>
+              </div>
+              <div class="tform">
+                <h4>➖ Descuentos</h4>
+                <div id="admPagoDescList"></div>
+                <button type="button" class="btn btn-mini btn-rojo" id="admPagoAddDesc">+ Agregar descuento</button>
+              </div>
+              <div class="tform-acciones" style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                <button type="button" class="btn btn-morado" id="admPagoGuardar">💾 Guardar</button>
+                <button type="button" class="btn btn-slate" id="admPagoVolver">← Volver</button>
+                <button type="button" class="btn btn-azul" id="admPagoPreliminar">👁️ Preliminar</button>
+                <button type="button" class="btn btn-verde" id="admPagoDescargar">⬇️ Descargar</button>
+                <button type="button" class="btn btn-slate" id="admPagoImprimir">🖨️ Imprimir</button>
+              </div>
+              <div class="boleta-preview-container" id="admPagoPreview"></div>
+            </div>
+          </div>
+          <div class="subpanel" id="cont-subpanel-firma">
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Las imágenes aquí cargadas se usarán en la <strong>Boleta Preliminar de Pago Docente</strong>.</p>
             <div class="oficina-section">
@@ -1866,6 +1901,26 @@
     <button class="modal-close" onclick="document.getElementById('modalImageViewer').classList.remove('visible')">✕</button>
     <h3 style="margin-bottom:20px;">Evidencia</h3>
     <img id="imageViewerImg" src="" style="max-width:100%; max-height:70vh; border-radius:12px; box-shadow:var(--sombra);">
+  </div>
+</div>
+
+<!-- MODAL AVISO REPORTE DE NOTAS DISPONIBLE -->
+<div class="modal-overlay" id="modalAvisoRC">
+  <div class="modal-box" style="max-width:440px; text-align:center; padding:28px 26px;">
+    <button class="modal-close" id="btnCerrarAvisoRC" type="button">✕</button>
+    <h3 style="margin-bottom:6px; color:var(--morado);">📢 Aviso de Reporte de Notas</h3>
+    <p style="color:var(--gris); font-size:.88rem; margin-bottom:16px;">
+      Notifica al alumno por WhatsApp que su reporte ya está disponible.
+    </p>
+    <div style="background:#f8fafc; border:1px solid var(--borde); border-radius:12px; padding:12px 14px; margin-bottom:16px; font-size:.88rem; text-align:left;">
+      <p style="margin:0 0 4px;"><strong>Alumno:</strong> <span id="avisoRcNombre">—</span></p>
+      <p style="margin:0 0 4px;"><strong>Usuario:</strong> <span id="avisoRcUser">—</span></p>
+      <p style="margin:0;"><strong>WhatsApp:</strong> <span id="avisoRcTel">—</span></p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button type="button" class="btn btn-verde" id="btnAvisoRcWhatsApp" style="width:100%; background:#25D366; border-color:#25D366;">📱 WhatsApp</button>
+      <button type="button" class="btn btn-slate" id="btnAvisoRcOmitir" style="width:100%;">Omitir y cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -2568,7 +2623,14 @@ document.querySelectorAll("#dashboardAlumno .dash-tab").forEach(tab => tab.addEv
   document.querySelectorAll("#dashboardAlumno .dash-tab").forEach(t => t.classList.remove("activo"));
   document.querySelectorAll("#dashboardAlumno .panel").forEach(p => p.classList.remove("activo"));
   tab.classList.add("activo");
-  document.getElementById("panel-" + tab.dataset.atab).classList.add("activo");
+  const panel = document.getElementById("panel-" + tab.dataset.atab);
+  if (panel) panel.classList.add("activo");
+  if (tab.dataset.atab === "calendario") {
+    try { renderStudentCalendario(); } catch (e) { console.warn(e); }
+  }
+  if (tab.dataset.atab === "calificaciones") {
+    try { renderStudentCalificaciones(); } catch (e) { console.warn(e); }
+  }
 }));
 document.querySelectorAll("#dashboardDocente .dash-tab").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("#dashboardDocente .dash-tab").forEach(t => t.classList.remove("activo"));
@@ -2593,18 +2655,37 @@ document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(tab => tab.a
   if (tab.dataset.admtab === "grupos") try { refreshAdminTeacherSelects(); } catch (e) {}
   if (tab.dataset.admtab === "examenes") try { refreshAdminExamGroups(); } catch (e) {}
   if (tab.dataset.admtab === "programacion") try { renderAdminCourses(); } catch (e) {}
-  if (tab.dataset.admtab === "pago_docente") {
-    try { fillPagoTeacherSelect(); } catch (e) {}
-    const tc = document.getElementById('admPagoSelectTeacher')?.value;
-    if (tc) try { renderAdmPagoEditor(tc); } catch (e) {}
-  }
 }));
 document.querySelectorAll("[data-cont-subtab]").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("[data-cont-subtab]").forEach(t => t.classList.remove("activo"));
   document.querySelectorAll("#tal-panel-contabilidad .subpanel").forEach(p => p.classList.remove("activo"));
   tab.classList.add("activo");
-  document.getElementById("cont-subpanel-" + tab.dataset.contSubtab).classList.add("activo");
+  const panel = document.getElementById("cont-subpanel-" + tab.dataset.contSubtab);
+  if (panel) panel.classList.add("activo");
+  if (tab.dataset.contSubtab === "pago") {
+    try { fillPagoTeacherSelect(); } catch (e) {}
+    const tc = document.getElementById('admPagoSelectTeacher')?.value;
+    if (tc) try { renderAdmPagoEditor(tc); } catch (e) {}
+  }
+  if (tab.dataset.contSubtab === "firma") {
+    try { renderOficinaImagenes("contabilidad"); } catch (e) {}
+  }
 }));
+// Al abrir Contabilidad, cargar el subtab activo (pago por defecto)
+document.querySelectorAll('#dashboardTalento [data-taltab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.taltab === 'contabilidad') {
+      setTimeout(() => {
+        try { fillPagoTeacherSelect(); } catch (e) {}
+        const activo = document.querySelector('#tal-panel-contabilidad [data-cont-subtab].activo');
+        if (activo && activo.dataset.contSubtab === 'pago') {
+          const tc = document.getElementById('admPagoSelectTeacher')?.value;
+          if (tc) try { renderAdmPagoEditor(tc); } catch (e) {}
+        }
+      }, 40);
+    }
+  });
+});
 document.querySelectorAll("[data-dir-subtab]").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("[data-dir-subtab]").forEach(t => t.classList.remove("activo"));
   document.querySelectorAll("#tal-panel-direccion .subpanel").forEach(p => p.classList.remove("activo"));
@@ -2627,7 +2708,16 @@ function showImageViewer(src) { document.getElementById('imageViewerImg').src = 
 /* ============================================================
    VISTA ALUMNO
    ============================================================ */
-function refreshStudentView() { if (!currentStudent) return; renderStudentResumen(); renderStudentCalificaciones(); renderStudentExams(); renderStudentAsistencia(); renderStudentReportCards(); renderStudentLibros(); }
+function refreshStudentView() {
+  if (!currentStudent) return;
+  renderStudentResumen();
+  renderStudentCalificaciones();
+  try { renderStudentCalendario(); } catch (e) {}
+  renderStudentExams();
+  renderStudentAsistencia();
+  renderStudentReportCards();
+  renderStudentLibros();
+}
 function renderStudentResumen() {
   const prom = promedioGeneral(currentStudentCode);
   document.getElementById("resumenPromA").textContent = prom !== null ? prom.toFixed(2) : "—";
@@ -2641,6 +2731,7 @@ function renderStudentResumen() {
 }
 function renderStudentCalificaciones() {
   if (!currentStudentCode) return;
+  // Mis calificaciones: solo assignments + grades (NO calendarEvents de Calendarización)
   const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
   const elProm = document.getElementById('califPromedioA');
   const elRes = document.getElementById('resumenPromA');
@@ -2762,6 +2853,140 @@ function renderStudentCalificaciones() {
     if (!det.innerHTML) det.innerHTML = '<div class="empty-state">Aún no hay evaluaciones registradas.</div>';
   }
 }
+
+
+/* ===== Calendario del alumno (solo lectura, desde Calendarización) ===== */
+let alumnoCalSelectedDate = null;
+
+function getStudentRelevantCalEvents(fechaKey) {
+  const groups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+  const gids = new Set(groups.map(g => g.id));
+  const all = (state.calendarEvents && state.calendarEvents[fechaKey]) || [];
+  // Eventos de sus grupos; si un evento no tiene grupo, se muestra a todos
+  return all.filter(ev => !ev.grupoId || gids.has(ev.grupoId));
+}
+
+function renderStudentCalendario() {
+  if (!currentStudentCode) return;
+  const mesInp = document.getElementById('alumnoCalMes');
+  const grid = document.getElementById('alumnoCalGrid');
+  const leyenda = document.getElementById('alumnoCalLeyenda');
+  if (!mesInp || !grid) return;
+  if (!mesInp.value) {
+    const d = new Date();
+    mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  const [yy, mm] = mesInp.value.split('-').map(Number);
+  const first = new Date(yy, mm - 1, 1);
+  const last = new Date(yy, mm, 0);
+  const startDay = first.getDay();
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // Leyenda simple
+  if (leyenda) {
+    const items = [
+      ['#6366f1', 'Evaluaciones'],
+      ['#10b981', 'Inicio de curso'],
+      ['#ef4444', 'Fin de curso'],
+      ['#f59e0b', 'Otros eventos']
+    ];
+    leyenda.innerHTML = items.map(([c, t]) =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block;"></span>${t}</span>`
+    ).join('');
+  }
+
+  const colorFn = typeof calTipoColor === 'function' ? calTipoColor : (() => '#6366f1');
+  const labelFn = typeof calTipoLabel === 'function' ? calTipoLabel : ((t, n) => n || t);
+  const emojiFn = typeof calTipoEmoji === 'function' ? calTipoEmoji : (() => '📌');
+
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  let html = dias.map(d => `<div style="text-align:center;font-weight:700;font-size:.78rem;color:var(--gris);padding:8px 4px;">${d}</div>`).join('');
+  for (let i = 0; i < startDay; i++) html += '<div></div>';
+
+  for (let day = 1; day <= last.getDate(); day++) {
+    const key = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const evs = getStudentRelevantCalEvents(key);
+    const isToday = key === todayIso;
+    const isSelected = key === alumnoCalSelectedDate;
+    const dots = evs.slice(0, 4).map(ev =>
+      `<span style="width:7px;height:7px;border-radius:50%;background:${colorFn(ev.tipo)};display:inline-block;" title="${labelFn(ev.tipo, ev.nombre)}"></span>`
+    ).join('');
+    const more = evs.length > 4 ? `<span style="font-size:.65rem;color:var(--gris);">+${evs.length - 4}</span>` : '';
+    html += `<div data-alumno-cal-day="${key}" role="button" tabindex="0"
+      style="border:1px solid ${isToday ? 'var(--azul-medio)' : 'var(--borde)'};border-radius:10px;min-height:72px;padding:8px;cursor:pointer;background:${evs.length ? '#f0f7ff' : '#fff'};outline:${isSelected ? '2px solid var(--azul-medio)' : 'none'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:800;font-size:.95rem;color:${isToday ? 'var(--azul-medio)' : 'var(--texto)'};">${day}</span>
+        ${isToday ? '<span style="font-size:.65rem;font-weight:700;color:var(--azul-medio);">HOY</span>' : ''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;align-items:center;">${dots}${more}</div>
+      ${evs.length ? `<div style="font-size:.68rem;color:var(--azul);margin-top:4px;font-weight:600;">${evs.length} evento${evs.length > 1 ? 's' : ''}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-alumno-cal-day]').forEach(el => {
+    el.addEventListener('click', () => openStudentCalDay(el.dataset.alumnoCalDay));
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStudentCalDay(el.dataset.alumnoCalDay); }
+    });
+  });
+}
+
+function openStudentCalDay(key) {
+  alumnoCalSelectedDate = key;
+  const panel = document.getElementById('alumnoCalDiaPanel');
+  const titulo = document.getElementById('alumnoCalDiaTitulo');
+  const cont = document.getElementById('alumnoCalEventosDia');
+  if (!panel || !cont) return;
+  panel.style.display = 'block';
+  if (titulo) titulo.textContent = (typeof formatearFecha === 'function' ? formatearFecha(key) : key);
+
+  const groups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+  const labelFn = typeof calTipoLabel === 'function' ? calTipoLabel : ((t, n) => n || t);
+  const emojiFn = typeof calTipoEmoji === 'function' ? calTipoEmoji : (() => '📌');
+  const colorFn = typeof calTipoColor === 'function' ? calTipoColor : (() => '#6366f1');
+
+  const evs = getStudentRelevantCalEvents(key);
+  // Resaltar celda seleccionada
+  document.querySelectorAll('#alumnoCalGrid [data-alumno-cal-day]').forEach(el => {
+    el.style.outline = el.dataset.alumnoCalDay === key ? '2px solid var(--azul-medio)' : 'none';
+  });
+
+  if (!evs.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">No hay eventos programados este día para tus grupos.</div>';
+    return;
+  }
+  cont.innerHTML = evs.map(ev => {
+    const g = (state.groups || []).find(x => x.id === ev.grupoId);
+    const color = colorFn(ev.tipo);
+    const nombre = labelFn(ev.tipo, ev.nombre);
+    return `<div class="libro-card" style="border-left:4px solid ${color};">
+      <div class="libro-info">
+        <strong>${emojiFn(ev.tipo)} ${nombre}</strong>
+        <small style="display:block;color:var(--gris);margin-top:2px;">${g ? g.nombre : 'General'}${ev.nota ? ' · ' + ev.nota : ''}</small>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('alumnoCalMes')?.addEventListener('change', () => {
+  alumnoCalSelectedDate = null;
+  const panel = document.getElementById('alumnoCalDiaPanel');
+  if (panel) panel.style.display = 'none';
+  renderStudentCalendario();
+});
+document.getElementById('btnAlumnoCalHoy')?.addEventListener('click', () => {
+  const d = new Date();
+  const mesInp = document.getElementById('alumnoCalMes');
+  if (mesInp) mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderStudentCalendario();
+  openStudentCalDay(d.toISOString().slice(0, 10));
+});
+document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () => {
+  alumnoCalSelectedDate = null;
+  const panel = document.getElementById('alumnoCalDiaPanel');
+  if (panel) panel.style.display = 'none';
+  document.querySelectorAll('#alumnoCalGrid [data-alumno-cal-day]').forEach(el => { el.style.outline = 'none'; });
+});
 
 function renderStudentExams() {
   const cont = document.getElementById("studentExamsLista"); cont.innerHTML = ""; cont.style.display = "block";
@@ -3401,7 +3626,90 @@ document.getElementById("btnGenerateRC")?.addEventListener("click", () => {
   rcChartInstance = new Chart(ctx, { type: 'bar', data: { labels: CRITERIOS.map(c => c.nombre), datasets: [{ label: 'Nota', data: CRITERIOS.map(c => gradesObj[c.id] === "—" ? 0 : gradesObj[c.id]), backgroundColor: CRITERIOS.map(c => c.color), borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 20 } } } });
   preview.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-document.getElementById("btnConfirmSendRC")?.addEventListener("click", () => { if (!currentRcData) return; state.reportCards.push(currentRcData); saveState(); alert("✅ RC enviado."); document.getElementById("rcPreviewContainer").classList.remove("visible"); document.getElementById("rcComment").value = ""; currentRcData = null; });
+let lastRcNotifyStudent = null;
+
+function normalizarTelefonoWA(tel) {
+  if (!tel) return '';
+  let d = String(tel).replace(/\D/g, '');
+  if (!d) return '';
+  // Si es celular peruano de 9 dígitos, anteponer 51
+  if (d.length === 9 && d.startsWith('9')) d = '51' + d;
+  return d;
+}
+
+function mensajeAvisoRC(student, studentCode, rc) {
+  const nombre = (student && student.nombre) ? student.nombre : studentCode;
+  const d = new Date();
+  const fechaEnvio = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  const urlPlataforma = (typeof location !== 'undefined' && location.origin)
+    ? (location.origin + (location.pathname || '/'))
+    : 'https://jotavalenzuela.com';
+  return (
+    `Hola ${nombre}:\n` +
+    `Tu *Reporte de Notas* ya está disponible.\n` +
+    `Revísalo aquí: ${urlPlataforma}\n` +
+    `Fecha: ${fechaEnvio}\n` +
+    `— Escuela de Inglés y Fonética Clínica EIRL por el Prof. Juan Valenzuela M.\n` +
+    `Te esperamos en el siguiente nivel. _Are you ready?_`
+  );
+}
+
+function abrirModalAvisoRC(studentCode, rc) {
+  const student = (state.students || {})[studentCode] || {};
+  lastRcNotifyStudent = { code: studentCode, student, rc };
+  const tel = student.telefono || student.whatsapp || '';
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+  setTxt('avisoRcNombre', student.nombre || studentCode);
+  setTxt('avisoRcUser', studentCode);
+  setTxt('avisoRcTel', tel || '(sin WhatsApp en la cuenta)');
+  const btnWa = document.getElementById('btnAvisoRcWhatsApp');
+  if (btnWa) {
+    const phone = normalizarTelefonoWA(tel);
+    btnWa.disabled = !phone;
+    btnWa.style.opacity = phone ? '1' : '0.55';
+    btnWa.title = phone ? `Enviar a +${phone}` : 'Este alumno no tiene teléfono/WhatsApp registrado';
+  }
+  document.getElementById('modalAvisoRC')?.classList.add('visible');
+}
+
+document.getElementById("btnConfirmSendRC")?.addEventListener("click", () => {
+  if (!currentRcData) return;
+  const rcCopy = { ...currentRcData };
+  const studentCode = rcCopy.studentCode;
+  // Evitar duplicados exactos del mismo id
+  if (!state.reportCards.some(r => r.id === rcCopy.id)) {
+    state.reportCards.push(rcCopy);
+    saveState();
+  }
+  document.getElementById("rcPreviewContainer")?.classList.remove("visible");
+  const commentEl = document.getElementById("rcComment");
+  if (commentEl) commentEl.value = "";
+  currentRcData = null;
+  try { if (typeof renderTeacherHistorialRC === 'function') renderTeacherHistorialRC(); } catch (e) {}
+  abrirModalAvisoRC(studentCode, rcCopy);
+});
+
+document.getElementById('btnAvisoRcWhatsApp')?.addEventListener('click', () => {
+  if (!lastRcNotifyStudent) return;
+  const { student, code, rc } = lastRcNotifyStudent;
+  const phone = normalizarTelefonoWA(student.telefono || student.whatsapp || '');
+  if (!phone) {
+    alert('Este alumno no tiene número de WhatsApp/teléfono registrado en su cuenta.\nEdítalo en Coordinación Académica → Alumnos.');
+    return;
+  }
+  const msg = encodeURIComponent(mensajeAvisoRC(student, code, rc));
+  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+});
+
+document.getElementById('btnAvisoRcOmitir')?.addEventListener('click', () => {
+  document.getElementById('modalAvisoRC')?.classList.remove('visible');
+  lastRcNotifyStudent = null;
+});
+document.getElementById('btnCerrarAvisoRC')?.addEventListener('click', () => {
+  document.getElementById('modalAvisoRC')?.classList.remove('visible');
+  lastRcNotifyStudent = null;
+});
+
 document.getElementById("btnDownloadRC")?.addEventListener("click", () => {
   if (!currentRcData) { alert('Primero genera el Report Card.'); return; }
   const html = typeof buildReportCardHTML === 'function' ? buildReportCardHTML(currentRcData) : (document.getElementById('rcPrintableArea')?.innerHTML || '');
@@ -4338,7 +4646,80 @@ document.getElementById('admPagoAddDesc')?.addEventListener('click', () => { con
     saveState(); renderAdmPagoEditor(tc);
   });
 });
-document.getElementById('admPagoGuardar')?.addEventListener('click', () => { alert('✅ Guardado.'); });
+document.getElementById('admPagoGuardar')?.addEventListener('click', () => {
+  const tc = document.getElementById('admPagoSelectTeacher')?.value;
+  if (!tc) { alert('Selecciona un docente.'); return; }
+  const p = getPagoDocente(tc);
+  p.horasPed = parseFloat(document.getElementById('admPagoHorasPed')?.value) || 0;
+  p.horasExt = parseFloat(document.getElementById('admPagoHorasExt')?.value) || 0;
+  p.pagoHoraExtra = parseFloat(document.getElementById('admPagoHoraExtra')?.value) || 0;
+  // Sincronizar bonificaciones / descuentos desde el DOM
+  const bonifs = [];
+  document.querySelectorAll('#admPagoBonifList .pago-row').forEach(row => {
+    const concepto = row.querySelector('input[type="text"]')?.value || '';
+    const monto = parseFloat(row.querySelector('input[type="number"]')?.value) || 0;
+    bonifs.push({ concepto, monto });
+  });
+  const descs = [];
+  document.querySelectorAll('#admPagoDescList .pago-row').forEach(row => {
+    const concepto = row.querySelector('input[type="text"]')?.value || '';
+    const monto = parseFloat(row.querySelector('input[type="number"]')?.value) || 0;
+    descs.push({ concepto, monto });
+  });
+  p.bonificaciones = bonifs;
+  p.descuentos = descs;
+  saveState();
+  renderAdmPagoEditor(tc);
+  alert('✅ Pago docente guardado.');
+});
+document.getElementById('admPagoVolver')?.addEventListener('click', () => {
+  const sel = document.getElementById('admPagoSelectTeacher');
+  if (sel) sel.value = '';
+  const editor = document.getElementById('admPagoEditor');
+  if (editor) editor.style.display = 'none';
+  const prev = document.getElementById('admPagoPreview');
+  if (prev) { prev.classList.remove('visible'); prev.innerHTML = ''; }
+  const info = document.getElementById('admPagoGruposInfo');
+  if (info) info.innerHTML = '';
+  const selG = document.getElementById('admPagoSelectGrupo');
+  if (selG) selG.innerHTML = '<option value="">Todos los grupos del docente</option>';
+});
+
+// Volver en Registro de Notas / Asistencia (portal docente)
+document.getElementById('btnVolverNotas')?.addEventListener('click', () => {
+  const sel = document.getElementById('dNotasGrupo');
+  if (sel) sel.value = '';
+  notasCalColumns = [];
+  notasClaseCount = 0;
+  notasEditMode = false;
+  const head = document.getElementById('dNotasHead');
+  const body = document.getElementById('dNotasBody');
+  if (head) head.innerHTML = '<tr><th>Alumnos</th></tr>';
+  if (body) body.innerHTML = '';
+  const info = document.getElementById('dNotasCalInfo');
+  if (info) info.textContent = '';
+  const btnSave = document.getElementById('btnGuardarRegistroNotas');
+  const btnEdit = document.getElementById('btnEditarNotas');
+  if (btnSave) btnSave.disabled = true;
+  if (btnEdit) btnEdit.disabled = true;
+});
+document.getElementById('btnVolverAsistencia')?.addEventListener('click', () => {
+  const sel = document.getElementById('dAsisGrupo');
+  if (sel) sel.value = '';
+  asisCalColumns = [];
+  asisClaseCount = 0;
+  asisEditMode = false;
+  const head = document.getElementById('dAsisHead');
+  const body = document.getElementById('dAsisBody');
+  if (head) head.innerHTML = '<tr><th>Alumnos</th></tr>';
+  if (body) body.innerHTML = '';
+  const info = document.getElementById('dAsisCalInfo');
+  if (info) info.textContent = '';
+  const btnSave = document.getElementById('dBtnGuardarAsistencia');
+  const btnEdit = document.getElementById('btnEditarAsistencia');
+  if (btnSave) btnSave.disabled = true;
+  if (btnEdit) btnEdit.disabled = true;
+});
 
 function buildBoletaPagoHTML(teacherCode) {
   const t = state.teachers[teacherCode];
