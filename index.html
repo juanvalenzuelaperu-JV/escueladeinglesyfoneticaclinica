@@ -1130,6 +1130,7 @@
             <button class="dash-tab" data-admtab="asignaciones">📋 Gestor de asignaciones</button>
             <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
             <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos</button>
+           <button class="dash-tab" data-admtab="historial_rc">📄 Historial de reportes de notas</button>
             <span class="tab-group-label">Cierre</span>
             <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
             <span class="tab-group-label">Ajustes</span>
@@ -1457,7 +1458,25 @@
             </div>
             <div id="admHistorialCursosLista"></div>
           </div>
-
+<div class="panel" id="adm-panel-historial_rc">
+  <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📄 Historial de reportes de notas</h4>
+  <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Todos los Report Cards generados por los docentes. Al eliminar uno, también desaparece del historial del docente y del Recojo de Report Card del alumno.</p>
+  <div class="resumen-grid" style="margin-bottom:18px;">
+    <div class="resumen-card azul"><div class="et">Report Cards</div><div class="val" id="histRcTotal">—</div></div>
+    <div class="resumen-card verde"><div class="et">Aprobados</div><div class="val" id="histRcAprob">—</div></div>
+    <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Desaprobados</div><div class="val" id="histRcDesaprob">—</div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:14px;">
+    <div class="campo" style="margin:0;min-width:200px;"><label>Docente</label>
+      <select id="histRcTeacher"><option value="">Todos los docentes</option></select>
+    </div>
+    <div class="campo" style="margin:0;min-width:220px;"><label>Buscar alumno</label>
+      <input type="text" id="histRcBuscar" placeholder="Nombre o usuario...">
+    </div>
+    <button type="button" class="btn btn-azul btn-mini" id="btnHistRcActualizar">🔄 Actualizar</button>
+  </div>
+  <div id="admHistorialRCLista"></div>
+</div>
           <div class="panel" id="adm-panel-resumen">
             <div class="resumen-grid">
               <div class="resumen-card slate"><div class="et">Alumnos</div><div class="val" id="admStatAlumnos">—</div></div>
@@ -3471,6 +3490,7 @@ function refreshTeacherView() {
   renderTeacherPhoto();
   renderSolicitudesDocente();
   try { renderTeacherLibrosGrupos(); } catch(e) {}
+   try { renderTeacherHistorialRC(); } catch(e) {}
   try {
     if (document.getElementById("dpanel-disponibilidad") && document.getElementById("dpanel-disponibilidad").classList.contains("activo"))
       renderDisponibilidadGrid();
@@ -7439,6 +7459,113 @@ refreshAdminView = function () {
   _refreshAdminViewOrig();
   try { renderAdmAccesoDocenteSelect(); } catch (e) {}
 };
+ /* ===== Historial de reportes de notas (Coordinación Académica) ===== */
+function fillHistRcTeacherSelect() {
+  const sel = document.getElementById('histRcTeacher');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos los docentes</option>';
+  Object.keys(state.teachers || {}).forEach(code => {
+    const o = document.createElement('option');
+    o.value = code;
+    o.textContent = state.teachers[code].nombre || code;
+    sel.appendChild(o);
+  });
+  if (cur && state.teachers[cur]) sel.value = cur;
+}
+
+function renderAdminHistorialRC() {
+  const cont = document.getElementById('admHistorialRCLista');
+  if (!cont) return;
+  fillHistRcTeacherSelect();
+  const fTeacher = document.getElementById('histRcTeacher')?.value || '';
+  const q = (document.getElementById('histRcBuscar')?.value || '').trim().toLowerCase();
+
+  const todos = [...(state.reportCards || [])];
+  const list = todos.filter(rc => {
+    if (fTeacher && rc.teacherCode !== fTeacher) return false;
+    if (q) {
+      const nombre = (state.students[rc.studentCode]?.nombre || '').toLowerCase();
+      if (!nombre.includes(q) && !String(rc.studentCode).toLowerCase().includes(q)) return false;
+    }
+    return true;
+  }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // Resumen
+  let aprob = 0, desaprob = 0;
+  todos.forEach(rc => {
+    const e = getRcEstado(rc);
+    if (e.clase === 'aprobado') aprob++;
+    else if (e.clase === 'desaprobado') desaprob++;
+  });
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('histRcTotal', todos.length);
+  set('histRcAprob', aprob);
+  set('histRcDesaprob', desaprob);
+
+  if (!list.length) {
+    cont.innerHTML = '<div class="empty-state">📭 No hay Report Cards que coincidan.</div>';
+    return;
+  }
+
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+    <table class="admin-table" style="min-width:980px;"><thead><tr>
+      <th>Fecha</th><th>Alumno</th><th>Usuario</th><th>Docente</th><th>Ciclo</th><th>Nota</th><th>Estado</th><th>Acciones</th>
+    </tr></thead><tbody>`;
+  list.forEach(rc => {
+    const s = state.students[rc.studentCode];
+    const t = state.teachers[rc.teacherCode];
+    const est = getRcEstado(rc);
+    html += `<tr>
+      <td>${formatearFecha(rc.date)}</td>
+      <td><strong>${s ? s.nombre : '(alumno eliminado)'}</strong></td>
+      <td><code>${rc.studentCode}</code></td>
+      <td>${t ? t.nombre : (rc.teacherCode || '—')}</td>
+      <td>${rc.ciclo || '—'}</td>
+      <td><strong>${rc.average}</strong></td>
+      <td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td>
+      <td><div class="acciones-cell">
+        <button type="button" class="btn btn-mini btn-azul" data-hist-ver-rc="${rc.id}">👁️ Ver</button>
+        <button type="button" class="btn btn-mini btn-rojo" data-hist-del-rc="${rc.id}">🗑️ Eliminar</button>
+      </div></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+
+  cont.querySelectorAll('[data-hist-ver-rc]').forEach(btn => btn.addEventListener('click', () => {
+    const rc = state.reportCards.find(r => r.id === btn.dataset.histVerRc);
+    if (rc && state.students[rc.studentCode] && state.teachers[rc.teacherCode]) mostrarReportCardModal(rc);
+    else alert('No se puede mostrar: falta el alumno o el docente de este Report Card.');
+  }));
+
+  cont.querySelectorAll('[data-hist-del-rc]').forEach(btn => btn.addEventListener('click', () => {
+    const rc = state.reportCards.find(r => r.id === btn.dataset.histDelRc);
+    if (!rc) return;
+    const alumno = state.students[rc.studentCode]?.nombre || rc.studentCode;
+    const docente = state.teachers[rc.teacherCode]?.nombre || rc.teacherCode;
+    if (!confirm(`¿Eliminar el Report Card de ${alumno} (docente: ${docente}, ${formatearFecha(rc.date)})?\n\nTambién se eliminará del historial del docente y del Recojo de Report Card del alumno. Esta acción no se puede deshacer.`)) return;
+
+    state.reportCards = state.reportCards.filter(r => r.id !== rc.id);
+    saveState();                       // guarda en Supabase y refresca vistas
+    renderAdminHistorialRC();
+    try { renderTeacherHistorialRC(); } catch (e) {}   // si hay un docente en pantalla
+    try { renderStudentReportCards(); } catch (e) {}   // si hay un alumno en pantalla
+    alert('✅ Report Card eliminado.');
+  }));
+}
+
+document.getElementById('histRcTeacher')?.addEventListener('change', renderAdminHistorialRC);
+document.getElementById('histRcBuscar')?.addEventListener('input', renderAdminHistorialRC);
+document.getElementById('btnHistRcActualizar')?.addEventListener('click', async () => {
+  try { const fresh = await loadState(); if (fresh) state = fresh; } catch (e) { console.warn(e); }
+  renderAdminHistorialRC();
+});
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'historial_rc') setTimeout(renderAdminHistorialRC, 40);
+  });
+});
    console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
