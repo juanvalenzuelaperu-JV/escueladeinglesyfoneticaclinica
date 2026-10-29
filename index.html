@@ -565,6 +565,43 @@
     70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
     100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
   }
+/* ===== SLIDER DE SECCIONES ===== */
+body { overflow-x: hidden; }
+.slide { display: none; min-height: calc(100vh - 72px); }
+.slide.activo { display: flex; flex-direction: column; justify-content: center; }
+.slide.activo.entra-der { animation: slideDer .45s ease; }
+.slide.activo.entra-izq { animation: slideIzq .45s ease; }
+@keyframes slideDer { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: none; } }
+@keyframes slideIzq { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
+
+.slider-flecha {
+  position: fixed; top: 50%; transform: translateY(-50%); z-index: 90;
+  width: 46px; height: 46px; border-radius: 50%; border: none;
+  background: rgba(0, 74, 143, .85); color: #fff; font-size: 1.7rem; line-height: 1;
+  cursor: pointer; box-shadow: 0 6px 18px rgba(15, 23, 42, .25); transition: background .2s, opacity .2s;
+}
+.slider-flecha:hover { background: var(--azul-medio); }
+.slider-flecha:disabled { opacity: .25; cursor: not-allowed; }
+.slider-prev { left: 14px; }
+.slider-next { right: 14px; }
+
+.slider-dots {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 90;
+  display: flex; gap: 8px; align-items: center;
+  background: rgba(255, 255, 255, .92); backdrop-filter: blur(6px);
+  padding: 8px 14px; border-radius: 50px; box-shadow: 0 6px 18px rgba(15, 23, 42, .18);
+}
+.slider-dot { width: 10px; height: 10px; border-radius: 50%; border: none; background: #cbd5e1; cursor: pointer; padding: 0; transition: all .25s; }
+.slider-dot.activo { background: var(--azul-medio); width: 26px; border-radius: 10px; }
+
+body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none; }
+.nav-links a.activo:not(.destacado) { color: var(--azul-medio); font-weight: 700; }
+
+@media (max-width: 768px) {
+  .slider-flecha { width: 38px; height: 38px; font-size: 1.4rem; }
+  .slider-prev { left: 6px; }
+  .slider-next { right: 6px; }
+}
 </style>
 </head>
 <body>
@@ -7674,6 +7711,106 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
     </div>
   </div>
 </div>
+<script>
+/* ===== SLIDER DE SECCIONES (una sección por pantalla) ===== */
+(function () {
+  const IDS = ['inicio', 'fundador', 'galeria', 'cursos', 'horarios', 'portal'];
+  const NOMBRES = { inicio: 'Inicio', fundador: 'Fundador', galeria: 'Galería', cursos: 'Programas', horarios: 'Horarios', portal: 'Portales' };
+  const slides = IDS.map(id => document.getElementById(id)).filter(Boolean);
+  if (!slides.length) return;
+  const ids = slides.map(s => s.id);
+  const idxPortal = ids.indexOf('portal');
+  let actual = -1;
 
+  slides.forEach(s => s.classList.add('slide'));
+
+  // Controles
+  const prev = document.createElement('button');
+  prev.className = 'slider-flecha slider-prev'; prev.type = 'button';
+  prev.setAttribute('aria-label', 'Sección anterior'); prev.innerHTML = '&#8249;';
+  const next = document.createElement('button');
+  next.className = 'slider-flecha slider-next'; next.type = 'button';
+  next.setAttribute('aria-label', 'Sección siguiente'); next.innerHTML = '&#8250;';
+  const dots = document.createElement('div');
+  dots.className = 'slider-dots';
+  ids.forEach((id, i) => {
+    const d = document.createElement('button');
+    d.type = 'button'; d.className = 'slider-dot'; d.title = NOMBRES[id] || id;
+    d.setAttribute('aria-label', NOMBRES[id] || id);
+    d.addEventListener('click', () => ir(i));
+    dots.appendChild(d);
+  });
+  document.body.append(prev, next, dots);
+  prev.addEventListener('click', () => ir(actual - 1));
+  next.addEventListener('click', () => ir(actual + 1));
+
+  function hayDashboard() { return !!document.querySelector('#portal .dashboard.visible'); }
+  function hayModal() { return !!document.querySelector('.modal-overlay.visible'); }
+
+  function actualizar() {
+    dots.querySelectorAll('.slider-dot').forEach((d, i) => d.classList.toggle('activo', i === actual));
+    prev.disabled = actual <= 0;
+    next.disabled = actual >= slides.length - 1;
+    document.querySelectorAll('.nav-links a').forEach(a => {
+      a.classList.toggle('activo', a.getAttribute('href') === '#' + ids[actual]);
+    });
+    document.body.classList.toggle('en-dashboard', actual === idxPortal && hayDashboard());
+  }
+
+  function ir(i) {
+    if (i < 0 || i >= slides.length || i === actual) return;
+    const dir = i > actual ? 'entra-der' : 'entra-izq';
+    slides.forEach(s => s.classList.remove('activo', 'entra-der', 'entra-izq'));
+    slides[i].classList.add('activo');
+    if (actual !== -1) slides[i].classList.add(dir);
+    actual = i;
+    actualizar();
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  // Enlaces internos (menú, botones del hero, footer) cambian de slide
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const i = ids.indexOf(a.getAttribute('href').slice(1));
+    if (i < 0) return;
+    e.preventDefault();
+    ir(i);
+  });
+
+  // Teclado ← →
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const tag = (e.target.tagName || '').toUpperCase();
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+    if (hayModal() || (actual === idxPortal && hayDashboard())) return;
+    ir(actual + (e.key === 'ArrowRight' ? 1 : -1));
+  });
+
+  // Deslizar con el dedo (móvil)
+  let tx = 0, ty = 0, tOk = false;
+  document.addEventListener('touchstart', (e) => {
+    tOk = !(hayModal() || (actual === idxPortal && hayDashboard()) || e.target.closest('.tabla-wrap, input, select, textarea, .slider-dots'));
+    if (!tOk) return;
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!tOk) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) ir(actual + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  // Ocultar flechas y puntos cuando hay un portal abierto (alumno, docente, talento, padres)
+  const portalEl = document.getElementById('portal');
+  if (portalEl) {
+    new MutationObserver(actualizar).observe(portalEl, { attributes: true, subtree: true, attributeFilter: ['class'] });
+  }
+
+  // Inicio: respeta #seccion si viene en la URL
+  const inicial = ids.indexOf(location.hash.slice(1));
+  ir(inicial >= 0 ? inicial : 0);
+})();
+</script>
 </body>
 </html>
