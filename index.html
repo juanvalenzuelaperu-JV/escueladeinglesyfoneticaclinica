@@ -857,6 +857,7 @@
         <button class="dash-tab" data-dtab="solicitudes">📝 Solicitudes</button>
         <button class="dash-tab" data-dtab="disponibilidad">🗓️ Disponibilidad</button>
         <button class="dash-tab" data-dtab="carga_horaria">📋 Carga horaria</button>
+       <button class="dash-tab" data-dtab="calendario">📅 Calendario</button>
       </div>
       <div class="dash-contenido">
         <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo ves los grupos y alumnos que el administrador te asignó.</div>
@@ -1061,7 +1062,30 @@
           <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Grupos y turnos en los que has sido confirmado(a) por la coordinación académica.</p>
           <div id="dCargaHorariaLista"></div>
         </div>
-
+<div class="panel" id="dpanel-calendario">
+  <h4 style="color:var(--morado);margin-bottom:8px;font-size:1rem;font-weight:800;">📅 Calendario académico</h4>
+  <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Calendarización del mes según tus grupos asignados. Solo consulta (no se puede editar).</p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:14px;">
+    <div class="campo" style="margin:0;min-width:180px;">
+      <label>Mes</label>
+      <input type="month" id="dCalMes">
+    </div>
+    <div class="campo" style="margin:0;min-width:220px;">
+      <label>Grupo</label>
+      <select id="dCalGrupo"><option value="">Todos mis grupos</option></select>
+    </div>
+    <button type="button" class="btn btn-slate btn-mini" id="btnDCalHoy">Hoy</button>
+  </div>
+  <div id="dCalLeyenda" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;font-size:.78rem;"></div>
+  <div id="dCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
+  <div id="dCalDiaPanel" style="display:none;background:#f9fafb;border:1px solid var(--borde);border-radius:12px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h5 style="margin:0;color:var(--slate);font-size:.95rem;font-weight:800;">Eventos del <span id="dCalDiaTitulo">—</span></h5>
+      <button type="button" class="btn btn-mini btn-slate" id="btnDCalCerrarDia">Cerrar</button>
+    </div>
+    <div id="dCalEventosDia"></div>
+  </div>
+</div>
       </div>
     </div>
 
@@ -7197,7 +7221,143 @@ document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
     if (tab.dataset.dtab === 'evaluaciones') setTimeout(() => { fillTeacherGroupSelects(); loadNotasFromCalendar(); }, 60);
   });
 });
+/* ===== Calendario del docente (solo lectura) ===== */
+let dCalSelected = null;
 
+function fillDCalGrupos() {
+  const sel = document.getElementById('dCalGrupo');
+  if (!sel || !currentTeacherCode) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos mis grupos</option>';
+  getTeacherGroups(currentTeacherCode).forEach(g => {
+    const o = document.createElement('option');
+    o.value = g.id;
+    o.textContent = g.nombre || g.programa || g.id;
+    sel.appendChild(o);
+  });
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+function dCalEventosDe(fecha) {
+  const mine = new Set(getTeacherGroups(currentTeacherCode).map(g => g.id));
+  const filtro = document.getElementById('dCalGrupo')?.value || '';
+  const all = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+  return all.filter(ev => {
+    if (filtro) return ev.grupoId === filtro;
+    return !ev.grupoId || mine.has(ev.grupoId);
+  });
+}
+
+function renderTeacherCalendario() {
+  if (!currentTeacherCode) return;
+  const mesInp = document.getElementById('dCalMes');
+  const grid = document.getElementById('dCalGrid');
+  const leyenda = document.getElementById('dCalLeyenda');
+  if (!mesInp || !grid) return;
+  fillDCalGrupos();
+  if (!mesInp.value) {
+    const d = new Date();
+    mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  const [yy, mm] = mesInp.value.split('-').map(Number);
+  const first = new Date(yy, mm - 1, 1);
+  const last = new Date(yy, mm, 0);
+  const startDay = first.getDay();
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  if (leyenda) {
+    const items = [['#6366f1', 'Evaluaciones'], ['#16a34a', 'Inicio de curso'], ['#dc2626', 'Fin de curso'], ['#f59e0b', 'Otros eventos']];
+    leyenda.innerHTML = items.map(([c, t]) =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block;"></span>${t}</span>`
+    ).join('');
+  }
+
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  let html = dias.map(d => `<div style="text-align:center;font-weight:700;font-size:.78rem;color:var(--gris);padding:8px 4px;">${d}</div>`).join('');
+  for (let i = 0; i < startDay; i++) html += '<div></div>';
+
+  for (let day = 1; day <= last.getDate(); day++) {
+    const key = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const evs = dCalEventosDe(key);
+    const isToday = key === todayIso;
+    const isSel = key === dCalSelected;
+    const dots = evs.slice(0, 4).map(ev =>
+      `<span style="width:7px;height:7px;border-radius:50%;background:${calTipoColor(ev.tipo)};display:inline-block;" title="${calTipoLabel(ev.tipo, ev.nombre)}"></span>`
+    ).join('');
+    const more = evs.length > 4 ? `<span style="font-size:.65rem;color:var(--gris);">+${evs.length - 4}</span>` : '';
+    html += `<div data-dcal-day="${key}" role="button" tabindex="0"
+      style="border:1px solid ${isToday ? 'var(--morado)' : 'var(--borde)'};border-radius:10px;min-height:72px;padding:8px;cursor:pointer;background:${evs.length ? '#f5f3ff' : '#fff'};outline:${isSel ? '2px solid var(--morado)' : 'none'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:800;font-size:.95rem;color:${isToday ? 'var(--morado)' : 'var(--texto)'};">${day}</span>
+        ${isToday ? '<span style="font-size:.65rem;font-weight:700;color:var(--morado);">HOY</span>' : ''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;align-items:center;">${dots}${more}</div>
+      ${evs.length ? `<div style="font-size:.68rem;color:var(--morado);margin-top:4px;font-weight:600;">${evs.length} evento${evs.length > 1 ? 's' : ''}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-dcal-day]').forEach(el => {
+    el.addEventListener('click', () => openTeacherCalDay(el.dataset.dcalDay));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTeacherCalDay(el.dataset.dcalDay); }
+    });
+  });
+}
+
+function openTeacherCalDay(key) {
+  dCalSelected = key;
+  const panel = document.getElementById('dCalDiaPanel');
+  const titulo = document.getElementById('dCalDiaTitulo');
+  const cont = document.getElementById('dCalEventosDia');
+  if (!panel || !cont) return;
+  panel.style.display = 'block';
+  if (titulo) titulo.textContent = formatearFecha(key);
+  document.querySelectorAll('#dCalGrid [data-dcal-day]').forEach(el => {
+    el.style.outline = el.dataset.dcalDay === key ? '2px solid var(--morado)' : 'none';
+  });
+  const evs = dCalEventosDe(key);
+  if (!evs.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">No hay eventos programados este día para tus grupos.</div>';
+    return;
+  }
+  cont.innerHTML = evs.map(ev => {
+    const g = (state.groups || []).find(x => x.id === ev.grupoId);
+    return `<div class="libro-card" style="border-left:4px solid ${calTipoColor(ev.tipo)};">
+      <div class="libro-info">
+        <strong>${calTipoEmoji(ev.tipo)} ${calTipoLabel(ev.tipo, ev.nombre)}</strong>
+        <small style="display:block;color:var(--gris);margin-top:2px;">${g ? g.nombre : 'General'}${ev.nota ? ' · ' + ev.nota : ''}</small>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('dCalMes')?.addEventListener('change', () => {
+  dCalSelected = null;
+  const p = document.getElementById('dCalDiaPanel'); if (p) p.style.display = 'none';
+  renderTeacherCalendario();
+});
+document.getElementById('dCalGrupo')?.addEventListener('change', () => {
+  dCalSelected = null;
+  const p = document.getElementById('dCalDiaPanel'); if (p) p.style.display = 'none';
+  renderTeacherCalendario();
+});
+document.getElementById('btnDCalHoy')?.addEventListener('click', () => {
+  const d = new Date();
+  const mesInp = document.getElementById('dCalMes');
+  if (mesInp) mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderTeacherCalendario();
+  openTeacherCalDay(d.toISOString().slice(0, 10));
+});
+document.getElementById('btnDCalCerrarDia')?.addEventListener('click', () => {
+  dCalSelected = null;
+  const p = document.getElementById('dCalDiaPanel'); if (p) p.style.display = 'none';
+  document.querySelectorAll('#dCalGrid [data-dcal-day]').forEach(el => { el.style.outline = 'none'; });
+});
+document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.dtab === 'calendario') setTimeout(renderTeacherCalendario, 40);
+  });
+});
 console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
