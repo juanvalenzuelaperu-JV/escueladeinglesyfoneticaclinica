@@ -3586,12 +3586,12 @@ async function handleOficinaUpload(subportal, tipo) {
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
   try { const carpeta = tipo === "sello" ? "sellos" : "membretes"; const url = await procesarImagen(fileInput.files[0], carpeta); if (!state.oficinaImagenes[subportal]) state.oficinaImagenes[subportal] = { sello: "", membrete: "" }; state.oficinaImagenes[subportal][tipo] = url; saveState(); renderOficinaImagenes(subportal); alert("✅ Guardado."); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); }
 }
-document.getElementById("btnSaveMktSello").addEventListener("click", () => handleOficinaUpload("marketing", "sello"));
-document.getElementById("btnSaveMktMembrete").addEventListener("click", () => handleOficinaUpload("marketing", "membrete"));
-document.getElementById("btnSaveContSello").addEventListener("click", () => handleOficinaUpload("contabilidad", "sello"));
-document.getElementById("btnSaveContMembrete").addEventListener("click", () => handleOficinaUpload("contabilidad", "membrete"));
-document.getElementById("btnSaveDirSello").addEventListener("click", () => handleOficinaUpload("direccion", "sello"));
-document.getElementById("btnSaveDirMembrete").addEventListener("click", () => handleOficinaUpload("direccion", "membrete"));
+document.getElementById("btnSaveMktSello")?.addEventListener("click", () => handleOficinaUpload("marketing", "sello"));
+document.getElementById("btnSaveMktMembrete")?.addEventListener("click", () => handleOficinaUpload("marketing", "membrete"));
+document.getElementById("btnSaveContSello")?.addEventListener("click", () => handleOficinaUpload("contabilidad", "sello"));
+document.getElementById("btnSaveContMembrete")?.addEventListener("click", () => handleOficinaUpload("contabilidad", "membrete"));
+document.getElementById("btnSaveDirSello")?.addEventListener("click", () => handleOficinaUpload("direccion", "sello"));
+document.getElementById("btnSaveDirMembrete")?.addEventListener("click", () => handleOficinaUpload("direccion", "membrete"));
 
 /* ============================================================
    VISTA ADMIN
