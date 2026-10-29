@@ -1115,6 +1115,7 @@
             <button class="dash-tab" data-admtab="docentes">👨‍🏫 Docentes</button>
             <button class="dash-tab" data-admtab="padres">👨‍👩‍👧 Padres de familia</button>
             <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceso Alumno</button>
+           <button class="dash-tab" data-admtab="acceso_docente">🔑 Acceso Docente</button>
             <span class="tab-group-label">Estructura</span>
             <button class="dash-tab" data-admtab="grupos">📚 Grupos</button>
             <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
@@ -1315,7 +1316,18 @@
               </div>
             </div>
           </div>
-
+<div class="panel" id="adm-panel-acceso_docente">
+  <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceso directo a cuenta de docente</h4>
+  <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Selecciona un docente e ingresa a su portal sin necesidad de contraseña.</p>
+  <div class="tform admin-form">
+    <div class="campo"><label>Docente</label>
+      <select id="admAccesoDocenteSelect"><option value="">Selecciona un docente...</option></select>
+    </div>
+    <div class="tform-acciones">
+      <button type="button" class="btn btn-morado" id="btnAdmEntrarDocente">Entrar a la cuenta</button>
+    </div>
+  </div>
+</div>
           <div class="panel" id="adm-panel-estados_grupos">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📁 Estados de grupos</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Consulta qué grupos siguen abiertos y cuáles ya fueron cerrados por los docentes.</p>
@@ -7391,6 +7403,42 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
     if (tab.dataset.admtab === 'estados_grupos') refrescarEstadosGrupos();
   });
 });
+ /* ===== Acceso directo a cuenta de docente (Coordinación Académica) ===== */
+function renderAdmAccesoDocenteSelect() {
+  const sel = document.getElementById('admAccesoDocenteSelect');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Selecciona un docente...</option>';
+  Object.keys(state.teachers || {})
+    .sort((a, b) => (state.teachers[a].nombre || '').localeCompare(state.teachers[b].nombre || ''))
+    .forEach(code => {
+      const t = state.teachers[code];
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = `${t.nombre} (${code})`;
+      sel.appendChild(opt);
+    });
+  if (cur && state.teachers[cur]) sel.value = cur;
+}
+
+document.getElementById('btnAdmEntrarDocente')?.addEventListener('click', () => {
+  const code = document.getElementById('admAccesoDocenteSelect')?.value;
+  if (!code || !state.teachers[code]) { alert('Selecciona un docente válido.'); return; }
+  loginTeacher(code);   // loginTeacher ya registra el historial (#docente)
+});
+
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'acceso_docente') setTimeout(renderAdmAccesoDocenteSelect, 40);
+  });
+});
+
+// Mantener el selector actualizado cuando se crean o editan docentes
+const _refreshAdminViewOrig = refreshAdminView;
+refreshAdminView = function () {
+  _refreshAdminViewOrig();
+  try { renderAdmAccesoDocenteSelect(); } catch (e) {}
+};
    console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
