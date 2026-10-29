@@ -3763,7 +3763,7 @@ document.getElementById("admNewGroupForm")?.addEventListener("submit", (e) => {
   alert("✅ Grupo creado correctamente.");
 });
 
-document.getElementById("admNewCourseForm").addEventListener("submit", (e) => {
+document.getElementById("admNewCourseForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const programa = document.getElementById("admCoursePrograma").value.trim(); const dia = document.getElementById("admCourseDia").value.trim();
   const horario = document.getElementById("admCourseHorario").value.trim(); const modalidad = document.getElementById("admCourseModalidad").value;
