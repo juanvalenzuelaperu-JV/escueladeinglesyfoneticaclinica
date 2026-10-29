@@ -565,38 +565,6 @@
     70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
     100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
   }
- /* ===== Mejoras Portal Talento (nueva estructura) ===== */
-.subportal-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--borde);
-}
-.subportal-tab {
-  background: #f1f5f9;
-  border: 1.5px solid var(--borde);
-  padding: 9px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: .88rem;
-  color: var(--gris);
-  transition: all .2s;
-}
-.subportal-tab.activo {
-  background: var(--talento);
-  color: #fff;
-  border-color: var(--talento);
-}
-.subportal-tab:hover:not(.activo) {
-  background: #e2e8f0;
-  color: var(--texto);
-}
-.subpanel { display: none; animation: fadeIn .25s ease; }
-.subpanel.activo { display: block; }
 </style>
 </head>
 <body>
@@ -1097,261 +1065,654 @@
       </div>
     </div>
 
-<!-- ============================================================
-     DASHBOARD TALENTO — NUEVA ESTRUCTURA (v2 limpia)
-     ============================================================ -->
-<div class="dashboard" id="dashboardTalento">
-  
-  <!-- Header del portal -->
-  <div class="dash-top talento">
-    <div class="dash-user">
-      <div class="dash-avatar" id="iconoAvatarTalento">🌟</div>
-      <div>
-        <h3>Portal Talento</h3>
-        <p>Gestión integral · Jotavalenzuela</p>
+    <!-- DASHBOARD TALENTO -->
+    <div class="dashboard" id="dashboardTalento">
+      <div class="dash-top talento">
+        <div class="dash-user">
+          <div class="dash-avatar" id="iconoAvatarTalento">🌟</div>
+          <div><h3>Portal Talento</h3><p>Gestión integral · Jotavalenzuela</p></div>
+        </div>
+        <div class="dash-live"><span class="punto-live"></span><span>En vivo · <span id="relojTal">--:--:--</span></span></div>
+        <button class="dash-salir" id="btnSalirTal">Cerrar sesión</button>
+      </div>
+      <div class="dash-tabs talento-tabs">
+        <button class="dash-tab activo" data-taltab="admin">🎓 Coordinación Académica</button>
+        <button class="dash-tab" data-taltab="contabilidad">💰 Contabilidad y Finanzas</button>
+        <button class="dash-tab" data-taltab="direccion">🎯 Dirección</button>
+        <button class="dash-tab" data-taltab="marketing">📣 Marketing</button>
+      </div>
+      <div class="dash-contenido">
+
+        <!-- SUBPORTAL COORDINACIÓN ACADÉMICA -->
+        <div class="panel activo" id="tal-panel-admin">
+          <div class="dash-tabs sub-tabs" style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:10px;align-items:center;">
+            <span class="tab-group-label">Personas</span>
+            <button class="dash-tab activo" data-admtab="alumnos">🎓 Alumnos</button>
+            <button class="dash-tab" data-admtab="docentes">👨‍🏫 Docentes</button>
+            <button class="dash-tab" data-admtab="padres">👨‍👩‍👧 Padres de familia</button>
+            <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceso Alumno</button>
+            <span class="tab-group-label">Estructura</span>
+            <button class="dash-tab" data-admtab="grupos">📚 Grupos</button>
+            <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
+            <button class="dash-tab" data-admtab="programacion">🗓️ Programación de cursos</button>
+            <button class="dash-tab" data-admtab="calendarizacion">📅 Calendarización</button>
+            <span class="tab-group-label">Operación</span>
+            <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
+            <button class="dash-tab" data-admtab="reporte_dia">📋 Reporte del día</button>
+            <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad docente</button>
+            <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
+            <span class="tab-group-label">Evaluación</span>
+            <button class="dash-tab" data-admtab="asignaciones">📋 Gestor de asignaciones</button>
+            <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
+            <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos</button>
+            <span class="tab-group-label">Cierre</span>
+            <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
+            <span class="tab-group-label">Ajustes</span>
+            <button class="dash-tab" data-admtab="campos">🧩 Campos personalizados</button>
+          </div>
+          <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo Coordinación Académica crea cuentas, grupos, cursos y exámenes.</div>
+
+          <div class="panel activo" id="adm-panel-alumnos">
+            <div class="tform admin-form">
+              <h4>➕ Crear nueva cuenta de alumno</h4>
+              <form id="admNewAlumnoForm" class="tform-grid">
+                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admAlumnoNombre" placeholder="Ej: María López" required></div>
+                <div class="campo"><label>Email</label><input type="email" id="admAlumnoEmail" placeholder="maria@escuela.com"></div>
+                <div class="campo"><label>Programa</label><input type="text" id="admAlumnoPrograma" placeholder="Ej: Inglés Basic"></div>
+                <div class="campo"><label>Grupo (opcional)</label><select id="admAlumnoGrupo"><option value="">Sin grupo</option></select></div>
+                <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
+                <div class="campo"><label>Mes de ingreso <span class="req">*</span></label>
+                  <select id="admAlumnoMonth" required>
+                    <option value="">Selecciona mes</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+                    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                  </select>
+                </div>
+                <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoDay" placeholder="Ej: 15" min="1" max="31" required></div>
+                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admAlumnoDni" placeholder="Ej: 45513532" maxlength="8" required></div>
+                <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admAlumnoTelefono" placeholder="Ej: 51999111222" required></div>
+                <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
+                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div></div>
+                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div></div>
+                <div class="campo completo" id="admAlumnoCamposExtra"></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
+              </form>
+              <div class="cred-box" id="credAlumno">
+                <strong>✅ Cuenta creada:</strong>
+                <div class="cred-row"><span>Usuario:</span><code id="credUserAlumno">—</code><button data-copy="credUserAlumno">📋</button></div>
+                <div class="cred-row"><span>Contraseña:</span><code id="credPassAlumno">—</code><button data-copy="credPassAlumno">📋</button></div>
+              </div>
+            </div>
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Alumnos registrados</h4>
+            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+              <table class="admin-table" style="min-width:1200px;">
+                <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Grupo</th><th>Programa</th><th>Año</th><th>Mes</th><th>Día</th><th>DNI</th><th>Evidencia</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+                <tbody id="admAlumnosBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="adm-panel-docentes">
+            <div class="tform admin-form">
+              <h4>➕ Crear nueva cuenta de docente</h4>
+              <form id="admNewDocenteForm" class="tform-grid">
+                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admDocenteNombre" placeholder="Ej: Laura Chen" required></div>
+                <div class="campo"><label>Email</label><input type="email" id="admDocenteEmail" placeholder="laura@escuela.com"></div>
+                <div class="campo"><label>Área</label><input type="text" id="admDocenteArea" placeholder="Ej: Fonética clínica"></div>
+                <div class="campo"><label>Pago por hora pedagógica (S/) <span class="req">*</span></label><input type="number" id="admDocentePagoHora" step="0.01" min="0" placeholder="Ej: 25.00" required></div>
+                <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admDocenteYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
+                <div class="campo"><label>Mes de ingreso <span class="req">*</span></label>
+                  <select id="admDocenteMonth" required>
+                    <option value="">Selecciona mes</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+                    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                  </select>
+                </div>
+                <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admDocenteDay" placeholder="Ej: 15" min="1" max="31" required></div>
+                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admDocenteDni" placeholder="Ej: 45513532" maxlength="8" required></div>
+                <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admDocenteTelefono" placeholder="Ej: 51915900797" required></div>
+                <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admDocenteDniFile" accept="image/*" required></div>
+                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admDocenteUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="docente">🎲</button></div></div>
+                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admDocentePass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="docente">🎲</button></div></div>
+                <div class="campo completo" id="admDocenteCamposExtra"></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
+              </form>
+              <div class="cred-box" id="credDocente">
+                <strong>✅ Cuenta creada:</strong>
+                <div class="cred-row"><span>Usuario:</span><code id="credUserDocente">—</code><button data-copy="credUserDocente">📋</button></div>
+                <div class="cred-row"><span>Contraseña:</span><code id="credPassDocente">—</code><button data-copy="credPassDocente">📋</button></div>
+              </div>
+            </div>
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Docentes registrados</h4>
+            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+              <table class="admin-table" style="min-width:1200px;">
+                <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Área</th><th>Pago/Hora</th><th>Grupos</th><th>DNI</th><th>Evidencia</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+                <tbody id="admDocentesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="adm-panel-grupos">
+            <div class="tform admin-form">
+              <h4>➕ Crear nuevo grupo</h4>
+              <form id="admNewGroupForm" class="tform-grid">
+  <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admGroupPrograma" placeholder="Ej: Basic" required></div>
+  <div class="campo"><label>Nivel (texto libre) <span class="req">*</span></label><input type="text" id="admGroupNivel" placeholder="Ej: Básico / B1 / Intermedio" required></div>
+  <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
+  <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
+  <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A - Tarde" required></div>
+  <div class="campo"><label>Total horas del ciclo</label><input type="number" id="admGroupTotalHoras" min="0" step="1" value="40" placeholder="Ej: 40"></div>
+  <div class="campo completo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
+  <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
+</form>
+            </div>
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Grupos creados</h4>
+            <div id="admGroupsLista"></div>
+          </div>
+
+          <div class="panel" id="adm-panel-matriculas">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📋 Registro de Matrículas y Citas</h4>
+            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+              <table class="admin-table" style="min-width:780px;">
+                <thead><tr><th>Tipo</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Programa / Fecha</th><th>Voucher</th><th>Acciones</th></tr></thead>
+                <tbody id="admMatriculasBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="adm-panel-programacion">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">🗓️ Programación de Cursos y Horarios</h4>
+            <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Los cursos que crees aquí aparecerán automáticamente en la tabla pública de Horarios.</p>
+            <div class="tform admin-form">
+              <h4>➕ Crear nuevo curso / horario</h4>
+              <form id="admNewCourseForm" class="tform-grid">
+                <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admCoursePrograma" placeholder="Ej: Basic" required></div>
+                <div class="campo"><label>Día(s)</label><input type="text" id="admCourseDia" placeholder="Ej: Jueves"></div>
+                <div class="campo"><label>Horario</label><input type="text" id="admCourseHorario" placeholder="Ej: 19:00 a 21:00"></div>
+                <div class="campo"><label>Modalidad</label><select id="admCourseModalidad"><option value="Online">Online</option><option value="Presencial">Presencial</option><option value="Híbrido">Híbrido</option></select></div>
+                <div class="campo"><label>Tipo</label><select id="admCourseTipo"><option value="matricula">Matrícula con cupo</option><option value="cita">Cita (sin cupo)</option></select></div>
+                <div class="campo"><label>Cupo máximo (si aplica)</label><input type="number" id="admCourseMax" value="12" min="1" max="100"></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear curso</button></div></div>
+              </form>
+            </div>
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Cursos registrados</h4>
+            <div id="admCoursesList" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"></div>
+          </div>
+
+          <div class="panel" id="adm-panel-examenes">
+            <div class="tform admin-form">
+              <h4>➕ Crear nuevo examen</h4>
+              <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
+              <form id="admNewExamForm" class="tform-grid">
+                <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
+                <div class="campo"><label>Grupo destino <span class="req">*</span></label><select id="admExamGroup" required><option value="">Selecciona grupo</option></select></div>
+                <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
+                <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
+                <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
+                <div class="campo completo">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
+                    <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
+                    <button type="button" class="btn btn-mini btn-azul" id="admBtnAddPregunta">+ Agregar pregunta</button>
+                  </div>
+                  <div id="admExamPreguntas"></div>
+                </div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
+              </form>
+              <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
+            </div>
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
+            <div id="admExamsLista"></div>
+          </div>
+
+          <div class="panel" id="adm-panel-asistencia">
+            <div class="tform admin-form">
+              <h4>📅 Resumen de Asistencia</h4>
+              <div class="campo"><label>Selecciona el grupo</label><select id="admAsisGrupo"><option value="">Selecciona un grupo...</option></select></div>
+            </div>
+            <div id="admAsisResumen" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+              <p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo.</p>
+            </div>
+          </div>
+
+          <!-- Membrete y Foto Fundador eliminados de Coordinación; se gestionan en Marketing > Iconografía -->
+<div class="panel" id="adm-panel-acceso_alumno">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceso directo a cuenta de alumno</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Selecciona un alumno e ingresa a su portal sin necesidad de contraseña.</p>
+            <div class="tform admin-form">
+              <div class="campo"><label>Alumno</label>
+                <select id="admAccesoAlumnoSelect"><option value="">Selecciona un alumno...</option></select>
+              </div>
+              <div class="tform-acciones">
+                <button type="button" class="btn btn-azul" id="btnAdmEntrarAlumno">Entrar a la cuenta</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="adm-panel-estados_grupos">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📁 Estados de grupos</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Consulta qué grupos siguen abiertos y cuáles ya fueron cerrados por los docentes.</p>
+            <div class="resumen-grid" style="margin-bottom:20px;">
+              <div class="resumen-card verde"><div class="et">Grupos abiertos</div><div class="val" id="estGruposAbiertos">—</div></div>
+              <div class="resumen-card morado"><div class="et">Grupos cerrados</div><div class="val" id="estGruposCerrados">—</div></div>
+              <div class="resumen-card azul"><div class="et">Total grupos</div><div class="val" id="estGruposTotal">—</div></div>
+            </div>
+            <div id="admEstadosGruposLista"></div>
+          </div>
+
+          
+          <div class="panel" id="adm-panel-disp_docentes">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;" id="admDispTitulo">🗓️ Disponibilidad Docente</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Resumen de la disponibilidad de todos los profesores. Marca «Ha sido programado(a) para este turno» en los turnos que el docente indicó que puede.</p>
+            <div id="admDispDocentesLista"></div>
+            <div class="tform" style="margin-top:24px;">
+              <h4>📄 Generar Carga Horaria</h4>
+              <div class="tform-grid">
+                <div class="campo"><label>Selecciona docente</label>
+                  <select id="admCargaTeacherSelect"><option value="">Selecciona...</option></select>
+                </div>
+              </div>
+              <div class="tform-acciones" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+                <button type="button" class="btn btn-azul btn-mini" id="btnGenCargaHoraria">📄 Generar / Vista preliminar</button>
+                <button type="button" class="btn btn-verde btn-mini" id="btnConfirmarCarga">✅ Confirmar carga horaria</button>
+                <button type="button" class="btn btn-slate btn-mini" id="btnDescargarCarga">⬇️ Descargar</button>
+                <button type="button" class="btn btn-slate btn-mini" id="btnImprimirCarga">🖨️ Imprimir</button>
+                <button type="button" class="btn btn-verde btn-mini" id="btnWhatsAppCarga">📱 Enviar por WhatsApp</button>
+              </div>
+              <div class="boleta-preview-container" id="admCargaPreview" style="margin-top:16px;"></div>
+            </div>
+          </div>
+
+          
+          <div class="panel" id="adm-panel-campos">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🧩 Campos personalizados</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Crea campos adicionales para las cuentas de alumnos y docentes. Aparecerán al crear y al editar cuentas.</p>
+            <div class="tform admin-form">
+              <h4>➕ Nuevo campo</h4>
+              <form id="admNewCampoForm" class="tform-grid">
+                <div class="campo"><label>Etiqueta / nombre del campo <span class="req">*</span></label>
+                  <input type="text" id="campoLabel" placeholder="Ej: Distrito, Especialidad, Contacto de emergencia" required>
+                </div>
+                <div class="campo"><label>Tipo de campo <span class="req">*</span></label>
+                  <select id="campoTipo" required>
+                    <option value="text">Texto</option>
+                    <option value="number">Número</option>
+                    <option value="date">Fecha</option>
+                    <option value="tel">Teléfono</option>
+                    <option value="email">Email</option>
+                    <option value="select">Lista desplegable</option>
+                    <option value="textarea">Texto largo</option>
+                  </select>
+                </div>
+                <div class="campo"><label>Aplica a <span class="req">*</span></label>
+                  <select id="campoAplica" required>
+                    <option value="ambos">Alumnos y Docentes</option>
+                    <option value="alumno">Solo Alumnos</option>
+                    <option value="docente">Solo Docentes</option>
+                  </select>
+                </div>
+                <div class="campo"><label>¿Obligatorio?</label>
+                  <select id="campoReq">
+                    <option value="no">Opcional</option>
+                    <option value="si">Obligatorio</option>
+                  </select>
+                </div>
+                <div class="campo completo" id="campoOpcionesWrap" style="display:none;">
+                  <label>Opciones de la lista (separadas por coma)</label>
+                  <input type="text" id="campoOpciones" placeholder="Ej: Lima, Arequipa, Cusco">
+                </div>
+                <div class="campo completo">
+                  <div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear campo</button></div>
+                </div>
+              </form>
+            </div>
+            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Campos definidos</h4>
+            <div id="admCamposLista"></div>
+          </div>
+
+          
+          <div class="panel" id="adm-panel-asignaciones">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Gestor de asignaciones</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Programa las evaluaciones del ciclo. Los docentes solo podrán calificar; no crear nuevas desde su portal.</p>
+            <div class="tform admin-form">
+              <h4>🧩 Crear criterio nuevo</h4>
+              <div class="tform-grid">
+                <div class="campo"><label>Nombre del criterio nuevo</label><input type="text" id="admNuevoCriterioNombre" placeholder="Ej: Project Work"></div>
+                <div class="campo" style="display:flex;align-items:flex-end;"><button type="button" class="btn btn-azul btn-mini" id="btnCrearCriterio">➕ Crear criterio</button></div>
+              </div>
+            </div>
+            <div class="tform admin-form">
+              <h4>➕ Nueva evaluación</h4>
+              <form id="admNewAsgForm" class="tform-grid">
+                <div class="campo">
+                  <label>Criterio <span class="req">*</span></label>
+                  <select id="admAsgCriterio" required>
+                    <option value="">Selecciona...</option>
+                    <option value="class_participation">Class Participation</option>
+                    <option value="writing">Writing</option>
+                    <option value="online_homework">Online Homework</option>
+                    <option value="speaking">Speaking</option>
+                    <option value="readers">Readers</option>
+                    <option value="intl_exam">Internacional examination</option>
+                    <option value="final_exam">Final Exam</option>
+                  </select>
+                </div>
+                <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="admAsgInicio" required></div>
+                <div class="campo"><label>Fecha fin / caducidad <span class="req">*</span></label><input type="date" id="admAsgFin" required></div>
+                <div class="campo"><label>Grupo (opcional)</label><select id="admAsgGrupo"><option value="">Todos los grupos</option></select></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear evaluación</button></div></div>
+              </form>
+            </div>
+            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Evaluaciones programadas</h4>
+            <div id="admAsignacionesLista"></div>
+          </div>
+
+          
+          <div class="panel" id="adm-panel-historial_cursos">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📚 Historial de cursos dictados</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Registro de cada curso cerrado por los docentes, con la descripción entregada a Coordinación Académica.</p>
+            <div class="resumen-grid" style="margin-bottom:18px;">
+              <div class="resumen-card azul"><div class="et">Cursos cerrados</div><div class="val" id="histCursosTotal">—</div></div>
+              <div class="resumen-card verde"><div class="et">Alumnos involucrados</div><div class="val" id="histCursosAlumnos">—</div></div>
+            </div>
+            <div id="admHistorialCursosLista"></div>
+          </div>
+
+          <div class="panel" id="adm-panel-resumen">
+            <div class="resumen-grid">
+              <div class="resumen-card slate"><div class="et">Alumnos</div><div class="val" id="admStatAlumnos">—</div></div>
+              <div class="resumen-card morado"><div class="et">Docentes</div><div class="val" id="admStatDocentes">—</div></div>
+              <div class="resumen-card azul"><div class="et">Grupos</div><div class="val" id="admStatGrupos">—</div></div>
+              <div class="resumen-card amarillo"><div class="et">Asignaciones</div><div class="val" id="admStatAsgs">—</div></div>
+              <div class="resumen-card verde"><div class="et">Exámenes</div><div class="val" id="admStatExams">—</div></div>
+            </div>
+            <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Grupos por nivel</h4>
+            <div class="resumen-grid" id="admGruposPorNivel"></div>
+            <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Resumen de calificaciones</h4>
+            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+              <table class="table-slate" style="min-width:640px;"><thead><tr><th>Alumno</th><th>Grupo</th><th>Promedio</th><th>Estado</th><th>Asistencia</th></tr></thead><tbody id="admResumenBody"></tbody></table>
+            </div>
+          </div>
+
+          <!-- PADRES DE FAMILIA -->
+          <div class="panel" id="adm-panel-padres">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">👨‍👩‍👧 Padres de familia</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Crea cuentas de padres/madres vinculadas a alumnos. Ellos podrán ingresar al Portal Padres de Familia.</p>
+            <div class="tform admin-form">
+              <h4>➕ Crear cuenta de padre/madre</h4>
+              <form id="admNewPadreForm" class="tform-grid">
+                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admPadreNombre" required placeholder="Ej: Ana García"></div>
+                <div class="campo"><label>Número de celular <span class="req">*</span></label><input type="tel" id="admPadreCelular" required placeholder="51999111222"></div>
+                <div class="campo"><label>Correo electrónico</label><input type="email" id="admPadreEmail" placeholder="ana@email.com"></div>
+                <div class="campo"><label>Fecha de nacimiento</label><input type="date" id="admPadreNac"></div>
+                <div class="campo"><label>Edad actual</label><input type="number" id="admPadreEdad" readonly placeholder="Auto"></div>
+                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admPadreDni" maxlength="8" required></div>
+                <div class="campo completo"><label>Foto del DNI</label><input type="file" id="admPadreDniFile" accept="image/*"></div>
+                <div class="campo completo"><label>Padre/madre de: <span class="req">*</span></label>
+                  <input type="text" id="admPadreDeFiltro" placeholder="Escribe para filtrar alumnos..." autocomplete="off">
+                  <div id="admPadreDeSugerencias" style="border:1px solid var(--borde);border-radius:8px;max-height:160px;overflow-y:auto;display:none;background:#fff;margin-top:4px;"></div>
+                  <div id="admPadreHijosChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+                </div>
+                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admPadreUser" required><button type="button" class="btn-icon" id="btnGenPadreUser">🎲</button></div></div>
+                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admPadrePass" required><button type="button" class="btn-icon" id="btnGenPadrePass">🎲</button></div></div>
+                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta padre/madre</button></div></div>
+              </form>
+              <div class="cred-box" id="credPadre"><strong>✅ Cuenta creada:</strong>
+                <div class="cred-row"><span>Usuario:</span><code id="credUserPadre">—</code><button data-copy="credUserPadre">📋</button></div>
+                <div class="cred-row"><span>Contraseña:</span><code id="credPassPadre">—</code><button data-copy="credPassPadre">📋</button></div>
+              </div>
+            </div>
+            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Padres registrados</h4>
+            <div id="admPadresLista"></div>
+          </div>
+
+          <!-- CALENDARIZACIÓN -->
+          <div class="panel" id="adm-panel-calendarizacion">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Selecciona el mes y haz clic en cualquier día del calendario. En el panel lateral podrás asignar grupos, tipos de evaluación, inicio/fin de curso u otros eventos.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
+              <div class="campo" style="margin:0;min-width:180px;"><label>Mes a programar</label><input type="month" id="calMesSelect"></div>
+              <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
+              <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
+            </div>
+            <div id="calLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:.78rem;"></div>
+            <div style="display:grid;grid-template-columns:1fr minmax(280px,360px);gap:20px;align-items:start;">
+              <div>
+                <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;"></div>
+                <div id="calMesResumen" style="display:none;margin-top:12px;"></div>
+              </div>
+              <div id="calEventPanel" style="display:none;background:#f9fafb;border:1px solid var(--borde);border-radius:14px;padding:18px;position:sticky;top:90px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+                  <h5 style="margin:0;color:var(--azul);font-size:1rem;">📌 <span id="calFechaSel">—</span></h5>
+                  <button type="button" class="btn btn-mini btn-slate" id="btnCalCerrarPanel" style="padding:4px 10px;">Cerrar</button>
+                </div>
+                <div class="campo"><label>Grupo <span class="req">*</span></label>
+                  <select id="calGrupoSel"><option value="">Selecciona grupo...</option></select>
+                </div>
+                <div class="campo"><label>Tipo de evento / evaluación <span class="req">*</span></label>
+                  <select id="calTipoSel">
+                    <option value="">Selecciona...</option>
+                    <optgroup label="Curso">
+                      <option value="inicio_curso">Inicio de curso</option>
+                      <option value="fin_curso">Fin de curso</option>
+                    </optgroup>
+                    <optgroup label="Evaluaciones" id="calTipoEvalGroup">
+                      <option value="class_participation">Class Participation</option>
+                      <option value="online_workbook">Online Workbook</option>
+                      <option value="readers">Readers</option>
+                      <option value="writing">Writing</option>
+                      <option value="speaking">Speaking</option>
+                      <option value="final_exam">Final Exam</option>
+                    </optgroup>
+                    <option value="otro">➕ Crear otro evento</option>
+                  </select>
+                </div>
+                <div class="campo" id="calOtroWrap" style="display:none;">
+                  <label>Nombre del nuevo evento</label>
+                  <input type="text" id="calOtroEvento" placeholder="Ej: Día del libro, Simulacro oral…">
+                </div>
+                <div class="campo">
+                  <label>Notas / detalle (opcional)</label>
+                  <input type="text" id="calNotaEvento" placeholder="Observación breve">
+                </div>
+                <div class="tform-acciones" style="margin-top:8px;">
+                  <button type="button" class="btn btn-verde btn-mini" id="btnAddCalEvent">➕ Agregar al día</button>
+                </div>
+                <div class="mensaje-exito" id="calAddMsg" style="margin-top:10px;">✅ Evento agregado</div>
+                <h5 style="margin:18px 0 10px;color:var(--slate);font-size:.9rem;font-weight:800;">Eventos de este día</h5>
+                <div id="calEventosDelDia"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REPORTE DEL DÍA -->
+          <div class="panel" id="adm-panel-reporte_dia">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Reporte del día</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Monitorea hasta medianoche las tareas del día: asistencia guardada por docentes, registros de notas y eventos calendarizados. Marca cumplido / no cumplido por grupo.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
+              <div class="campo" style="margin:0;min-width:180px;"><label>Fecha del reporte</label><input type="date" id="reporteDiaFecha"></div>
+              <div class="campo" style="margin:0;min-width:200px;"><label>Filtrar docente</label>
+                <select id="reporteDiaTeacher"><option value="">Todos los docentes</option></select>
+              </div>
+              <button type="button" class="btn btn-slate btn-mini" id="btnReporteHoy">Hoy</button>
+              <button type="button" class="btn btn-azul btn-mini" id="btnReporteRefresh">🔄 Actualizar</button>
+              <button type="button" class="btn btn-verde btn-mini" id="btnReporteExportar">⬇️ Exportar / PDF</button>
+            </div>
+            <div class="resumen-grid" id="reporteDiaResumen" style="margin-bottom:20px;">
+              <div class="resumen-card verde"><div class="et">Asistencias cumplidas</div><div class="val" id="repStatAsisOk">0</div></div>
+              <div class="resumen-card amarillo"><div class="et">Asistencias pendientes</div><div class="val" id="repStatAsisPend">0</div></div>
+              <div class="resumen-card morado"><div class="et">Registros de notas</div><div class="val" id="repStatNotas">0</div></div>
+              <div class="resumen-card azul"><div class="et">Eventos del día</div><div class="val" id="repStatEventos">0</div></div>
+            </div>
+            <div id="reporteDiaDeadline" class="aviso-tiempo-real" style="margin-bottom:16px;"></div>
+            <div class="dash-tabs sub-tabs" style="margin-bottom:16px;">
+              <button type="button" class="dash-tab activo" data-rep-tab="asistencia">📅 Asistencia</button>
+              <button type="button" class="dash-tab" data-rep-tab="notas">📊 Registro de notas</button>
+              <button type="button" class="dash-tab" data-rep-tab="eventos">📌 Eventos calendarizados</button>
+              <button type="button" class="dash-tab" data-rep-tab="detalle">🔍 Detalle expandido</button>
+            </div>
+            <div id="reporteDiaLista"></div>
+            <div id="reporteDiaDetalle" style="display:none;margin-top:16px;"></div>
+          </div>
+        </div>
+
+        <!-- SUBPORTAL CONTABILIDAD Y FINANZAS -->
+        <div class="panel" id="tal-panel-contabilidad">
+          <div class="subportal-tabs">
+            <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
+            <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
+          </div>
+          <div class="subpanel activo" id="cont-subpanel-pago">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
+            <div class="tform admin-form">
+              <div class="tform-grid">
+                <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
+                <div class="campo"><label>Grupos a cargo</label><select id="admPagoSelectGrupo"><option value="">Todos los grupos del docente</option></select></div>
+              </div>
+            </div>
+            <div id="admPagoGruposInfo" style="margin-bottom:14px;"></div>
+            <div id="admPagoEditor" style="display:none;">
+              <div class="resumen-grid">
+                <div class="resumen-card azul"><div class="et">Pago/hora base</div><div class="val" id="admPagoBase">—</div></div>
+                <div class="resumen-card"><div class="et">Horas ped.</div><div class="val" id="admPagoSubH">—</div></div>
+                <div class="resumen-card"><div class="et">Horas extra</div><div class="val" id="admPagoSubHE">—</div></div>
+                <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val" id="admPagoSubB">—</div></div>
+                <div class="resumen-card morado"><div class="et">Descuentos</div><div class="val" id="admPagoSubD">—</div></div>
+                <div class="resumen-card verde"><div class="et">Total neto</div><div class="val" id="admPagoSubTotal">—</div></div>
+              </div>
+              <div class="tform">
+                <h4>⏱️ Horas trabajadas</h4>
+                <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
+                <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
+                <div class="tform-grid">
+                  <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
+                  <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
+                  <div class="campo"><label>Pago por hora extra (S/)</label><input type="number" id="admPagoHoraExtra" min="0" step="0.01" value="0"></div>
+                </div>
+              </div>
+              <div class="tform">
+                <h4>➕ Bonificaciones</h4>
+                <div id="admPagoBonifList"></div>
+                <button type="button" class="btn btn-mini btn-verde" id="admPagoAddBonif">+ Agregar bonificación</button>
+              </div>
+              <div class="tform">
+                <h4>➖ Descuentos</h4>
+                <div id="admPagoDescList"></div>
+                <button type="button" class="btn btn-mini btn-rojo" id="admPagoAddDesc">+ Agregar descuento</button>
+              </div>
+              <div class="tform-acciones" style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                <button type="button" class="btn btn-morado" id="admPagoGuardar">💾 Guardar</button>
+                <button type="button" class="btn btn-slate" id="admPagoVolver">← Volver</button>
+                <button type="button" class="btn btn-azul" id="admPagoPreliminar">👁️ Preliminar</button>
+                <button type="button" class="btn btn-verde" id="admPagoDescargar">⬇️ Descargar</button>
+                <button type="button" class="btn btn-slate" id="admPagoImprimir">🖨️ Imprimir</button>
+              </div>
+              <div class="boleta-preview-container" id="admPagoPreview"></div>
+            </div>
+          </div>
+          <div class="subpanel" id="cont-subpanel-firma">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Las imágenes aquí cargadas se usarán en la <strong>Boleta Preliminar de Pago Docente</strong>.</p>
+            <div class="oficina-section">
+              <h4>🏢 Sello de oficina</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contSelloFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContSello">Guardar Sello</button></div>
+              <div class="firma-preview-box" id="contSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
+            </div>
+            <div class="oficina-section">
+              <h4>📄 Membrete</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contMembreteFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContMembrete">Guardar Membrete</button></div>
+              <div class="letterhead-preview-box" id="contMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBPORTAL DIRECCIÓN -->
+        <div class="panel" id="tal-panel-direccion">
+          <div class="subportal-tabs">
+            <button class="subportal-tab activo" data-dir-subtab="firma">✍️ Firma Digital</button>
+          </div>
+          <div class="subpanel activo" id="dir-subpanel-firma">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Dirección</h4>
+            <div class="oficina-section">
+              <h4>🏢 Sello de oficina</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="dirSelloFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveDirSello">Guardar Sello</button></div>
+              <div class="firma-preview-box" id="dirSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
+            </div>
+            <div class="oficina-section">
+              <h4>📄 Membrete</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="dirMembreteFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveDirMembrete">Guardar Membrete</button></div>
+              <div class="letterhead-preview-box" id="dirMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBPORTAL MARKETING -->
+        <div class="panel" id="tal-panel-marketing">
+          <div class="subportal-tabs">
+            <button class="subportal-tab activo" data-mkt-subtab="galeria">🖼️ Galería de Fotos</button>
+            <button class="subportal-tab" data-mkt-subtab="firma">✍️ Firma Digital</button>
+            <button class="subportal-tab" data-mkt-subtab="iconografia">🎨 Iconografía</button>
+            <button class="subportal-tab" data-mkt-subtab="cumples">🎂 Cumpleaños</button>
+          </div>
+          <div class="subpanel activo" id="mkt-subpanel-galeria">
+            <div class="aviso-tiempo-real" style="background:#fdf2f8;color:#9d174d;"><span class="punto-live" style="background:#ec4899;"></span> Las fotos se mostrarán automáticamente en la página principal de la escuela.</div>
+            <div class="tform">
+              <h4>➕ Subir nuevas fotos (máx. 3 a la vez)</h4>
+              <div class="campo"><label>Título / Descripción (opcional)</label><input type="text" id="mktPhotoTitle" placeholder="Ej: Clases de fonética"></div>
+              <div class="campo"><label>Seleccionar imágenes (JPG/PNG, máx. 2MB c/u)</label><input type="file" id="mktPhotoFile" accept="image/*" multiple></div>
+              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnUploadPhoto">Subir Fotos</button></div>
+              <div class="mensaje-exito" id="mktPhotoMsg">✅ Fotos subidas.</div>
+            </div>
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📸 Fotos en la galería</h4>
+            <div id="mktGalleryGrid" class="gallery-grid"></div>
+          </div>
+          <div class="subpanel" id="mkt-subpanel-firma">
+            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Marketing</h4>
+            <div class="oficina-section">
+              <h4>🏢 Sello de oficina</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="mktSelloFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveMktSello">Guardar Sello</button></div>
+              <div class="firma-preview-box" id="mktSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
+            </div>
+            <div class="oficina-section">
+              <h4>📄 Membrete</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="mktMembreteFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveMktMembrete">Guardar Membrete</button></div>
+              <div class="letterhead-preview-box" id="mktMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
+            </div>
+          </div>
+          <div class="subpanel" id="mkt-subpanel-iconografia">
+            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">🎨 Iconografía de la Interfaz</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Sube imágenes para reemplazar los iconos del sistema. Los cambios se aplicarán automáticamente en toda la interfaz.</p>
+            <div class="oficina-section">
+              <h4>📄 Membrete institucional (Report Cards)</h4>
+              <p style="color:var(--gris);font-size:.85rem;margin-bottom:10px;">Este membrete se usa en Report Cards y documentos oficiales.</p>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminLetterheadFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveLetterhead">Guardar Membrete</button></div>
+              <div class="mensaje-exito" id="letterheadMsg">✅ Membrete guardado.</div>
+              <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
+            </div>
+            <div id="iconografiaLista"></div>
+          </div>
+          <div class="subpanel" id="mkt-subpanel-cumples">
+            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">🎂 Cumpleaños · Docentes y Alumnos</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Lista de cumpleañeros. A <strong>2 semanas</strong> del cumpleaños aparece un recordatorio.</p>
+            <div id="mktCumplesAlertas" style="margin-bottom:18px;"></div>
+            <h5 style="color:var(--slate);margin-bottom:10px;">Próximos cumpleaños</h5>
+            <div id="mktCumplesLista"></div>
+          </div>
+        </div>
+
       </div>
     </div>
-    <div class="dash-live">
-      <span class="punto-live"></span>
-      <span>En vivo · <span id="relojTal">--:--:--</span></span>
-    </div>
-    <button class="dash-salir" id="btnSalirTal">Cerrar sesión</button>
   </div>
-
-  <!-- ===== NAVEGACIÓN PRINCIPAL (solo 6 pestañas) ===== -->
-  <div class="dash-tabs talento-tabs">
-    <button class="dash-tab activo" data-taltab="inicio">🏠 Inicio</button>
-    <button class="dash-tab" data-taltab="admin">🎓 Coordinación Académica</button>
-    <button class="dash-tab" data-taltab="contabilidad">💰 Contabilidad y Finanzas</button>
-    <button class="dash-tab" data-taltab="direccion">🎯 Dirección</button>
-    <button class="dash-tab" data-taltab="marketing">📣 Marketing</button>
-    <button class="dash-tab" data-taltab="config">⚙️ Configuración</button>
-  </div>
-
-  <div class="dash-contenido">
-
-    <!-- ========================================================
-         1. INICIO / DASHBOARD EJECUTIVO
-         ======================================================== -->
-    <div class="panel activo" id="tal-panel-inicio">
-      
-      <div class="seccion-cabecera" style="margin-bottom:28px; text-align:left;">
-        <h2 style="font-size:1.4rem; color:var(--talento); margin-bottom:6px;">Resumen operativo</h2>
-        <p style="color:var(--gris); font-size:.95rem;">Vista rápida del estado actual de la escuela</p>
-      </div>
-
-      <!-- Cards de resumen -->
-      <div class="resumen-grid" style="margin-bottom:32px;">
-        <div class="resumen-card verde">
-          <div class="et">Grupos abiertos</div>
-          <div class="val" id="dashGruposAbiertos">—</div>
-        </div>
-        <div class="resumen-card amarillo">
-          <div class="et">Asistencias pendientes hoy</div>
-          <div class="val" id="dashAsisPendientes">—</div>
-        </div>
-        <div class="resumen-card morado">
-          <div class="et">Matrículas por revisar</div>
-          <div class="val" id="dashMatriculasPend">—</div>
-        </div>
-        <div class="resumen-card slate">
-          <div class="et">Docentes sin disponibilidad</div>
-          <div class="val" id="dashDispPendientes">—</div>
-        </div>
-      </div>
-
-      <!-- Accesos rápidos -->
-      <h4 style="color:var(--slate); margin-bottom:14px; font-weight:800;">⚡ Accesos rápidos</h4>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:14px; margin-bottom:32px;">
-        <button class="btn btn-talento" data-goto="admin" data-sub="reporte_dia">📋 Reporte del día</button>
-        <button class="btn btn-azul" data-goto="admin" data-sub="grupos">📚 Ver grupos</button>
-        <button class="btn btn-morado" data-goto="admin" data-sub="matriculas">🎫 Matrículas</button>
-        <button class="btn btn-verde" data-goto="admin" data-sub="alumnos">🎓 Alumnos</button>
-        <button class="btn btn-slate" data-goto="admin" data-sub="calendarizacion">📅 Calendarización</button>
-        <button class="btn btn-rosa" data-goto="marketing" data-sub="cumples">🎂 Cumpleaños</button>
-      </div>
-
-      <!-- Alertas -->
-      <div id="dashAlertasBox">
-        <!-- Se llena dinámicamente con alertas importantes -->
-      </div>
-    </div>
-
-    <!-- ========================================================
-         2. COORDINACIÓN ACADÉMICA (reorganizada)
-         ======================================================== -->
-    <div class="panel" id="tal-panel-admin">
-
-      <!-- Sub-navegación limpia (solo 5 secciones) -->
-      <div class="dash-tabs sub-tabs" style="margin-bottom:24px; border-bottom:2px solid var(--borde);">
-        <button class="dash-tab activo" data-admtab="resumen">📊 Resumen</button>
-        <button class="dash-tab" data-admtab="personas">👥 Personas</button>
-        <button class="dash-tab" data-admtab="estructura">📚 Estructura</button>
-        <button class="dash-tab" data-admtab="operacion">📅 Operación</button>
-        <button class="dash-tab" data-admtab="evaluacion">📝 Evaluación</button>
-      </div>
-
-      <!-- —— 2.1 RESUMEN —— -->
-      <div class="subpanel activo" id="adm-sub-resumen">
-        <h4 style="color:var(--talento); margin-bottom:16px;">Resumen académico</h4>
-        <div id="admResumenContenido">
-          <!-- Aquí va el contenido actual de "resumen" + reporte del día resumido -->
-        </div>
-      </div>
-
-      <!-- —— 2.2 PERSONAS —— -->
-      <div class="subpanel" id="adm-sub-personas">
-        <div class="subportal-tabs" style="margin-bottom:20px;">
-          <button class="subportal-tab activo" data-personas="alumnos">🎓 Alumnos</button>
-          <button class="subportal-tab" data-personas="docentes">👨‍🏫 Docentes</button>
-          <button class="subportal-tab" data-personas="padres">👨‍👩‍👧 Padres</button>
-          <button class="subportal-tab" data-personas="acceso">🔑 Accesos</button>
-        </div>
-
-        <div class="subpanel activo" id="personas-alumnos">
-          <!-- Contenido actual de Alumnos -->
-          <div id="admAlumnosContenido"></div>
-        </div>
-        <div class="subpanel" id="personas-docentes">
-          <div id="admDocentesContenido"></div>
-        </div>
-        <div class="subpanel" id="personas-padres">
-          <div id="admPadresContenido"></div>
-        </div>
-        <div class="subpanel" id="personas-acceso">
-          <div id="admAccesoAlumnoContenido"></div>
-        </div>
-      </div>
-
-      <!-- —— 2.3 ESTRUCTURA —— -->
-      <div class="subpanel" id="adm-sub-estructura">
-        <div class="subportal-tabs" style="margin-bottom:20px;">
-          <button class="subportal-tab activo" data-estructura="grupos">📚 Grupos</button>
-          <button class="subportal-tab" data-estructura="matriculas">🎫 Matrículas</button>
-          <button class="subportal-tab" data-estructura="programacion">🗓️ Programación</button>
-          <button class="subportal-tab" data-estructura="calendarizacion">📅 Calendarización</button>
-        </div>
-
-        <div class="subpanel activo" id="estructura-grupos">
-          <div id="admGruposContenido"></div>
-        </div>
-        <div class="subpanel" id="estructura-matriculas">
-          <div id="admMatriculasContenido"></div>
-        </div>
-        <div class="subpanel" id="estructura-programacion">
-          <div id="admProgramacionContenido"></div>
-        </div>
-        <div class="subpanel" id="estructura-calendarizacion">
-          <div id="admCalendarizacionContenido"></div>
-        </div>
-      </div>
-
-      <!-- —— 2.4 OPERACIÓN —— -->
-      <div class="subpanel" id="adm-sub-operacion">
-        <div class="subportal-tabs" style="margin-bottom:20px;">
-          <button class="subportal-tab activo" data-operacion="asistencia">📅 Asistencia global</button>
-          <button class="subportal-tab" data-operacion="reporte_dia">📋 Reporte del día</button>
-          <button class="subportal-tab" data-operacion="disp_docentes">🗓️ Disponibilidad</button>
-          <button class="subportal-tab" data-operacion="estados_grupos">📁 Estados de grupos</button>
-        </div>
-
-        <div class="subpanel activo" id="operacion-asistencia">
-          <div id="admAsistenciaContenido"></div>
-        </div>
-        <div class="subpanel" id="operacion-reporte_dia">
-          <div id="admReporteDiaContenido"></div>
-        </div>
-        <div class="subpanel" id="operacion-disp_docentes">
-          <div id="admDispDocentesContenido"></div>
-        </div>
-        <div class="subpanel" id="operacion-estados_grupos">
-          <div id="admEstadosGruposContenido"></div>
-        </div>
-      </div>
-
-      <!-- —— 2.5 EVALUACIÓN —— -->
-      <div class="subpanel" id="adm-sub-evaluacion">
-        <div class="subportal-tabs" style="margin-bottom:20px;">
-          <button class="subportal-tab activo" data-evaluacion="asignaciones">📋 Gestor de asignaciones</button>
-          <button class="subportal-tab" data-evaluacion="examenes">📝 Exámenes</button>
-          <button class="subportal-tab" data-evaluacion="historial">📚 Historial de cursos</button>
-        </div>
-
-        <div class="subpanel activo" id="evaluacion-asignaciones">
-          <div id="admAsignacionesContenido"></div>
-        </div>
-        <div class="subpanel" id="evaluacion-examenes">
-          <div id="admExamenesContenido"></div>
-        </div>
-        <div class="subpanel" id="evaluacion-historial">
-          <div id="admHistorialCursosContenido"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ========================================================
-         3. CONTABILIDAD Y FINANZAS (se mantiene casi igual)
-         ======================================================== -->
-    <div class="panel" id="tal-panel-contabilidad">
-      <!-- Aquí pegas el contenido actual de Contabilidad -->
-      <div id="contabilidadContenido">
-        <!-- Mantén tu HTML actual de contabilidad -->
-      </div>
-    </div>
-
-    <!-- ========================================================
-         4. DIRECCIÓN
-         ======================================================== -->
-    <div class="panel" id="tal-panel-direccion">
-      <div id="direccionContenido">
-        <!-- Mantén tu HTML actual de Dirección -->
-      </div>
-    </div>
-
-    <!-- ========================================================
-         5. MARKETING
-         ======================================================== -->
-    <div class="panel" id="tal-panel-marketing">
-      <div id="marketingContenido">
-        <!-- Mantén tu HTML actual de Marketing (galería, cumpleaños, etc.) -->
-      </div>
-    </div>
-
-    <!-- ========================================================
-         6. CONFIGURACIÓN (nuevo – aquí van los ajustes)
-         ======================================================== -->
-    <div class="panel" id="tal-panel-config">
-      <div class="seccion-cabecera" style="text-align:left; margin-bottom:24px;">
-        <h2 style="font-size:1.3rem; color:var(--slate);">Configuración del sistema</h2>
-        <p style="color:var(--gris);">Campos personalizados, iconografía, membretes y ajustes generales</p>
-      </div>
-
-      <div class="subportal-tabs" style="margin-bottom:22px;">
-        <button class="subportal-tab activo" data-config="campos">🧩 Campos personalizados</button>
-        <button class="subportal-tab" data-config="iconos">🎨 Iconografía</button>
-        <button class="subportal-tab" data-config="membrete">📄 Membrete / Letterhead</button>
-        <button class="subportal-tab" data-config="otros">⚙️ Otros ajustes</button>
-      </div>
-
-      <div class="subpanel activo" id="config-campos">
-        <div id="admCamposContenido">
-          <!-- Contenido actual de Campos personalizados -->
-        </div>
-      </div>
-      <div class="subpanel" id="config-iconos">
-        <div id="admIconografiaContenido"></div>
-      </div>
-      <div class="subpanel" id="config-membrete">
-        <div id="admMembreteContenido"></div>
-      </div>
-      <div class="subpanel" id="config-otros">
-        <div id="admOtrosAjustesContenido"></div>
-      </div>
-    </div>
-
-  </div>
-</div>
 </section>
 
 <footer>
@@ -1529,7 +1890,7 @@
       <div style="font-size:3.5rem; margin-bottom:14px;">🎉</div>
       <h3 style="color:var(--verde); margin-bottom:10px;">¡Felicitaciones!</h3>
       <p style="color:var(--gris); font-size:.95rem;">Hemos recibido tu inscripción correctamente.<br>La escuela se contactará con usted en las próximas horas.</p>
-      <button type="button" class="btn btn-azul" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
+      <button type="button" class="btn btn-azul" onclick="document.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1537,7 +1898,7 @@
 <!-- VISOR IMAGEN -->
 <div class="modal-overlay" id="modalImageViewer">
   <div class="modal-box" style="max-width:800px; padding:20px; text-align:center;">
-    <button class="modal-close" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalImageViewer').classList.remove('visible')">✕</button>
+    <button class="modal-close" onclick="document.getElementById('modalImageViewer').classList.remove('visible')">✕</button>
     <h3 style="margin-bottom:20px;">Evidencia</h3>
     <img id="imageViewerImg" src="" style="max-width:100%; max-height:70vh; border-radius:12px; box-shadow:var(--sombra);">
   </div>
@@ -1566,7 +1927,7 @@
 <!-- MODAL EDITAR ALUMNO / DOCENTE -->
 <div class="modal-overlay" id="modalEditar">
   <div class="modal-box" style="max-width:520px; text-align:left; padding:32px 28px;">
-    <button class="modal-close" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalEditar').classList.remove('visible')">✕</button>
+    <button class="modal-close" onclick="document.getElementById('modalEditar').classList.remove('visible')">✕</button>
     <h3 id="editarTitulo" style="margin-bottom:20px; text-align:center;">✏️ Editar</h3>
     <form id="formEditar" style="display:flex; flex-direction:column; gap:12px;">
       <input type="hidden" id="editTipo">
@@ -1592,7 +1953,7 @@
       <div class="campo"><label>Nueva contraseña <small style="color:var(--gris); font-weight:400;">(dejar vacío para no cambiar)</small></label><input type="text" id="editPassword" placeholder="••••••••"></div>
       <div class="campo"><label>Evidencia de Identidad (DNI)</label><button type="button" class="btn btn-azul btn-mini" id="btnVerDniEdit" style="width:100%;">📄 Ver Foto del DNI</button></div>
       <div class="tform-acciones" style="justify-content:flex-end; margin-top:10px;">
-        <button type="button" class="btn btn-slate btn-mini" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalEditar').classList.remove('visible')">Cancelar</button>
+        <button type="button" class="btn btn-slate btn-mini" onclick="document.getElementById('modalEditar').classList.remove('visible')">Cancelar</button>
         <button type="submit" class="btn btn-verde btn-mini">Guardar cambios</button>
       </div>
     </form>
@@ -2038,10 +2399,10 @@ function abrirModalInscripcion(course) {
   _alumnoVerificado = null;
   document.getElementById("modalInscripcion").classList.add("visible");
 }
-document.getElementById("btnCerrarInscripcion")?.addEventListener("click", () => { document.getElementById("modalInscripcion").classList.remove("visible"); });
-document.getElementById("btnInscAlumnoExistente")?.addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoExistente").style.display = "block"; });
-document.getElementById("btnInscAlumnoNuevo")?.addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoNuevo").style.display = "block"; });
-document.getElementById("btnVerificarCodigo")?.addEventListener("click", () => {
+document.getElementById("btnCerrarInscripcion").addEventListener("click", () => { document.getElementById("modalInscripcion").classList.remove("visible"); });
+document.getElementById("btnInscAlumnoExistente").addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoExistente").style.display = "block"; });
+document.getElementById("btnInscAlumnoNuevo").addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoNuevo").style.display = "block"; });
+document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
   const code = document.getElementById("inscCodigoAlumno").value.trim().toUpperCase();
   const student = state.students[code];
   if (!student) { alert("❌ Código no encontrado."); document.getElementById("inscDatosAlumno").style.display = "none"; document.getElementById("btnTerminarInscExistente").disabled = true; _alumnoVerificado = null; return; }
@@ -2053,7 +2414,7 @@ document.getElementById("btnVerificarCodigo")?.addEventListener("click", () => {
   document.getElementById("inscDatosAlumno").style.display = "block";
   document.getElementById("btnTerminarInscExistente").disabled = false;
 });
-document.getElementById("btnTerminarInscExistente")?.addEventListener("click", async () => {
+document.getElementById("btnTerminarInscExistente").addEventListener("click", async () => {
   if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
   const voucherFile = document.getElementById("inscVoucherExistente").files[0];
   if (!voucherFile) { alert("Sube tu voucher de pago."); return; }
@@ -2068,7 +2429,7 @@ document.getElementById("btnTerminarInscExistente")?.addEventListener("click", a
     document.getElementById("inscExito").style.display = "block";
   } catch (e) { alert("Error al procesar voucher."); }
 });
-document.getElementById("btnTerminarPreInsc")?.addEventListener("click", async () => {
+document.getElementById("btnTerminarPreInsc").addEventListener("click", async () => {
   const nombres = document.getElementById("inscNombres").value.trim();
   const apellidos = document.getElementById("inscApellidos").value.trim();
   const dni = document.getElementById("inscDni").value.trim();
@@ -2139,7 +2500,7 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => overlay.addEventL
   if (e.target === overlay) { overlay.classList.remove("visible"); overlay.querySelectorAll("input").forEach(i => i.value = ""); overlay.querySelectorAll(".modal-error").forEach(e => e.classList.remove("visible")); }
 }));
 
-document.getElementById("loginFormAlumno")?.addEventListener("submit", (e) => {
+document.getElementById("loginFormAlumno").addEventListener("submit", (e) => {
   e.preventDefault();
   const user = document.getElementById("userAlumno").value.trim().toUpperCase();
   const pass = document.getElementById("passAlumno").value;
@@ -2149,7 +2510,7 @@ document.getElementById("loginFormAlumno")?.addEventListener("submit", (e) => {
   if (!student || student.password !== pass) { error.classList.add("visible"); return; }
   document.getElementById("modalAlumno").classList.remove("visible"); document.getElementById("userAlumno").value = ""; document.getElementById("passAlumno").value = ""; loginStudent(user);
 });
-document.getElementById("loginFormDocente")?.addEventListener("submit", (e) => {
+document.getElementById("loginFormDocente").addEventListener("submit", (e) => {
   e.preventDefault();
   const user = document.getElementById("userDocente").value.trim().toUpperCase();
   const pass = document.getElementById("passDocente").value;
@@ -2174,7 +2535,7 @@ document.getElementById("loginFormDocente")?.addEventListener("submit", (e) => {
   document.getElementById("passDocente").value = ""; 
   loginTeacher(user); 
 });
-document.getElementById("loginFormTalento")?.addEventListener("submit", (e) => {
+document.getElementById("loginFormTalento").addEventListener("submit", (e) => {
   e.preventDefault();
   const code = document.getElementById("codigoTalento").value;
   const error = document.getElementById("errorTalento"); error.classList.remove("visible");
@@ -2251,9 +2612,9 @@ function loginTalento() {
   try { aplicarIconosInterfaz(); } catch (e) {}
   const reloj = document.getElementById("relojTal"); if (reloj) reloj.textContent = horaActual();
 }
-document.getElementById("btnSalirA")?.addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirD")?.addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirTal")?.addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirTal").addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 
 /* ============================================================
    TABS
@@ -2660,8 +3021,8 @@ function iniciarExamen(examId) {
   });
   document.getElementById("studentExamRunner").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-document.getElementById("btnCancelarTestA")?.addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; });
-document.getElementById("runnerFormA")?.addEventListener("submit", (e) => {
+document.getElementById("btnCancelarTestA").addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; });
+document.getElementById("runnerFormA").addEventListener("submit", (e) => {
   e.preventDefault(); if (!testActual || !currentStudent) return;
   let correctas = 0, sinResp = 0;
   testActual.preguntas.forEach((p, i) => {
@@ -2685,7 +3046,7 @@ document.getElementById("runnerFormA")?.addEventListener("submit", (e) => {
   state.examResults[testActual.id][currentStudentCode] = { nota, correctas, total, sinResp, fecha: new Date().toISOString().slice(0, 10) };
   saveState();
 });
-document.getElementById("btnVolverTestsA")?.addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; renderStudentExams(); });
+document.getElementById("btnVolverTestsA").addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; renderStudentExams(); });
 function renderStudentAsistencia() {
   const body = document.getElementById("asistenciaBodyA"); body.innerHTML = "";
   const regs = asistenciaDe(currentStudentCode);
@@ -2705,12 +3066,12 @@ function renderStudentReportCards() {
   cont.querySelectorAll("[data-download-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.downloadRc); if (rc) descargarReportCard(rc); }));
   cont.querySelectorAll("[data-print-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.printRc); if (rc) imprimirReportCard(rc); }));
 }
-document.getElementById("btnIniciarMatricula")?.addEventListener("click", () => {
+document.getElementById("btnIniciarMatricula").addEventListener("click", () => {
   document.getElementById("matriculaInicio").style.display = "none";
   document.getElementById("matriculaContenido").style.display = "block";
   renderStudentMatriculaCursos();
 });
-document.getElementById("btnCancelarMatriculaAlumno")?.addEventListener("click", () => {
+document.getElementById("btnCancelarMatriculaAlumno").addEventListener("click", () => {
   document.getElementById("matriculaInicio").style.display = "block";
   document.getElementById("matriculaContenido").style.display = "none";
 });
@@ -3081,13 +3442,13 @@ function refreshTeacherView() {
   } catch(e) {}
 }
 function renderTeacherSignature() { const box = document.getElementById("signaturePreviewBox"); const sig = state.signatures[currentTeacherCode]; if (sig) box.innerHTML = `<img src="${sig}" alt="Firma">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una firma aún.</p>`; }
-document.getElementById("btnSaveSignature")?.addEventListener("click", async () => {
+document.getElementById("btnSaveSignature").addEventListener("click", async () => {
   const fileInput = document.getElementById("teacherSignatureFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
   try { const url = await procesarImagen(fileInput.files[0], "firmas"); state.signatures[currentTeacherCode] = url; saveState(); renderTeacherSignature(); const msg = document.getElementById("signatureMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); }
 });
 function renderTeacherPhoto() { const box = document.getElementById("teacherPhotoPreviewBox"); const photo = state.teachers[currentTeacherCode]?.formalPhoto; if (photo) box.innerHTML = `<img src="${photo}" alt="Foto">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una foto aún.</p>`; }
-document.getElementById("btnSavePhoto")?.addEventListener("click", async () => {
+document.getElementById("btnSavePhoto").addEventListener("click", async () => {
   const fileInput = document.getElementById("teacherPhotoFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
   try { const url = await procesarImagen(fileInput.files[0], "fotos-docentes"); state.teachers[currentTeacherCode].formalPhoto = url; saveState(); renderTeacherPhoto(); const avatar = document.getElementById("dashAvatarD"); avatar.innerHTML = `<img src="${url}">`; avatar.style.padding = '0'; const msg = document.getElementById("photoMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
@@ -3225,7 +3586,7 @@ function renderTeacherExamsReadOnly() {
   if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 Sin exámenes.</div>`; return; }
   [...exams].forEach(ex => { const card = document.createElement("div"); card.className = "exam-link-card"; card.innerHTML = `<div class="exam-link-info"><h4>📝 ${ex.nombre}</h4><p>${ex.preguntas ? ex.preguntas.length : 0} preguntas</p></div>`; cont.appendChild(card); });
 }
-document.getElementById("rcGroupSelect")?.addEventListener("change", (e) => {
+document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
   const groupId = e.target.value; const selStudent = document.getElementById("rcStudentSelect"); selStudent.innerHTML = '<option value="">Selecciona un alumno...</option>';
   if (!groupId) return; const group = state.groups.find(g => g.id === groupId); if (!group) return;
   group.studentCodes.forEach(code => { const s = state.students[code]; if (s) { const opt = document.createElement("option"); opt.value = code; opt.textContent = s.nombre; selStudent.appendChild(opt); } });
@@ -3454,7 +3815,7 @@ function renderTeacherPago() {
   }
 }
 
-document.getElementById("btnGenerarBoleta")?.addEventListener("click", () => {
+document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
   const pagoHora = parseFloat(currentTeacher.pagoHora) || 0; const myGroups = getTeacherGroups(currentTeacherCode);
   const totalHoras = myGroups.reduce((s, g) => s + (parseInt(g.totalHoras) || 0), 0); const monto = totalHoras * pagoHora;
   const preview = document.getElementById("boletaPreviewContainer"); preview.classList.add("visible");
@@ -3472,7 +3833,7 @@ document.getElementById("btnGenerarBoleta")?.addEventListener("click", () => {
   const sigImg = document.getElementById("boletaSignatureImg"); if (contImgs.sello) { sigImg.src = contImgs.sello; sigImg.style.display = "block"; } else sigImg.style.display = "none";
   preview.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-document.getElementById("btnImprimirBoleta")?.addEventListener("click", () => {
+document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
   const iframe = document.createElement('iframe'); iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe); const doc = iframe.contentWindow.document; doc.open();
   doc.write(`<html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px}
@@ -3520,7 +3881,7 @@ document.getElementById("btnImprimirBoleta")?.addEventListener("click", () => {
 </body></html>`); doc.close();
   setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); document.body.removeChild(iframe); }, 500);
 });
-document.getElementById("btnDescargarBoleta")?.addEventListener("click", () => {
+document.getElementById("btnDescargarBoleta").addEventListener("click", () => {
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}
 
   .wa-float {
@@ -3586,12 +3947,12 @@ async function handleOficinaUpload(subportal, tipo) {
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
   try { const carpeta = tipo === "sello" ? "sellos" : "membretes"; const url = await procesarImagen(fileInput.files[0], carpeta); if (!state.oficinaImagenes[subportal]) state.oficinaImagenes[subportal] = { sello: "", membrete: "" }; state.oficinaImagenes[subportal][tipo] = url; saveState(); renderOficinaImagenes(subportal); alert("✅ Guardado."); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); }
 }
-document.getElementById("btnSaveMktSello")?.addEventListener("click", () => handleOficinaUpload("marketing", "sello"));
-document.getElementById("btnSaveMktMembrete")?.addEventListener("click", () => handleOficinaUpload("marketing", "membrete"));
-document.getElementById("btnSaveContSello")?.addEventListener("click", () => handleOficinaUpload("contabilidad", "sello"));
-document.getElementById("btnSaveContMembrete")?.addEventListener("click", () => handleOficinaUpload("contabilidad", "membrete"));
-document.getElementById("btnSaveDirSello")?.addEventListener("click", () => handleOficinaUpload("direccion", "sello"));
-document.getElementById("btnSaveDirMembrete")?.addEventListener("click", () => handleOficinaUpload("direccion", "membrete"));
+document.getElementById("btnSaveMktSello").addEventListener("click", () => handleOficinaUpload("marketing", "sello"));
+document.getElementById("btnSaveMktMembrete").addEventListener("click", () => handleOficinaUpload("marketing", "membrete"));
+document.getElementById("btnSaveContSello").addEventListener("click", () => handleOficinaUpload("contabilidad", "sello"));
+document.getElementById("btnSaveContMembrete").addEventListener("click", () => handleOficinaUpload("contabilidad", "membrete"));
+document.getElementById("btnSaveDirSello").addEventListener("click", () => handleOficinaUpload("direccion", "sello"));
+document.getElementById("btnSaveDirMembrete").addEventListener("click", () => handleOficinaUpload("direccion", "membrete"));
 
 /* ============================================================
    VISTA ADMIN
@@ -3763,7 +4124,7 @@ document.getElementById("admNewGroupForm")?.addEventListener("submit", (e) => {
   alert("✅ Grupo creado correctamente.");
 });
 
-document.getElementById("admNewCourseForm")?.addEventListener("submit", (e) => {
+document.getElementById("admNewCourseForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const programa = document.getElementById("admCoursePrograma").value.trim(); const dia = document.getElementById("admCourseDia").value.trim();
   const horario = document.getElementById("admCourseHorario").value.trim(); const modalidad = document.getElementById("admCourseModalidad").value;
@@ -3829,7 +4190,7 @@ document.getElementById("admBtnAddPregunta")?.addEventListener("click", () => {
   div.querySelector(".btn-remove-q").addEventListener("click", () => div.remove());
   cont.appendChild(div);
 });
-document.getElementById("admNewExamForm")?.addEventListener("submit", (e) => {
+document.getElementById("admNewExamForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admExamNombre").value.trim(); const grupoId = document.getElementById("admExamGroup").value;
   if (!nombre || !grupoId) { alert("Completa nombre y grupo."); return; }
@@ -3865,7 +4226,7 @@ function renderMarketingGallery() {
   state.marketingPhotos.forEach(p => { const div = document.createElement("div"); div.className = "gallery-item"; div.style.position = "relative"; div.innerHTML = `<img src="${p.src}">${p.title ? `<div class="gallery-item-caption">${p.title}</div>` : ''}<button class="btn btn-mini btn-rojo" data-del-photo="${p.id}" style="position:absolute; top:8px; right:8px; z-index:2;">🗑️</button>`; cont.appendChild(div); });
   cont.querySelectorAll("[data-del-photo]").forEach(btn => btn.addEventListener("click", () => { if (confirm("¿Eliminar foto?")) { state.marketingPhotos = state.marketingPhotos.filter(p => p.id !== btn.dataset.delPhoto); saveState(); renderMarketingGallery(); renderPublicGallery(); } }));
 }
-document.getElementById("btnUploadPhoto")?.addEventListener("click", async () => {
+document.getElementById("btnUploadPhoto").addEventListener("click", async () => {
   const titleInput = document.getElementById("mktPhotoTitle"); const fileInput = document.getElementById("mktPhotoFile"); const files = fileInput.files;
   if (!files || !files.length) { alert("Selecciona imágenes."); return; }
   let count = 0; const title = titleInput.value.trim();
@@ -3883,7 +4244,7 @@ document.querySelectorAll("[data-copy]").forEach(btn => btn.addEventListener("cl
 /* ============================================================
    SUBMIT ALUMNO/DOCENTE
    ============================================================ */
-document.getElementById("admNewAlumnoForm")?.addEventListener("submit", async (e) => {
+document.getElementById("admNewAlumnoForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admAlumnoNombre").value.trim(); const email = document.getElementById("admAlumnoEmail").value.trim();
   const programa = document.getElementById("admAlumnoPrograma").value.trim(); const groupId = document.getElementById("admAlumnoGrupo").value;
@@ -3907,7 +4268,7 @@ state.students[user] = { password: pass, nombre, email: email || "—", programa
     document.getElementById("credAlumno").classList.add("visible"); e.target.reset();
   } catch (err) { alert("Error al procesar DNI."); }
 });
-document.getElementById("admNewDocenteForm")?.addEventListener("submit", async (e) => {
+document.getElementById("admNewDocenteForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admDocenteNombre").value.trim(); const email = document.getElementById("admDocenteEmail").value.trim();
   const area = document.getElementById("admDocenteArea").value.trim(); const pagoHora = parseFloat(document.getElementById("admDocentePagoHora").value) || 0;
@@ -3962,7 +4323,7 @@ function abrirEditar(code, tipo) {
   try { renderCustomFieldsInto("editCamposExtra", tipo, obj.custom || {}); } catch(e) {}
   document.getElementById("modalEditar").classList.add("visible");
 }
-document.getElementById("formEditar")?.addEventListener("submit", (e) => {
+document.getElementById("formEditar").addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
   const tipo = document.getElementById("editTipo").value;
@@ -4013,7 +4374,7 @@ document.getElementById("formEditar")?.addEventListener("submit", (e) => {
   document.getElementById("modalEditar").classList.remove("visible");
   alert("✅ Datos actualizados correctamente.");
 });
-document.getElementById("btnVerDniEdit")?.addEventListener("click", () => {
+document.getElementById("btnVerDniEdit").addEventListener("click", () => {
   const tipo = document.getElementById("editTipo").value; const code = document.getElementById("editCode").value; if (!tipo || !code) return;
   const obj = tipo === "alumno" ? state.students[code] : state.teachers[code];
   if (obj && obj.dniPhoto) showImageViewer(obj.dniPhoto); else alert("⚠️ Sin foto DNI.");
@@ -4028,7 +4389,7 @@ function abrirEditarGrupo(groupId) {
   Object.keys(state.teachers).forEach(code => { const t = state.teachers[code]; const opt = document.createElement("option"); opt.value = code; opt.textContent = t.nombre; if (code === g.teacherCode) opt.selected = true; selTeacher.appendChild(opt); });
   document.getElementById("modalEditarGrupo").classList.add("visible");
 }
-document.getElementById("formEditarGrupo")?.addEventListener("submit", (e) => {
+document.getElementById("formEditarGrupo").addEventListener("submit", (e) => {
   e.preventDefault();
   const gid = document.getElementById("editGroupId").value; const g = state.groups.find(x => x.id === gid); if (!g) return;
   g.nombre = document.getElementById("editGroupNombre").value.trim(); g.programa = document.getElementById("editGroupPrograma").value.trim();
@@ -6807,75 +7168,36 @@ document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
 });
 
 console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
- console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+</script>
+<a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
+   class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="#fff"><path d="M16 .4C7.4.4.4 7.4.4 16c0 2.8.7 5.5 2.1 7.9L.3 31.7l8-2.1A15.6 15.6 0 0 0 16 31.6C24.6 31.6 31.6 24.6 31.6 16S24.6.4 16 .4zm0 28.6c-2.5 0-4.9-.7-7-2l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.9 12.9 0 0 1 3 16C3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 13-13 13zm7.1-9.7c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.3 1.6-.2.3-.5.3-.9.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8.2-.2.4-.5.6-.7.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.8 0 1.7 1.2 3.3 1.4 3.5.2.2 2.4 3.7 5.9 5.2.8.3 1.5.5 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg>
+</a>
 
-/* ============================================================
-/* ============================================================
-   NAVEGACIÓN PORTAL TALENTO (nueva estructura)
-   ============================================================ */
+<div class="modal-overlay" id="modalCerrarCurso">
+  <div class="modal-box" style="max-width:520px;text-align:left;">
+    <button type="button" class="modal-close" id="btnCerrarCursoModalX">✕</button>
+    <h3 style="color:var(--morado);margin-bottom:12px;">🔒 Cerrar curso y entregar notas</h3>
+    <p id="modalCerrarCursoMsg" style="color:var(--texto);line-height:1.55;margin-bottom:20px;"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+      <button type="button" class="btn btn-slate btn-mini" id="btnCerrarCursoCancelar">Cancelar</button>
+      <button type="button" class="btn btn-rojo btn-mini" id="btnCerrarCursoConfirmar">Sí, cerrar y entregar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalComprobanteEntrega">
+  <div class="modal-box" style="max-width:720px;text-align:left;padding:24px;">
+    <button type="button" class="modal-close" id="btnComprobanteX">✕</button>
+    <h3 style="color:var(--morado);margin-bottom:8px;">📄 Comprobante de Entrega de notas</h3>
+    <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">Documento generado al cerrar el curso y entregar notas a Coordinación Académica.</p>
+    <div id="comprobanteEntregaBody" class="boleta-preview-container visible" style="box-shadow:none;border:1px solid var(--borde);padding:20px;margin:0;"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
+      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
+    </div>
+  </div>
+</div>
 
-// Nivel 1: pestañas principales
-document.querySelectorAll('#dashboardTalento [data-taltab]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const target = tab.dataset.taltab;
-    document.querySelectorAll('#dashboardTalento [data-taltab]').forEach(t => t.classList.remove('activo'));
-    tab.classList.add('activo');
-    document.querySelectorAll('#dashboardTalento > .dash-contenido > .panel').forEach(p => p.classList.remove('activo'));
-    const panel = document.getElementById('tal-panel-' + target);
-    if (panel) panel.classList.add('activo');
-  });
-});
-
-// Nivel 2: Coordinación Académica
-document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const target = tab.dataset.admtab;
-    document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(t => t.classList.remove('activo'));
-    tab.classList.add('activo');
-    document.querySelectorAll('#tal-panel-admin > .subpanel').forEach(p => p.classList.remove('activo'));
-    const sub = document.getElementById('adm-sub-' + target);
-    if (sub) sub.classList.add('activo');
-  });
-});
-
-// Nivel 3 genérico
-function setupInnerTabs(containerSelector, dataAttr, prefix) {
-  document.querySelectorAll(containerSelector + ' [' + dataAttr + ']').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.getAttribute(dataAttr);
-      document.querySelectorAll(containerSelector + ' [' + dataAttr + ']').forEach(t => t.classList.remove('activo'));
-      tab.classList.add('activo');
-      document.querySelectorAll(containerSelector + ' > .subpanel').forEach(p => p.classList.remove('activo'));
-      const panel = document.getElementById(prefix + target);
-      if (panel) panel.classList.add('activo');
-    });
-  });
-}
-
-setupInnerTabs('#adm-sub-personas', 'data-personas', 'personas-');
-setupInnerTabs('#adm-sub-estructura', 'data-estructura', 'estructura-');
-setupInnerTabs('#adm-sub-operacion', 'data-operacion', 'operacion-');
-setupInnerTabs('#adm-sub-evaluacion', 'data-evaluacion', 'evaluacion-');
-setupInnerTabs('#tal-panel-config', 'data-config', 'config-');
-
-// Accesos rápidos
-document.querySelectorAll('[data-goto-tal]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const tal = btn.dataset.gotoTal;
-    const sub = btn.dataset.gotoSub;
-    const inner = btn.dataset.gotoInner;
-    document.querySelector(`#dashboardTalento [data-taltab="${tal}"]`)?.click();
-    if (sub) {
-      setTimeout(() => {
-        document.querySelector(`#tal-panel-admin [data-admtab="${sub}"]`)?.click();
-        if (inner) {
-          setTimeout(() => {
-            const map = { personas: 'data-personas', estructura: 'data-estructura', operacion: 'data-operacion', evaluacion: 'data-evaluacion' };
-            const attr = map[sub];
-            if (attr) document.querySelector(`#adm-sub-${sub} [${attr}="${inner}"]`)?.click();
-          }, 60);
-        }
-      }, 60);
-    }
-  });
-});
+</body>
+</html>
