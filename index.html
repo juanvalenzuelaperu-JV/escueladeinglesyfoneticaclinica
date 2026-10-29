@@ -1010,7 +1010,22 @@
               <div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:16px;">
                 <table style="min-width:100%;"><thead><tr><th>Grupo</th><th>Programa</th><th>Nivel</th><th>Frecuencia</th><th style="text-align:right;">Horas</th></tr></thead><tbody id="boletaGruposBody"></tbody></table>
               </div>
-              <div class="boleta-total-row"><span>MONTO TOTAL ESTIMADO</span><span>S/ <span id="boletaMontoTotal">0.00</span></span></div>
+             <div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:16px;">
+  <table style="min-width:100%;"><thead><tr><th>Concepto</th><th style="text-align:right;">Monto</th></tr></thead>
+    <tbody id="boletaResumenBody"></tbody>
+  </table>
+</div>
+<div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:16px;">
+  <table style="min-width:100%;"><thead><tr><th>Bonificaciones</th><th style="text-align:right;">Monto</th></tr></thead>
+    <tbody id="boletaBonifBody"></tbody>
+  </table>
+</div>
+<div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:16px;">
+  <table style="min-width:100%;"><thead><tr><th>Descuentos</th><th style="text-align:right;">Monto</th></tr></thead>
+    <tbody id="boletaDescBody"></tbody>
+  </table>
+</div>
+             <div class="boleta-total-row"><span>MONTO TOTAL ESTIMADO</span><span>S/ <span id="boletaMontoTotal">0.00</span></span></div>
               <div class="boleta-footer"><div></div><div class="rc-signature"><img id="boletaSignatureImg" style="display:none;max-height:80px;object-fit:contain;margin:0 auto 10px;"><p id="boletaSignatureName" style="font-size:0.85rem;color:var(--gris);border-top:1px solid #9ca3af;padding-top:5px;width:200px;">Sello de Contabilidad y Finanzas</p></div></div>
             </div>
             <div class="tform-acciones boleta-actions-print" style="margin-top:20px;justify-content:flex-end;border-top:1px solid #e2e8f0;padding-top:16px;">
@@ -3875,21 +3890,65 @@ function renderTeacherPago() {
 }
 
 document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
-  const pagoHora = parseFloat(currentTeacher.pagoHora) || 0; const myGroups = getTeacherGroups(currentTeacherCode);
-  const totalHoras = myGroups.reduce((s, g) => s + (parseInt(g.totalHoras) || 0), 0); const monto = totalHoras * pagoHora;
+  const myGroups = getTeacherGroups(currentTeacherCode);
+  const c = calcPagoDocente(currentTeacherCode);   // base, subPed, subExt, subB, subD, total, p
+  const p = c.p;
+  const fmt = n => (parseFloat(n) || 0).toFixed(2);
+
   const preview = document.getElementById("boletaPreviewContainer"); preview.classList.add("visible");
   const contImgs = (state.oficinaImagenes && state.oficinaImagenes.contabilidad) || { sello: "", membrete: "" };
-  const lhImg = document.getElementById("boletaLetterheadImg"); if (contImgs.membrete) { lhImg.src = contImgs.membrete; lhImg.style.display = "block"; } else lhImg.style.display = "none";
+  const lhImg = document.getElementById("boletaLetterheadImg");
+  if (contImgs.membrete) { lhImg.src = contImgs.membrete; lhImg.style.display = "block"; } else lhImg.style.display = "none";
+
   document.getElementById("boletaTeacherName").textContent = currentTeacher.nombre;
   document.getElementById("boletaTeacherCode").textContent = currentTeacherCode;
   document.getElementById("boletaTeacherArea").textContent = currentTeacher.area || "—";
   document.getElementById("boletaFechaPago").textContent = fechaFinDeMes();
-  document.getElementById("boletaBaseHora").textContent = pagoHora.toFixed(2);
-  document.getElementById("boletaTotalHoras").textContent = totalHoras;
-  document.getElementById("boletaMontoTotal").textContent = monto.toFixed(2);
+  document.getElementById("boletaBaseHora").textContent = fmt(c.base);
+  document.getElementById("boletaTotalHoras").textContent = p.horasPed || 0;
+  document.getElementById("boletaMontoTotal").textContent = fmt(c.total);
+
+  // Grupos
   const tbody = document.getElementById("boletaGruposBody"); tbody.innerHTML = "";
-  myGroups.forEach(g => { const nivel = getNivelInfo(g.nivel); const tr = document.createElement("tr"); tr.innerHTML = `<td>${g.nombre}</td><td>${g.programa || '—'}</td><td>${nivel.nombre}</td><td>${g.frecuencia || '—'}</td><td style="text-align:right;"><strong>${g.totalHoras || 0}</strong></td>`; tbody.appendChild(tr); });
-  const sigImg = document.getElementById("boletaSignatureImg"); if (contImgs.sello) { sigImg.src = contImgs.sello; sigImg.style.display = "block"; } else sigImg.style.display = "none";
+  myGroups.forEach(g => {
+    const nivel = getNivelInfo(g.nivel);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${g.nombre}</td><td>${g.programa || '—'}</td><td>${g.nivelTexto || nivel.nombre}</td><td>${g.frecuencia || '—'}</td><td style="text-align:right;"><strong>${g.totalHoras || 0}</strong></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Resumen de pago
+  const resumen = document.getElementById("boletaResumenBody");
+  if (resumen) {
+    let rows = `<tr><td>Horas pedagógicas (${p.horasPed || 0} h × S/ ${fmt(c.base)})</td><td style="text-align:right;">S/ ${fmt(c.subPed)}</td></tr>`;
+    if ((parseFloat(p.horasExt) || 0) > 0) {
+      rows += `<tr><td>Horas extras (${p.horasExt} h × S/ ${fmt(p.pagoHoraExtra)})</td><td style="text-align:right;">S/ ${fmt(c.subExt)}</td></tr>`;
+    }
+    rows += `<tr><td>Total bonificaciones</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${fmt(c.subB)}</td></tr>`;
+    rows += `<tr><td>Total descuentos</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${fmt(c.subD)}</td></tr>`;
+    resumen.innerHTML = rows;
+  }
+
+  // Bonificaciones
+  const bBody = document.getElementById("boletaBonifBody");
+  if (bBody) {
+    const bonifs = p.bonificaciones || [];
+    bBody.innerHTML = bonifs.length
+      ? bonifs.map(b => `<tr><td>${b.concepto || '—'}</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${fmt(b.monto)}</td></tr>`).join("")
+      : `<tr><td colspan="2" style="text-align:center;color:var(--gris);">Sin bonificaciones</td></tr>`;
+  }
+
+  // Descuentos
+  const dBody = document.getElementById("boletaDescBody");
+  if (dBody) {
+    const descs = p.descuentos || [];
+    dBody.innerHTML = descs.length
+      ? descs.map(d => `<tr><td>${d.concepto || '—'}</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${fmt(d.monto)}</td></tr>`).join("")
+      : `<tr><td colspan="2" style="text-align:center;color:var(--gris);">Sin descuentos</td></tr>`;
+  }
+
+  const sigImg = document.getElementById("boletaSignatureImg");
+  if (contImgs.sello) { sigImg.src = contImgs.sello; sigImg.style.display = "block"; } else sigImg.style.display = "none";
   preview.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
