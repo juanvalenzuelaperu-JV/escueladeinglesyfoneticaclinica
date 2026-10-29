@@ -565,6 +565,38 @@
     70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
     100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
   }
+ /* ===== Mejoras Portal Talento (nueva estructura) ===== */
+.subportal-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--borde);
+}
+.subportal-tab {
+  background: #f1f5f9;
+  border: 1.5px solid var(--borde);
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: .88rem;
+  color: var(--gris);
+  transition: all .2s;
+}
+.subportal-tab.activo {
+  background: var(--talento);
+  color: #fff;
+  border-color: var(--talento);
+}
+.subportal-tab:hover:not(.activo) {
+  background: #e2e8f0;
+  color: var(--texto);
+}
+.subpanel { display: none; animation: fadeIn .25s ease; }
+.subpanel.activo { display: block; }
 </style>
 </head>
 <body>
@@ -1065,654 +1097,261 @@
       </div>
     </div>
 
-    <!-- DASHBOARD TALENTO -->
-    <div class="dashboard" id="dashboardTalento">
-      <div class="dash-top talento">
-        <div class="dash-user">
-          <div class="dash-avatar" id="iconoAvatarTalento">🌟</div>
-          <div><h3>Portal Talento</h3><p>Gestión integral · Jotavalenzuela</p></div>
-        </div>
-        <div class="dash-live"><span class="punto-live"></span><span>En vivo · <span id="relojTal">--:--:--</span></span></div>
-        <button class="dash-salir" id="btnSalirTal">Cerrar sesión</button>
-      </div>
-      <div class="dash-tabs talento-tabs">
-        <button class="dash-tab activo" data-taltab="admin">🎓 Coordinación Académica</button>
-        <button class="dash-tab" data-taltab="contabilidad">💰 Contabilidad y Finanzas</button>
-        <button class="dash-tab" data-taltab="direccion">🎯 Dirección</button>
-        <button class="dash-tab" data-taltab="marketing">📣 Marketing</button>
-      </div>
-      <div class="dash-contenido">
-
-        <!-- SUBPORTAL COORDINACIÓN ACADÉMICA -->
-        <div class="panel activo" id="tal-panel-admin">
-          <div class="dash-tabs sub-tabs" style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:10px;align-items:center;">
-            <span class="tab-group-label">Personas</span>
-            <button class="dash-tab activo" data-admtab="alumnos">🎓 Alumnos</button>
-            <button class="dash-tab" data-admtab="docentes">👨‍🏫 Docentes</button>
-            <button class="dash-tab" data-admtab="padres">👨‍👩‍👧 Padres de familia</button>
-            <button class="dash-tab" data-admtab="acceso_alumno">🔑 Acceso Alumno</button>
-            <span class="tab-group-label">Estructura</span>
-            <button class="dash-tab" data-admtab="grupos">📚 Grupos</button>
-            <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
-            <button class="dash-tab" data-admtab="programacion">🗓️ Programación de cursos</button>
-            <button class="dash-tab" data-admtab="calendarizacion">📅 Calendarización</button>
-            <span class="tab-group-label">Operación</span>
-            <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
-            <button class="dash-tab" data-admtab="reporte_dia">📋 Reporte del día</button>
-            <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad docente</button>
-            <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
-            <span class="tab-group-label">Evaluación</span>
-            <button class="dash-tab" data-admtab="asignaciones">📋 Gestor de asignaciones</button>
-            <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
-            <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos</button>
-            <span class="tab-group-label">Cierre</span>
-            <button class="dash-tab" data-admtab="resumen">📊 Resumen</button>
-            <span class="tab-group-label">Ajustes</span>
-            <button class="dash-tab" data-admtab="campos">🧩 Campos personalizados</button>
-          </div>
-          <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo Coordinación Académica crea cuentas, grupos, cursos y exámenes.</div>
-
-          <div class="panel activo" id="adm-panel-alumnos">
-            <div class="tform admin-form">
-              <h4>➕ Crear nueva cuenta de alumno</h4>
-              <form id="admNewAlumnoForm" class="tform-grid">
-                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admAlumnoNombre" placeholder="Ej: María López" required></div>
-                <div class="campo"><label>Email</label><input type="email" id="admAlumnoEmail" placeholder="maria@escuela.com"></div>
-                <div class="campo"><label>Programa</label><input type="text" id="admAlumnoPrograma" placeholder="Ej: Inglés Basic"></div>
-                <div class="campo"><label>Grupo (opcional)</label><select id="admAlumnoGrupo"><option value="">Sin grupo</option></select></div>
-                <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
-                <div class="campo"><label>Mes de ingreso <span class="req">*</span></label>
-                  <select id="admAlumnoMonth" required>
-                    <option value="">Selecciona mes</option>
-                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
-                    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
-                    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
-                    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-                  </select>
-                </div>
-                <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoDay" placeholder="Ej: 15" min="1" max="31" required></div>
-                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admAlumnoDni" placeholder="Ej: 45513532" maxlength="8" required></div>
-                <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admAlumnoTelefono" placeholder="Ej: 51999111222" required></div>
-                <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
-                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div></div>
-                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div></div>
-                <div class="campo completo" id="admAlumnoCamposExtra"></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
-              </form>
-              <div class="cred-box" id="credAlumno">
-                <strong>✅ Cuenta creada:</strong>
-                <div class="cred-row"><span>Usuario:</span><code id="credUserAlumno">—</code><button data-copy="credUserAlumno">📋</button></div>
-                <div class="cred-row"><span>Contraseña:</span><code id="credPassAlumno">—</code><button data-copy="credPassAlumno">📋</button></div>
-              </div>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Alumnos registrados</h4>
-            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-              <table class="admin-table" style="min-width:1200px;">
-                <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Grupo</th><th>Programa</th><th>Año</th><th>Mes</th><th>Día</th><th>DNI</th><th>Evidencia</th><th>Contraseña</th><th>Acciones</th></tr></thead>
-                <tbody id="admAlumnosBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel" id="adm-panel-docentes">
-            <div class="tform admin-form">
-              <h4>➕ Crear nueva cuenta de docente</h4>
-              <form id="admNewDocenteForm" class="tform-grid">
-                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admDocenteNombre" placeholder="Ej: Laura Chen" required></div>
-                <div class="campo"><label>Email</label><input type="email" id="admDocenteEmail" placeholder="laura@escuela.com"></div>
-                <div class="campo"><label>Área</label><input type="text" id="admDocenteArea" placeholder="Ej: Fonética clínica"></div>
-                <div class="campo"><label>Pago por hora pedagógica (S/) <span class="req">*</span></label><input type="number" id="admDocentePagoHora" step="0.01" min="0" placeholder="Ej: 25.00" required></div>
-                <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admDocenteYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
-                <div class="campo"><label>Mes de ingreso <span class="req">*</span></label>
-                  <select id="admDocenteMonth" required>
-                    <option value="">Selecciona mes</option>
-                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
-                    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
-                    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
-                    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-                  </select>
-                </div>
-                <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admDocenteDay" placeholder="Ej: 15" min="1" max="31" required></div>
-                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admDocenteDni" placeholder="Ej: 45513532" maxlength="8" required></div>
-                <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admDocenteTelefono" placeholder="Ej: 51915900797" required></div>
-                <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admDocenteDniFile" accept="image/*" required></div>
-                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admDocenteUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="docente">🎲</button></div></div>
-                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admDocentePass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="docente">🎲</button></div></div>
-                <div class="campo completo" id="admDocenteCamposExtra"></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
-              </form>
-              <div class="cred-box" id="credDocente">
-                <strong>✅ Cuenta creada:</strong>
-                <div class="cred-row"><span>Usuario:</span><code id="credUserDocente">—</code><button data-copy="credUserDocente">📋</button></div>
-                <div class="cred-row"><span>Contraseña:</span><code id="credPassDocente">—</code><button data-copy="credPassDocente">📋</button></div>
-              </div>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Docentes registrados</h4>
-            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-              <table class="admin-table" style="min-width:1200px;">
-                <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Área</th><th>Pago/Hora</th><th>Grupos</th><th>DNI</th><th>Evidencia</th><th>Contraseña</th><th>Acciones</th></tr></thead>
-                <tbody id="admDocentesBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel" id="adm-panel-grupos">
-            <div class="tform admin-form">
-              <h4>➕ Crear nuevo grupo</h4>
-              <form id="admNewGroupForm" class="tform-grid">
-  <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admGroupPrograma" placeholder="Ej: Basic" required></div>
-  <div class="campo"><label>Nivel (texto libre) <span class="req">*</span></label><input type="text" id="admGroupNivel" placeholder="Ej: Básico / B1 / Intermedio" required></div>
-  <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
-  <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
-  <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A - Tarde" required></div>
-  <div class="campo"><label>Total horas del ciclo</label><input type="number" id="admGroupTotalHoras" min="0" step="1" value="40" placeholder="Ej: 40"></div>
-  <div class="campo completo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
-  <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
-</form>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Grupos creados</h4>
-            <div id="admGroupsLista"></div>
-          </div>
-
-          <div class="panel" id="adm-panel-matriculas">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📋 Registro de Matrículas y Citas</h4>
-            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-              <table class="admin-table" style="min-width:780px;">
-                <thead><tr><th>Tipo</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Programa / Fecha</th><th>Voucher</th><th>Acciones</th></tr></thead>
-                <tbody id="admMatriculasBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel" id="adm-panel-programacion">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">🗓️ Programación de Cursos y Horarios</h4>
-            <p style="color:var(--gris);font-size:.85rem;margin-bottom:16px;">Los cursos que crees aquí aparecerán automáticamente en la tabla pública de Horarios.</p>
-            <div class="tform admin-form">
-              <h4>➕ Crear nuevo curso / horario</h4>
-              <form id="admNewCourseForm" class="tform-grid">
-                <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admCoursePrograma" placeholder="Ej: Basic" required></div>
-                <div class="campo"><label>Día(s)</label><input type="text" id="admCourseDia" placeholder="Ej: Jueves"></div>
-                <div class="campo"><label>Horario</label><input type="text" id="admCourseHorario" placeholder="Ej: 19:00 a 21:00"></div>
-                <div class="campo"><label>Modalidad</label><select id="admCourseModalidad"><option value="Online">Online</option><option value="Presencial">Presencial</option><option value="Híbrido">Híbrido</option></select></div>
-                <div class="campo"><label>Tipo</label><select id="admCourseTipo"><option value="matricula">Matrícula con cupo</option><option value="cita">Cita (sin cupo)</option></select></div>
-                <div class="campo"><label>Cupo máximo (si aplica)</label><input type="number" id="admCourseMax" value="12" min="1" max="100"></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear curso</button></div></div>
-              </form>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Cursos registrados</h4>
-            <div id="admCoursesList" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"></div>
-          </div>
-
-          <div class="panel" id="adm-panel-examenes">
-            <div class="tform admin-form">
-              <h4>➕ Crear nuevo examen</h4>
-              <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
-              <form id="admNewExamForm" class="tform-grid">
-                <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
-                <div class="campo"><label>Grupo destino <span class="req">*</span></label><select id="admExamGroup" required><option value="">Selecciona grupo</option></select></div>
-                <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
-                <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
-                <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
-                <div class="campo completo">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
-                    <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
-                    <button type="button" class="btn btn-mini btn-azul" id="admBtnAddPregunta">+ Agregar pregunta</button>
-                  </div>
-                  <div id="admExamPreguntas"></div>
-                </div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
-              </form>
-              <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
-            <div id="admExamsLista"></div>
-          </div>
-
-          <div class="panel" id="adm-panel-asistencia">
-            <div class="tform admin-form">
-              <h4>📅 Resumen de Asistencia</h4>
-              <div class="campo"><label>Selecciona el grupo</label><select id="admAsisGrupo"><option value="">Selecciona un grupo...</option></select></div>
-            </div>
-            <div id="admAsisResumen" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-              <p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo.</p>
-            </div>
-          </div>
-
-          <!-- Membrete y Foto Fundador eliminados de Coordinación; se gestionan en Marketing > Iconografía -->
-<div class="panel" id="adm-panel-acceso_alumno">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🔑 Acceso directo a cuenta de alumno</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Selecciona un alumno e ingresa a su portal sin necesidad de contraseña.</p>
-            <div class="tform admin-form">
-              <div class="campo"><label>Alumno</label>
-                <select id="admAccesoAlumnoSelect"><option value="">Selecciona un alumno...</option></select>
-              </div>
-              <div class="tform-acciones">
-                <button type="button" class="btn btn-azul" id="btnAdmEntrarAlumno">Entrar a la cuenta</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel" id="adm-panel-estados_grupos">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📁 Estados de grupos</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Consulta qué grupos siguen abiertos y cuáles ya fueron cerrados por los docentes.</p>
-            <div class="resumen-grid" style="margin-bottom:20px;">
-              <div class="resumen-card verde"><div class="et">Grupos abiertos</div><div class="val" id="estGruposAbiertos">—</div></div>
-              <div class="resumen-card morado"><div class="et">Grupos cerrados</div><div class="val" id="estGruposCerrados">—</div></div>
-              <div class="resumen-card azul"><div class="et">Total grupos</div><div class="val" id="estGruposTotal">—</div></div>
-            </div>
-            <div id="admEstadosGruposLista"></div>
-          </div>
-
-          
-          <div class="panel" id="adm-panel-disp_docentes">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;" id="admDispTitulo">🗓️ Disponibilidad Docente</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Resumen de la disponibilidad de todos los profesores. Marca «Ha sido programado(a) para este turno» en los turnos que el docente indicó que puede.</p>
-            <div id="admDispDocentesLista"></div>
-            <div class="tform" style="margin-top:24px;">
-              <h4>📄 Generar Carga Horaria</h4>
-              <div class="tform-grid">
-                <div class="campo"><label>Selecciona docente</label>
-                  <select id="admCargaTeacherSelect"><option value="">Selecciona...</option></select>
-                </div>
-              </div>
-              <div class="tform-acciones" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
-                <button type="button" class="btn btn-azul btn-mini" id="btnGenCargaHoraria">📄 Generar / Vista preliminar</button>
-                <button type="button" class="btn btn-verde btn-mini" id="btnConfirmarCarga">✅ Confirmar carga horaria</button>
-                <button type="button" class="btn btn-slate btn-mini" id="btnDescargarCarga">⬇️ Descargar</button>
-                <button type="button" class="btn btn-slate btn-mini" id="btnImprimirCarga">🖨️ Imprimir</button>
-                <button type="button" class="btn btn-verde btn-mini" id="btnWhatsAppCarga">📱 Enviar por WhatsApp</button>
-              </div>
-              <div class="boleta-preview-container" id="admCargaPreview" style="margin-top:16px;"></div>
-            </div>
-          </div>
-
-          
-          <div class="panel" id="adm-panel-campos">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">🧩 Campos personalizados</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Crea campos adicionales para las cuentas de alumnos y docentes. Aparecerán al crear y al editar cuentas.</p>
-            <div class="tform admin-form">
-              <h4>➕ Nuevo campo</h4>
-              <form id="admNewCampoForm" class="tform-grid">
-                <div class="campo"><label>Etiqueta / nombre del campo <span class="req">*</span></label>
-                  <input type="text" id="campoLabel" placeholder="Ej: Distrito, Especialidad, Contacto de emergencia" required>
-                </div>
-                <div class="campo"><label>Tipo de campo <span class="req">*</span></label>
-                  <select id="campoTipo" required>
-                    <option value="text">Texto</option>
-                    <option value="number">Número</option>
-                    <option value="date">Fecha</option>
-                    <option value="tel">Teléfono</option>
-                    <option value="email">Email</option>
-                    <option value="select">Lista desplegable</option>
-                    <option value="textarea">Texto largo</option>
-                  </select>
-                </div>
-                <div class="campo"><label>Aplica a <span class="req">*</span></label>
-                  <select id="campoAplica" required>
-                    <option value="ambos">Alumnos y Docentes</option>
-                    <option value="alumno">Solo Alumnos</option>
-                    <option value="docente">Solo Docentes</option>
-                  </select>
-                </div>
-                <div class="campo"><label>¿Obligatorio?</label>
-                  <select id="campoReq">
-                    <option value="no">Opcional</option>
-                    <option value="si">Obligatorio</option>
-                  </select>
-                </div>
-                <div class="campo completo" id="campoOpcionesWrap" style="display:none;">
-                  <label>Opciones de la lista (separadas por coma)</label>
-                  <input type="text" id="campoOpciones" placeholder="Ej: Lima, Arequipa, Cusco">
-                </div>
-                <div class="campo completo">
-                  <div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear campo</button></div>
-                </div>
-              </form>
-            </div>
-            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Campos definidos</h4>
-            <div id="admCamposLista"></div>
-          </div>
-
-          
-          <div class="panel" id="adm-panel-asignaciones">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Gestor de asignaciones</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Programa las evaluaciones del ciclo. Los docentes solo podrán calificar; no crear nuevas desde su portal.</p>
-            <div class="tform admin-form">
-              <h4>🧩 Crear criterio nuevo</h4>
-              <div class="tform-grid">
-                <div class="campo"><label>Nombre del criterio nuevo</label><input type="text" id="admNuevoCriterioNombre" placeholder="Ej: Project Work"></div>
-                <div class="campo" style="display:flex;align-items:flex-end;"><button type="button" class="btn btn-azul btn-mini" id="btnCrearCriterio">➕ Crear criterio</button></div>
-              </div>
-            </div>
-            <div class="tform admin-form">
-              <h4>➕ Nueva evaluación</h4>
-              <form id="admNewAsgForm" class="tform-grid">
-                <div class="campo">
-                  <label>Criterio <span class="req">*</span></label>
-                  <select id="admAsgCriterio" required>
-                    <option value="">Selecciona...</option>
-                    <option value="class_participation">Class Participation</option>
-                    <option value="writing">Writing</option>
-                    <option value="online_homework">Online Homework</option>
-                    <option value="speaking">Speaking</option>
-                    <option value="readers">Readers</option>
-                    <option value="intl_exam">Internacional examination</option>
-                    <option value="final_exam">Final Exam</option>
-                  </select>
-                </div>
-                <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="admAsgInicio" required></div>
-                <div class="campo"><label>Fecha fin / caducidad <span class="req">*</span></label><input type="date" id="admAsgFin" required></div>
-                <div class="campo"><label>Grupo (opcional)</label><select id="admAsgGrupo"><option value="">Todos los grupos</option></select></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear evaluación</button></div></div>
-              </form>
-            </div>
-            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Evaluaciones programadas</h4>
-            <div id="admAsignacionesLista"></div>
-          </div>
-
-          
-          <div class="panel" id="adm-panel-historial_cursos">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📚 Historial de cursos dictados</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Registro de cada curso cerrado por los docentes, con la descripción entregada a Coordinación Académica.</p>
-            <div class="resumen-grid" style="margin-bottom:18px;">
-              <div class="resumen-card azul"><div class="et">Cursos cerrados</div><div class="val" id="histCursosTotal">—</div></div>
-              <div class="resumen-card verde"><div class="et">Alumnos involucrados</div><div class="val" id="histCursosAlumnos">—</div></div>
-            </div>
-            <div id="admHistorialCursosLista"></div>
-          </div>
-
-          <div class="panel" id="adm-panel-resumen">
-            <div class="resumen-grid">
-              <div class="resumen-card slate"><div class="et">Alumnos</div><div class="val" id="admStatAlumnos">—</div></div>
-              <div class="resumen-card morado"><div class="et">Docentes</div><div class="val" id="admStatDocentes">—</div></div>
-              <div class="resumen-card azul"><div class="et">Grupos</div><div class="val" id="admStatGrupos">—</div></div>
-              <div class="resumen-card amarillo"><div class="et">Asignaciones</div><div class="val" id="admStatAsgs">—</div></div>
-              <div class="resumen-card verde"><div class="et">Exámenes</div><div class="val" id="admStatExams">—</div></div>
-            </div>
-            <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Grupos por nivel</h4>
-            <div class="resumen-grid" id="admGruposPorNivel"></div>
-            <h4 style="color:var(--slate);margin:20px 0 14px;font-size:1rem;font-weight:800;">Resumen de calificaciones</h4>
-            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-              <table class="table-slate" style="min-width:640px;"><thead><tr><th>Alumno</th><th>Grupo</th><th>Promedio</th><th>Estado</th><th>Asistencia</th></tr></thead><tbody id="admResumenBody"></tbody></table>
-            </div>
-          </div>
-
-          <!-- PADRES DE FAMILIA -->
-          <div class="panel" id="adm-panel-padres">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">👨‍👩‍👧 Padres de familia</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Crea cuentas de padres/madres vinculadas a alumnos. Ellos podrán ingresar al Portal Padres de Familia.</p>
-            <div class="tform admin-form">
-              <h4>➕ Crear cuenta de padre/madre</h4>
-              <form id="admNewPadreForm" class="tform-grid">
-                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admPadreNombre" required placeholder="Ej: Ana García"></div>
-                <div class="campo"><label>Número de celular <span class="req">*</span></label><input type="tel" id="admPadreCelular" required placeholder="51999111222"></div>
-                <div class="campo"><label>Correo electrónico</label><input type="email" id="admPadreEmail" placeholder="ana@email.com"></div>
-                <div class="campo"><label>Fecha de nacimiento</label><input type="date" id="admPadreNac"></div>
-                <div class="campo"><label>Edad actual</label><input type="number" id="admPadreEdad" readonly placeholder="Auto"></div>
-                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admPadreDni" maxlength="8" required></div>
-                <div class="campo completo"><label>Foto del DNI</label><input type="file" id="admPadreDniFile" accept="image/*"></div>
-                <div class="campo completo"><label>Padre/madre de: <span class="req">*</span></label>
-                  <input type="text" id="admPadreDeFiltro" placeholder="Escribe para filtrar alumnos..." autocomplete="off">
-                  <div id="admPadreDeSugerencias" style="border:1px solid var(--borde);border-radius:8px;max-height:160px;overflow-y:auto;display:none;background:#fff;margin-top:4px;"></div>
-                  <div id="admPadreHijosChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
-                </div>
-                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admPadreUser" required><button type="button" class="btn-icon" id="btnGenPadreUser">🎲</button></div></div>
-                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admPadrePass" required><button type="button" class="btn-icon" id="btnGenPadrePass">🎲</button></div></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta padre/madre</button></div></div>
-              </form>
-              <div class="cred-box" id="credPadre"><strong>✅ Cuenta creada:</strong>
-                <div class="cred-row"><span>Usuario:</span><code id="credUserPadre">—</code><button data-copy="credUserPadre">📋</button></div>
-                <div class="cred-row"><span>Contraseña:</span><code id="credPassPadre">—</code><button data-copy="credPassPadre">📋</button></div>
-              </div>
-            </div>
-            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Padres registrados</h4>
-            <div id="admPadresLista"></div>
-          </div>
-
-          <!-- CALENDARIZACIÓN -->
-          <div class="panel" id="adm-panel-calendarizacion">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Selecciona el mes y haz clic en cualquier día del calendario. En el panel lateral podrás asignar grupos, tipos de evaluación, inicio/fin de curso u otros eventos.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
-              <div class="campo" style="margin:0;min-width:180px;"><label>Mes a programar</label><input type="month" id="calMesSelect"></div>
-              <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
-              <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
-            </div>
-            <div id="calLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:.78rem;"></div>
-            <div style="display:grid;grid-template-columns:1fr minmax(280px,360px);gap:20px;align-items:start;">
-              <div>
-                <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;"></div>
-                <div id="calMesResumen" style="display:none;margin-top:12px;"></div>
-              </div>
-              <div id="calEventPanel" style="display:none;background:#f9fafb;border:1px solid var(--borde);border-radius:14px;padding:18px;position:sticky;top:90px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
-                  <h5 style="margin:0;color:var(--azul);font-size:1rem;">📌 <span id="calFechaSel">—</span></h5>
-                  <button type="button" class="btn btn-mini btn-slate" id="btnCalCerrarPanel" style="padding:4px 10px;">Cerrar</button>
-                </div>
-                <div class="campo"><label>Grupo <span class="req">*</span></label>
-                  <select id="calGrupoSel"><option value="">Selecciona grupo...</option></select>
-                </div>
-                <div class="campo"><label>Tipo de evento / evaluación <span class="req">*</span></label>
-                  <select id="calTipoSel">
-                    <option value="">Selecciona...</option>
-                    <optgroup label="Curso">
-                      <option value="inicio_curso">Inicio de curso</option>
-                      <option value="fin_curso">Fin de curso</option>
-                    </optgroup>
-                    <optgroup label="Evaluaciones" id="calTipoEvalGroup">
-                      <option value="class_participation">Class Participation</option>
-                      <option value="online_workbook">Online Workbook</option>
-                      <option value="readers">Readers</option>
-                      <option value="writing">Writing</option>
-                      <option value="speaking">Speaking</option>
-                      <option value="final_exam">Final Exam</option>
-                    </optgroup>
-                    <option value="otro">➕ Crear otro evento</option>
-                  </select>
-                </div>
-                <div class="campo" id="calOtroWrap" style="display:none;">
-                  <label>Nombre del nuevo evento</label>
-                  <input type="text" id="calOtroEvento" placeholder="Ej: Día del libro, Simulacro oral…">
-                </div>
-                <div class="campo">
-                  <label>Notas / detalle (opcional)</label>
-                  <input type="text" id="calNotaEvento" placeholder="Observación breve">
-                </div>
-                <div class="tform-acciones" style="margin-top:8px;">
-                  <button type="button" class="btn btn-verde btn-mini" id="btnAddCalEvent">➕ Agregar al día</button>
-                </div>
-                <div class="mensaje-exito" id="calAddMsg" style="margin-top:10px;">✅ Evento agregado</div>
-                <h5 style="margin:18px 0 10px;color:var(--slate);font-size:.9rem;font-weight:800;">Eventos de este día</h5>
-                <div id="calEventosDelDia"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- REPORTE DEL DÍA -->
-          <div class="panel" id="adm-panel-reporte_dia">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Reporte del día</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Monitorea hasta medianoche las tareas del día: asistencia guardada por docentes, registros de notas y eventos calendarizados. Marca cumplido / no cumplido por grupo.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
-              <div class="campo" style="margin:0;min-width:180px;"><label>Fecha del reporte</label><input type="date" id="reporteDiaFecha"></div>
-              <div class="campo" style="margin:0;min-width:200px;"><label>Filtrar docente</label>
-                <select id="reporteDiaTeacher"><option value="">Todos los docentes</option></select>
-              </div>
-              <button type="button" class="btn btn-slate btn-mini" id="btnReporteHoy">Hoy</button>
-              <button type="button" class="btn btn-azul btn-mini" id="btnReporteRefresh">🔄 Actualizar</button>
-              <button type="button" class="btn btn-verde btn-mini" id="btnReporteExportar">⬇️ Exportar / PDF</button>
-            </div>
-            <div class="resumen-grid" id="reporteDiaResumen" style="margin-bottom:20px;">
-              <div class="resumen-card verde"><div class="et">Asistencias cumplidas</div><div class="val" id="repStatAsisOk">0</div></div>
-              <div class="resumen-card amarillo"><div class="et">Asistencias pendientes</div><div class="val" id="repStatAsisPend">0</div></div>
-              <div class="resumen-card morado"><div class="et">Registros de notas</div><div class="val" id="repStatNotas">0</div></div>
-              <div class="resumen-card azul"><div class="et">Eventos del día</div><div class="val" id="repStatEventos">0</div></div>
-            </div>
-            <div id="reporteDiaDeadline" class="aviso-tiempo-real" style="margin-bottom:16px;"></div>
-            <div class="dash-tabs sub-tabs" style="margin-bottom:16px;">
-              <button type="button" class="dash-tab activo" data-rep-tab="asistencia">📅 Asistencia</button>
-              <button type="button" class="dash-tab" data-rep-tab="notas">📊 Registro de notas</button>
-              <button type="button" class="dash-tab" data-rep-tab="eventos">📌 Eventos calendarizados</button>
-              <button type="button" class="dash-tab" data-rep-tab="detalle">🔍 Detalle expandido</button>
-            </div>
-            <div id="reporteDiaLista"></div>
-            <div id="reporteDiaDetalle" style="display:none;margin-top:16px;"></div>
-          </div>
-        </div>
-
-        <!-- SUBPORTAL CONTABILIDAD Y FINANZAS -->
-        <div class="panel" id="tal-panel-contabilidad">
-          <div class="subportal-tabs">
-            <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
-            <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
-          </div>
-          <div class="subpanel activo" id="cont-subpanel-pago">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
-            <div class="tform admin-form">
-              <div class="tform-grid">
-                <div class="campo"><label>Selecciona el docente</label><select id="admPagoSelectTeacher"><option value="">Selecciona...</option></select></div>
-                <div class="campo"><label>Grupos a cargo</label><select id="admPagoSelectGrupo"><option value="">Todos los grupos del docente</option></select></div>
-              </div>
-            </div>
-            <div id="admPagoGruposInfo" style="margin-bottom:14px;"></div>
-            <div id="admPagoEditor" style="display:none;">
-              <div class="resumen-grid">
-                <div class="resumen-card azul"><div class="et">Pago/hora base</div><div class="val" id="admPagoBase">—</div></div>
-                <div class="resumen-card"><div class="et">Horas ped.</div><div class="val" id="admPagoSubH">—</div></div>
-                <div class="resumen-card"><div class="et">Horas extra</div><div class="val" id="admPagoSubHE">—</div></div>
-                <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val" id="admPagoSubB">—</div></div>
-                <div class="resumen-card morado"><div class="et">Descuentos</div><div class="val" id="admPagoSubD">—</div></div>
-                <div class="resumen-card verde"><div class="et">Total neto</div><div class="val" id="admPagoSubTotal">—</div></div>
-              </div>
-              <div class="tform">
-                <h4>⏱️ Horas trabajadas</h4>
-                <p style="color:var(--gris);font-size:.85rem;margin:0 0 12px;">Cursos asignados al docente y horas totales del ciclo.</p>
-                <div id="admPagoCursosAsignados" style="margin-bottom:14px;"></div>
-                <div class="tform-grid">
-                  <div class="campo"><label>Horas pedagógicas</label><input type="number" id="admPagoHorasPed" min="0" step="0.5" value="0"></div>
-                  <div class="campo"><label>Horas extras</label><input type="number" id="admPagoHorasExt" min="0" step="0.5" value="0"></div>
-                  <div class="campo"><label>Pago por hora extra (S/)</label><input type="number" id="admPagoHoraExtra" min="0" step="0.01" value="0"></div>
-                </div>
-              </div>
-              <div class="tform">
-                <h4>➕ Bonificaciones</h4>
-                <div id="admPagoBonifList"></div>
-                <button type="button" class="btn btn-mini btn-verde" id="admPagoAddBonif">+ Agregar bonificación</button>
-              </div>
-              <div class="tform">
-                <h4>➖ Descuentos</h4>
-                <div id="admPagoDescList"></div>
-                <button type="button" class="btn btn-mini btn-rojo" id="admPagoAddDesc">+ Agregar descuento</button>
-              </div>
-              <div class="tform-acciones" style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-                <button type="button" class="btn btn-morado" id="admPagoGuardar">💾 Guardar</button>
-                <button type="button" class="btn btn-slate" id="admPagoVolver">← Volver</button>
-                <button type="button" class="btn btn-azul" id="admPagoPreliminar">👁️ Preliminar</button>
-                <button type="button" class="btn btn-verde" id="admPagoDescargar">⬇️ Descargar</button>
-                <button type="button" class="btn btn-slate" id="admPagoImprimir">🖨️ Imprimir</button>
-              </div>
-              <div class="boleta-preview-container" id="admPagoPreview"></div>
-            </div>
-          </div>
-          <div class="subpanel" id="cont-subpanel-firma">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Las imágenes aquí cargadas se usarán en la <strong>Boleta Preliminar de Pago Docente</strong>.</p>
-            <div class="oficina-section">
-              <h4>🏢 Sello de oficina</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contSelloFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContSello">Guardar Sello</button></div>
-              <div class="firma-preview-box" id="contSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
-            </div>
-            <div class="oficina-section">
-              <h4>📄 Membrete</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contMembreteFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContMembrete">Guardar Membrete</button></div>
-              <div class="letterhead-preview-box" id="contMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SUBPORTAL DIRECCIÓN -->
-        <div class="panel" id="tal-panel-direccion">
-          <div class="subportal-tabs">
-            <button class="subportal-tab activo" data-dir-subtab="firma">✍️ Firma Digital</button>
-          </div>
-          <div class="subpanel activo" id="dir-subpanel-firma">
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Dirección</h4>
-            <div class="oficina-section">
-              <h4>🏢 Sello de oficina</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="dirSelloFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveDirSello">Guardar Sello</button></div>
-              <div class="firma-preview-box" id="dirSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
-            </div>
-            <div class="oficina-section">
-              <h4>📄 Membrete</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="dirMembreteFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveDirMembrete">Guardar Membrete</button></div>
-              <div class="letterhead-preview-box" id="dirMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SUBPORTAL MARKETING -->
-        <div class="panel" id="tal-panel-marketing">
-          <div class="subportal-tabs">
-            <button class="subportal-tab activo" data-mkt-subtab="galeria">🖼️ Galería de Fotos</button>
-            <button class="subportal-tab" data-mkt-subtab="firma">✍️ Firma Digital</button>
-            <button class="subportal-tab" data-mkt-subtab="iconografia">🎨 Iconografía</button>
-            <button class="subportal-tab" data-mkt-subtab="cumples">🎂 Cumpleaños</button>
-          </div>
-          <div class="subpanel activo" id="mkt-subpanel-galeria">
-            <div class="aviso-tiempo-real" style="background:#fdf2f8;color:#9d174d;"><span class="punto-live" style="background:#ec4899;"></span> Las fotos se mostrarán automáticamente en la página principal de la escuela.</div>
-            <div class="tform">
-              <h4>➕ Subir nuevas fotos (máx. 3 a la vez)</h4>
-              <div class="campo"><label>Título / Descripción (opcional)</label><input type="text" id="mktPhotoTitle" placeholder="Ej: Clases de fonética"></div>
-              <div class="campo"><label>Seleccionar imágenes (JPG/PNG, máx. 2MB c/u)</label><input type="file" id="mktPhotoFile" accept="image/*" multiple></div>
-              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnUploadPhoto">Subir Fotos</button></div>
-              <div class="mensaje-exito" id="mktPhotoMsg">✅ Fotos subidas.</div>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📸 Fotos en la galería</h4>
-            <div id="mktGalleryGrid" class="gallery-grid"></div>
-          </div>
-          <div class="subpanel" id="mkt-subpanel-firma">
-            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Marketing</h4>
-            <div class="oficina-section">
-              <h4>🏢 Sello de oficina</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="mktSelloFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveMktSello">Guardar Sello</button></div>
-              <div class="firma-preview-box" id="mktSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
-            </div>
-            <div class="oficina-section">
-              <h4>📄 Membrete</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="mktMembreteFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveMktMembrete">Guardar Membrete</button></div>
-              <div class="letterhead-preview-box" id="mktMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
-            </div>
-          </div>
-          <div class="subpanel" id="mkt-subpanel-iconografia">
-            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">🎨 Iconografía de la Interfaz</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Sube imágenes para reemplazar los iconos del sistema. Los cambios se aplicarán automáticamente en toda la interfaz.</p>
-            <div class="oficina-section">
-              <h4>📄 Membrete institucional (Report Cards)</h4>
-              <p style="color:var(--gris);font-size:.85rem;margin-bottom:10px;">Este membrete se usa en Report Cards y documentos oficiales.</p>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="adminLetterheadFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-rosa btn-mini" id="btnSaveLetterhead">Guardar Membrete</button></div>
-              <div class="mensaje-exito" id="letterheadMsg">✅ Membrete guardado.</div>
-              <div class="letterhead-preview-box" id="letterheadPreviewBox"><p style="color:var(--gris);font-size:0.9rem;">No hay membrete cargado.</p></div>
-            </div>
-            <div id="iconografiaLista"></div>
-          </div>
-          <div class="subpanel" id="mkt-subpanel-cumples">
-            <h4 style="color:var(--rosa);margin-bottom:14px;font-size:1rem;font-weight:800;">🎂 Cumpleaños · Docentes y Alumnos</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Lista de cumpleañeros. A <strong>2 semanas</strong> del cumpleaños aparece un recordatorio.</p>
-            <div id="mktCumplesAlertas" style="margin-bottom:18px;"></div>
-            <h5 style="color:var(--slate);margin-bottom:10px;">Próximos cumpleaños</h5>
-            <div id="mktCumplesLista"></div>
-          </div>
-        </div>
-
+<!-- ============================================================
+     DASHBOARD TALENTO — NUEVA ESTRUCTURA (v2 limpia)
+     ============================================================ -->
+<div class="dashboard" id="dashboardTalento">
+  
+  <!-- Header del portal -->
+  <div class="dash-top talento">
+    <div class="dash-user">
+      <div class="dash-avatar" id="iconoAvatarTalento">🌟</div>
+      <div>
+        <h3>Portal Talento</h3>
+        <p>Gestión integral · Jotavalenzuela</p>
       </div>
     </div>
+    <div class="dash-live">
+      <span class="punto-live"></span>
+      <span>En vivo · <span id="relojTal">--:--:--</span></span>
+    </div>
+    <button class="dash-salir" id="btnSalirTal">Cerrar sesión</button>
   </div>
+
+  <!-- ===== NAVEGACIÓN PRINCIPAL (solo 6 pestañas) ===== -->
+  <div class="dash-tabs talento-tabs">
+    <button class="dash-tab activo" data-taltab="inicio">🏠 Inicio</button>
+    <button class="dash-tab" data-taltab="admin">🎓 Coordinación Académica</button>
+    <button class="dash-tab" data-taltab="contabilidad">💰 Contabilidad y Finanzas</button>
+    <button class="dash-tab" data-taltab="direccion">🎯 Dirección</button>
+    <button class="dash-tab" data-taltab="marketing">📣 Marketing</button>
+    <button class="dash-tab" data-taltab="config">⚙️ Configuración</button>
+  </div>
+
+  <div class="dash-contenido">
+
+    <!-- ========================================================
+         1. INICIO / DASHBOARD EJECUTIVO
+         ======================================================== -->
+    <div class="panel activo" id="tal-panel-inicio">
+      
+      <div class="seccion-cabecera" style="margin-bottom:28px; text-align:left;">
+        <h2 style="font-size:1.4rem; color:var(--talento); margin-bottom:6px;">Resumen operativo</h2>
+        <p style="color:var(--gris); font-size:.95rem;">Vista rápida del estado actual de la escuela</p>
+      </div>
+
+      <!-- Cards de resumen -->
+      <div class="resumen-grid" style="margin-bottom:32px;">
+        <div class="resumen-card verde">
+          <div class="et">Grupos abiertos</div>
+          <div class="val" id="dashGruposAbiertos">—</div>
+        </div>
+        <div class="resumen-card amarillo">
+          <div class="et">Asistencias pendientes hoy</div>
+          <div class="val" id="dashAsisPendientes">—</div>
+        </div>
+        <div class="resumen-card morado">
+          <div class="et">Matrículas por revisar</div>
+          <div class="val" id="dashMatriculasPend">—</div>
+        </div>
+        <div class="resumen-card slate">
+          <div class="et">Docentes sin disponibilidad</div>
+          <div class="val" id="dashDispPendientes">—</div>
+        </div>
+      </div>
+
+      <!-- Accesos rápidos -->
+      <h4 style="color:var(--slate); margin-bottom:14px; font-weight:800;">⚡ Accesos rápidos</h4>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:14px; margin-bottom:32px;">
+        <button class="btn btn-talento" data-goto="admin" data-sub="reporte_dia">📋 Reporte del día</button>
+        <button class="btn btn-azul" data-goto="admin" data-sub="grupos">📚 Ver grupos</button>
+        <button class="btn btn-morado" data-goto="admin" data-sub="matriculas">🎫 Matrículas</button>
+        <button class="btn btn-verde" data-goto="admin" data-sub="alumnos">🎓 Alumnos</button>
+        <button class="btn btn-slate" data-goto="admin" data-sub="calendarizacion">📅 Calendarización</button>
+        <button class="btn btn-rosa" data-goto="marketing" data-sub="cumples">🎂 Cumpleaños</button>
+      </div>
+
+      <!-- Alertas -->
+      <div id="dashAlertasBox">
+        <!-- Se llena dinámicamente con alertas importantes -->
+      </div>
+    </div>
+
+    <!-- ========================================================
+         2. COORDINACIÓN ACADÉMICA (reorganizada)
+         ======================================================== -->
+    <div class="panel" id="tal-panel-admin">
+
+      <!-- Sub-navegación limpia (solo 5 secciones) -->
+      <div class="dash-tabs sub-tabs" style="margin-bottom:24px; border-bottom:2px solid var(--borde);">
+        <button class="dash-tab activo" data-admtab="resumen">📊 Resumen</button>
+        <button class="dash-tab" data-admtab="personas">👥 Personas</button>
+        <button class="dash-tab" data-admtab="estructura">📚 Estructura</button>
+        <button class="dash-tab" data-admtab="operacion">📅 Operación</button>
+        <button class="dash-tab" data-admtab="evaluacion">📝 Evaluación</button>
+      </div>
+
+      <!-- —— 2.1 RESUMEN —— -->
+      <div class="subpanel activo" id="adm-sub-resumen">
+        <h4 style="color:var(--talento); margin-bottom:16px;">Resumen académico</h4>
+        <div id="admResumenContenido">
+          <!-- Aquí va el contenido actual de "resumen" + reporte del día resumido -->
+        </div>
+      </div>
+
+      <!-- —— 2.2 PERSONAS —— -->
+      <div class="subpanel" id="adm-sub-personas">
+        <div class="subportal-tabs" style="margin-bottom:20px;">
+          <button class="subportal-tab activo" data-personas="alumnos">🎓 Alumnos</button>
+          <button class="subportal-tab" data-personas="docentes">👨‍🏫 Docentes</button>
+          <button class="subportal-tab" data-personas="padres">👨‍👩‍👧 Padres</button>
+          <button class="subportal-tab" data-personas="acceso">🔑 Accesos</button>
+        </div>
+
+        <div class="subpanel activo" id="personas-alumnos">
+          <!-- Contenido actual de Alumnos -->
+          <div id="admAlumnosContenido"></div>
+        </div>
+        <div class="subpanel" id="personas-docentes">
+          <div id="admDocentesContenido"></div>
+        </div>
+        <div class="subpanel" id="personas-padres">
+          <div id="admPadresContenido"></div>
+        </div>
+        <div class="subpanel" id="personas-acceso">
+          <div id="admAccesoAlumnoContenido"></div>
+        </div>
+      </div>
+
+      <!-- —— 2.3 ESTRUCTURA —— -->
+      <div class="subpanel" id="adm-sub-estructura">
+        <div class="subportal-tabs" style="margin-bottom:20px;">
+          <button class="subportal-tab activo" data-estructura="grupos">📚 Grupos</button>
+          <button class="subportal-tab" data-estructura="matriculas">🎫 Matrículas</button>
+          <button class="subportal-tab" data-estructura="programacion">🗓️ Programación</button>
+          <button class="subportal-tab" data-estructura="calendarizacion">📅 Calendarización</button>
+        </div>
+
+        <div class="subpanel activo" id="estructura-grupos">
+          <div id="admGruposContenido"></div>
+        </div>
+        <div class="subpanel" id="estructura-matriculas">
+          <div id="admMatriculasContenido"></div>
+        </div>
+        <div class="subpanel" id="estructura-programacion">
+          <div id="admProgramacionContenido"></div>
+        </div>
+        <div class="subpanel" id="estructura-calendarizacion">
+          <div id="admCalendarizacionContenido"></div>
+        </div>
+      </div>
+
+      <!-- —— 2.4 OPERACIÓN —— -->
+      <div class="subpanel" id="adm-sub-operacion">
+        <div class="subportal-tabs" style="margin-bottom:20px;">
+          <button class="subportal-tab activo" data-operacion="asistencia">📅 Asistencia global</button>
+          <button class="subportal-tab" data-operacion="reporte_dia">📋 Reporte del día</button>
+          <button class="subportal-tab" data-operacion="disp_docentes">🗓️ Disponibilidad</button>
+          <button class="subportal-tab" data-operacion="estados_grupos">📁 Estados de grupos</button>
+        </div>
+
+        <div class="subpanel activo" id="operacion-asistencia">
+          <div id="admAsistenciaContenido"></div>
+        </div>
+        <div class="subpanel" id="operacion-reporte_dia">
+          <div id="admReporteDiaContenido"></div>
+        </div>
+        <div class="subpanel" id="operacion-disp_docentes">
+          <div id="admDispDocentesContenido"></div>
+        </div>
+        <div class="subpanel" id="operacion-estados_grupos">
+          <div id="admEstadosGruposContenido"></div>
+        </div>
+      </div>
+
+      <!-- —— 2.5 EVALUACIÓN —— -->
+      <div class="subpanel" id="adm-sub-evaluacion">
+        <div class="subportal-tabs" style="margin-bottom:20px;">
+          <button class="subportal-tab activo" data-evaluacion="asignaciones">📋 Gestor de asignaciones</button>
+          <button class="subportal-tab" data-evaluacion="examenes">📝 Exámenes</button>
+          <button class="subportal-tab" data-evaluacion="historial">📚 Historial de cursos</button>
+        </div>
+
+        <div class="subpanel activo" id="evaluacion-asignaciones">
+          <div id="admAsignacionesContenido"></div>
+        </div>
+        <div class="subpanel" id="evaluacion-examenes">
+          <div id="admExamenesContenido"></div>
+        </div>
+        <div class="subpanel" id="evaluacion-historial">
+          <div id="admHistorialCursosContenido"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         3. CONTABILIDAD Y FINANZAS (se mantiene casi igual)
+         ======================================================== -->
+    <div class="panel" id="tal-panel-contabilidad">
+      <!-- Aquí pegas el contenido actual de Contabilidad -->
+      <div id="contabilidadContenido">
+        <!-- Mantén tu HTML actual de contabilidad -->
+      </div>
+    </div>
+
+    <!-- ========================================================
+         4. DIRECCIÓN
+         ======================================================== -->
+    <div class="panel" id="tal-panel-direccion">
+      <div id="direccionContenido">
+        <!-- Mantén tu HTML actual de Dirección -->
+      </div>
+    </div>
+
+    <!-- ========================================================
+         5. MARKETING
+         ======================================================== -->
+    <div class="panel" id="tal-panel-marketing">
+      <div id="marketingContenido">
+        <!-- Mantén tu HTML actual de Marketing (galería, cumpleaños, etc.) -->
+      </div>
+    </div>
+
+    <!-- ========================================================
+         6. CONFIGURACIÓN (nuevo – aquí van los ajustes)
+         ======================================================== -->
+    <div class="panel" id="tal-panel-config">
+      <div class="seccion-cabecera" style="text-align:left; margin-bottom:24px;">
+        <h2 style="font-size:1.3rem; color:var(--slate);">Configuración del sistema</h2>
+        <p style="color:var(--gris);">Campos personalizados, iconografía, membretes y ajustes generales</p>
+      </div>
+
+      <div class="subportal-tabs" style="margin-bottom:22px;">
+        <button class="subportal-tab activo" data-config="campos">🧩 Campos personalizados</button>
+        <button class="subportal-tab" data-config="iconos">🎨 Iconografía</button>
+        <button class="subportal-tab" data-config="membrete">📄 Membrete / Letterhead</button>
+        <button class="subportal-tab" data-config="otros">⚙️ Otros ajustes</button>
+      </div>
+
+      <div class="subpanel activo" id="config-campos">
+        <div id="admCamposContenido">
+          <!-- Contenido actual de Campos personalizados -->
+        </div>
+      </div>
+      <div class="subpanel" id="config-iconos">
+        <div id="admIconografiaContenido"></div>
+      </div>
+      <div class="subpanel" id="config-membrete">
+        <div id="admMembreteContenido"></div>
+      </div>
+      <div class="subpanel" id="config-otros">
+        <div id="admOtrosAjustesContenido"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
 </section>
 
 <footer>
@@ -7168,6 +6807,20 @@ document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
 });
 
 console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+ console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+
+/* ============================================================
+   NAVEGACIÓN PORTAL TALENTO (nueva estructura)
+   ============================================================ */
+
+// Nivel 1: pestañas principales
+document.querySelectorAll('#dashboardTalento [data-taltab]').forEach(tab => {
+  // ... todo el código que te di ...
+});
+
+// ... resto del código de navegación ...
+
+</script>
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
    class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
