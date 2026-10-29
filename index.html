@@ -1529,7 +1529,7 @@
       <div style="font-size:3.5rem; margin-bottom:14px;">🎉</div>
       <h3 style="color:var(--verde); margin-bottom:10px;">¡Felicitaciones!</h3>
       <p style="color:var(--gris); font-size:.95rem;">Hemos recibido tu inscripción correctamente.<br>La escuela se contactará con usted en las próximas horas.</p>
-      <button type="button" class="btn btn-azul" onclick="document.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
+      <button type="button" class="btn btn-azul" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1537,7 +1537,7 @@
 <!-- VISOR IMAGEN -->
 <div class="modal-overlay" id="modalImageViewer">
   <div class="modal-box" style="max-width:800px; padding:20px; text-align:center;">
-    <button class="modal-close" onclick="document.getElementById('modalImageViewer').classList.remove('visible')">✕</button>
+    <button class="modal-close" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalImageViewer').classList.remove('visible')">✕</button>
     <h3 style="margin-bottom:20px;">Evidencia</h3>
     <img id="imageViewerImg" src="" style="max-width:100%; max-height:70vh; border-radius:12px; box-shadow:var(--sombra);">
   </div>
@@ -1566,7 +1566,7 @@
 <!-- MODAL EDITAR ALUMNO / DOCENTE -->
 <div class="modal-overlay" id="modalEditar">
   <div class="modal-box" style="max-width:520px; text-align:left; padding:32px 28px;">
-    <button class="modal-close" onclick="document.getElementById('modalEditar').classList.remove('visible')">✕</button>
+    <button class="modal-close" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalEditar').classList.remove('visible')">✕</button>
     <h3 id="editarTitulo" style="margin-bottom:20px; text-align:center;">✏️ Editar</h3>
     <form id="formEditar" style="display:flex; flex-direction:column; gap:12px;">
       <input type="hidden" id="editTipo">
@@ -1592,7 +1592,7 @@
       <div class="campo"><label>Nueva contraseña <small style="color:var(--gris); font-weight:400;">(dejar vacío para no cambiar)</small></label><input type="text" id="editPassword" placeholder="••••••••"></div>
       <div class="campo"><label>Evidencia de Identidad (DNI)</label><button type="button" class="btn btn-azul btn-mini" id="btnVerDniEdit" style="width:100%;">📄 Ver Foto del DNI</button></div>
       <div class="tform-acciones" style="justify-content:flex-end; margin-top:10px;">
-        <button type="button" class="btn btn-slate btn-mini" onclick="document.getElementById('modalEditar').classList.remove('visible')">Cancelar</button>
+        <button type="button" class="btn btn-slate btn-mini" onclick="document\.getElementById\("([^"]+)"\)\.addEventListenert.getElementById('modalEditar').classList.remove('visible')">Cancelar</button>
         <button type="submit" class="btn btn-verde btn-mini">Guardar cambios</button>
       </div>
     </form>
@@ -2038,10 +2038,10 @@ function abrirModalInscripcion(course) {
   _alumnoVerificado = null;
   document.getElementById("modalInscripcion").classList.add("visible");
 }
-document.getElementById("btnCerrarInscripcion").addEventListener("click", () => { document.getElementById("modalInscripcion").classList.remove("visible"); });
-document.getElementById("btnInscAlumnoExistente").addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoExistente").style.display = "block"; });
-document.getElementById("btnInscAlumnoNuevo").addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoNuevo").style.display = "block"; });
-document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
+document.getElementById("btnCerrarInscripcion")?.addEventListener("click", () => { document.getElementById("modalInscripcion").classList.remove("visible"); });
+document.getElementById("btnInscAlumnoExistente")?.addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoExistente").style.display = "block"; });
+document.getElementById("btnInscAlumnoNuevo")?.addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoNuevo").style.display = "block"; });
+document.getElementById("btnVerificarCodigo")?.addEventListener("click", () => {
   const code = document.getElementById("inscCodigoAlumno").value.trim().toUpperCase();
   const student = state.students[code];
   if (!student) { alert("❌ Código no encontrado."); document.getElementById("inscDatosAlumno").style.display = "none"; document.getElementById("btnTerminarInscExistente").disabled = true; _alumnoVerificado = null; return; }
@@ -2053,7 +2053,7 @@ document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
   document.getElementById("inscDatosAlumno").style.display = "block";
   document.getElementById("btnTerminarInscExistente").disabled = false;
 });
-document.getElementById("btnTerminarInscExistente").addEventListener("click", async () => {
+document.getElementById("btnTerminarInscExistente")?.addEventListener("click", async () => {
   if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
   const voucherFile = document.getElementById("inscVoucherExistente").files[0];
   if (!voucherFile) { alert("Sube tu voucher de pago."); return; }
@@ -2068,7 +2068,7 @@ document.getElementById("btnTerminarInscExistente").addEventListener("click", as
     document.getElementById("inscExito").style.display = "block";
   } catch (e) { alert("Error al procesar voucher."); }
 });
-document.getElementById("btnTerminarPreInsc").addEventListener("click", async () => {
+document.getElementById("btnTerminarPreInsc")?.addEventListener("click", async () => {
   const nombres = document.getElementById("inscNombres").value.trim();
   const apellidos = document.getElementById("inscApellidos").value.trim();
   const dni = document.getElementById("inscDni").value.trim();
@@ -2139,7 +2139,7 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => overlay.addEventL
   if (e.target === overlay) { overlay.classList.remove("visible"); overlay.querySelectorAll("input").forEach(i => i.value = ""); overlay.querySelectorAll(".modal-error").forEach(e => e.classList.remove("visible")); }
 }));
 
-document.getElementById("loginFormAlumno").addEventListener("submit", (e) => {
+document.getElementById("loginFormAlumno")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const user = document.getElementById("userAlumno").value.trim().toUpperCase();
   const pass = document.getElementById("passAlumno").value;
@@ -2149,7 +2149,7 @@ document.getElementById("loginFormAlumno").addEventListener("submit", (e) => {
   if (!student || student.password !== pass) { error.classList.add("visible"); return; }
   document.getElementById("modalAlumno").classList.remove("visible"); document.getElementById("userAlumno").value = ""; document.getElementById("passAlumno").value = ""; loginStudent(user);
 });
-document.getElementById("loginFormDocente").addEventListener("submit", (e) => {
+document.getElementById("loginFormDocente")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const user = document.getElementById("userDocente").value.trim().toUpperCase();
   const pass = document.getElementById("passDocente").value;
@@ -2174,7 +2174,7 @@ document.getElementById("loginFormDocente").addEventListener("submit", (e) => {
   document.getElementById("passDocente").value = ""; 
   loginTeacher(user); 
 });
-document.getElementById("loginFormTalento").addEventListener("submit", (e) => {
+document.getElementById("loginFormTalento")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const code = document.getElementById("codigoTalento").value;
   const error = document.getElementById("errorTalento"); error.classList.remove("visible");
@@ -2251,9 +2251,9 @@ function loginTalento() {
   try { aplicarIconosInterfaz(); } catch (e) {}
   const reloj = document.getElementById("relojTal"); if (reloj) reloj.textContent = horaActual();
 }
-document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirTal").addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirA")?.addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirD")?.addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirTal")?.addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 
 /* ============================================================
    TABS
@@ -2660,8 +2660,8 @@ function iniciarExamen(examId) {
   });
   document.getElementById("studentExamRunner").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-document.getElementById("btnCancelarTestA").addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; });
-document.getElementById("runnerFormA").addEventListener("submit", (e) => {
+document.getElementById("btnCancelarTestA")?.addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; });
+document.getElementById("runnerFormA")?.addEventListener("submit", (e) => {
   e.preventDefault(); if (!testActual || !currentStudent) return;
   let correctas = 0, sinResp = 0;
   testActual.preguntas.forEach((p, i) => {
@@ -2685,7 +2685,7 @@ document.getElementById("runnerFormA").addEventListener("submit", (e) => {
   state.examResults[testActual.id][currentStudentCode] = { nota, correctas, total, sinResp, fecha: new Date().toISOString().slice(0, 10) };
   saveState();
 });
-document.getElementById("btnVolverTestsA").addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; renderStudentExams(); });
+document.getElementById("btnVolverTestsA")?.addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; renderStudentExams(); });
 function renderStudentAsistencia() {
   const body = document.getElementById("asistenciaBodyA"); body.innerHTML = "";
   const regs = asistenciaDe(currentStudentCode);
@@ -2705,12 +2705,12 @@ function renderStudentReportCards() {
   cont.querySelectorAll("[data-download-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.downloadRc); if (rc) descargarReportCard(rc); }));
   cont.querySelectorAll("[data-print-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.printRc); if (rc) imprimirReportCard(rc); }));
 }
-document.getElementById("btnIniciarMatricula").addEventListener("click", () => {
+document.getElementById("btnIniciarMatricula")?.addEventListener("click", () => {
   document.getElementById("matriculaInicio").style.display = "none";
   document.getElementById("matriculaContenido").style.display = "block";
   renderStudentMatriculaCursos();
 });
-document.getElementById("btnCancelarMatriculaAlumno").addEventListener("click", () => {
+document.getElementById("btnCancelarMatriculaAlumno")?.addEventListener("click", () => {
   document.getElementById("matriculaInicio").style.display = "block";
   document.getElementById("matriculaContenido").style.display = "none";
 });
@@ -3081,13 +3081,13 @@ function refreshTeacherView() {
   } catch(e) {}
 }
 function renderTeacherSignature() { const box = document.getElementById("signaturePreviewBox"); const sig = state.signatures[currentTeacherCode]; if (sig) box.innerHTML = `<img src="${sig}" alt="Firma">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una firma aún.</p>`; }
-document.getElementById("btnSaveSignature").addEventListener("click", async () => {
+document.getElementById("btnSaveSignature")?.addEventListener("click", async () => {
   const fileInput = document.getElementById("teacherSignatureFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
   try { const url = await procesarImagen(fileInput.files[0], "firmas"); state.signatures[currentTeacherCode] = url; saveState(); renderTeacherSignature(); const msg = document.getElementById("signatureMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error: " + e.message); }
 });
 function renderTeacherPhoto() { const box = document.getElementById("teacherPhotoPreviewBox"); const photo = state.teachers[currentTeacherCode]?.formalPhoto; if (photo) box.innerHTML = `<img src="${photo}" alt="Foto">`; else box.innerHTML = `<p style="color:var(--gris);font-size:0.9rem;">No has subido una foto aún.</p>`; }
-document.getElementById("btnSavePhoto").addEventListener("click", async () => {
+document.getElementById("btnSavePhoto")?.addEventListener("click", async () => {
   const fileInput = document.getElementById("teacherPhotoFile"); if (!fileInput.files || !fileInput.files[0]) { alert("Selecciona imagen."); return; }
   if (fileInput.files[0].size > MAX_IMG_SIZE) { alert("Máximo 2MB."); return; }
   try { const url = await procesarImagen(fileInput.files[0], "fotos-docentes"); state.teachers[currentTeacherCode].formalPhoto = url; saveState(); renderTeacherPhoto(); const avatar = document.getElementById("dashAvatarD"); avatar.innerHTML = `<img src="${url}">`; avatar.style.padding = '0'; const msg = document.getElementById("photoMsg"); msg.classList.add("visible"); setTimeout(() => msg.classList.remove("visible"), 3000); fileInput.value = ""; } catch (e) { alert("Error."); }
@@ -3225,7 +3225,7 @@ function renderTeacherExamsReadOnly() {
   if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 Sin exámenes.</div>`; return; }
   [...exams].forEach(ex => { const card = document.createElement("div"); card.className = "exam-link-card"; card.innerHTML = `<div class="exam-link-info"><h4>📝 ${ex.nombre}</h4><p>${ex.preguntas ? ex.preguntas.length : 0} preguntas</p></div>`; cont.appendChild(card); });
 }
-document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
+document.getElementById("rcGroupSelect")?.addEventListener("change", (e) => {
   const groupId = e.target.value; const selStudent = document.getElementById("rcStudentSelect"); selStudent.innerHTML = '<option value="">Selecciona un alumno...</option>';
   if (!groupId) return; const group = state.groups.find(g => g.id === groupId); if (!group) return;
   group.studentCodes.forEach(code => { const s = state.students[code]; if (s) { const opt = document.createElement("option"); opt.value = code; opt.textContent = s.nombre; selStudent.appendChild(opt); } });
@@ -3454,7 +3454,7 @@ function renderTeacherPago() {
   }
 }
 
-document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
+document.getElementById("btnGenerarBoleta")?.addEventListener("click", () => {
   const pagoHora = parseFloat(currentTeacher.pagoHora) || 0; const myGroups = getTeacherGroups(currentTeacherCode);
   const totalHoras = myGroups.reduce((s, g) => s + (parseInt(g.totalHoras) || 0), 0); const monto = totalHoras * pagoHora;
   const preview = document.getElementById("boletaPreviewContainer"); preview.classList.add("visible");
@@ -3472,7 +3472,7 @@ document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
   const sigImg = document.getElementById("boletaSignatureImg"); if (contImgs.sello) { sigImg.src = contImgs.sello; sigImg.style.display = "block"; } else sigImg.style.display = "none";
   preview.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
+document.getElementById("btnImprimirBoleta")?.addEventListener("click", () => {
   const iframe = document.createElement('iframe'); iframe.style.position = 'absolute'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = 'none';
   document.body.appendChild(iframe); const doc = iframe.contentWindow.document; doc.open();
   doc.write(`<html><head><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px}
@@ -3520,7 +3520,7 @@ document.getElementById("btnImprimirBoleta").addEventListener("click", () => {
 </body></html>`); doc.close();
   setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); document.body.removeChild(iframe); }, 500);
 });
-document.getElementById("btnDescargarBoleta").addEventListener("click", () => {
+document.getElementById("btnDescargarBoleta")?.addEventListener("click", () => {
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Boleta</title><style>body{font-family:'Segoe UI',sans-serif;padding:20px;max-width:900px;margin:0 auto}
 
   .wa-float {
@@ -3829,7 +3829,7 @@ document.getElementById("admBtnAddPregunta")?.addEventListener("click", () => {
   div.querySelector(".btn-remove-q").addEventListener("click", () => div.remove());
   cont.appendChild(div);
 });
-document.getElementById("admNewExamForm").addEventListener("submit", (e) => {
+document.getElementById("admNewExamForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admExamNombre").value.trim(); const grupoId = document.getElementById("admExamGroup").value;
   if (!nombre || !grupoId) { alert("Completa nombre y grupo."); return; }
@@ -3865,7 +3865,7 @@ function renderMarketingGallery() {
   state.marketingPhotos.forEach(p => { const div = document.createElement("div"); div.className = "gallery-item"; div.style.position = "relative"; div.innerHTML = `<img src="${p.src}">${p.title ? `<div class="gallery-item-caption">${p.title}</div>` : ''}<button class="btn btn-mini btn-rojo" data-del-photo="${p.id}" style="position:absolute; top:8px; right:8px; z-index:2;">🗑️</button>`; cont.appendChild(div); });
   cont.querySelectorAll("[data-del-photo]").forEach(btn => btn.addEventListener("click", () => { if (confirm("¿Eliminar foto?")) { state.marketingPhotos = state.marketingPhotos.filter(p => p.id !== btn.dataset.delPhoto); saveState(); renderMarketingGallery(); renderPublicGallery(); } }));
 }
-document.getElementById("btnUploadPhoto").addEventListener("click", async () => {
+document.getElementById("btnUploadPhoto")?.addEventListener("click", async () => {
   const titleInput = document.getElementById("mktPhotoTitle"); const fileInput = document.getElementById("mktPhotoFile"); const files = fileInput.files;
   if (!files || !files.length) { alert("Selecciona imágenes."); return; }
   let count = 0; const title = titleInput.value.trim();
@@ -3883,7 +3883,7 @@ document.querySelectorAll("[data-copy]").forEach(btn => btn.addEventListener("cl
 /* ============================================================
    SUBMIT ALUMNO/DOCENTE
    ============================================================ */
-document.getElementById("admNewAlumnoForm").addEventListener("submit", async (e) => {
+document.getElementById("admNewAlumnoForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admAlumnoNombre").value.trim(); const email = document.getElementById("admAlumnoEmail").value.trim();
   const programa = document.getElementById("admAlumnoPrograma").value.trim(); const groupId = document.getElementById("admAlumnoGrupo").value;
@@ -3907,7 +3907,7 @@ state.students[user] = { password: pass, nombre, email: email || "—", programa
     document.getElementById("credAlumno").classList.add("visible"); e.target.reset();
   } catch (err) { alert("Error al procesar DNI."); }
 });
-document.getElementById("admNewDocenteForm").addEventListener("submit", async (e) => {
+document.getElementById("admNewDocenteForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const nombre = document.getElementById("admDocenteNombre").value.trim(); const email = document.getElementById("admDocenteEmail").value.trim();
   const area = document.getElementById("admDocenteArea").value.trim(); const pagoHora = parseFloat(document.getElementById("admDocentePagoHora").value) || 0;
@@ -3962,7 +3962,7 @@ function abrirEditar(code, tipo) {
   try { renderCustomFieldsInto("editCamposExtra", tipo, obj.custom || {}); } catch(e) {}
   document.getElementById("modalEditar").classList.add("visible");
 }
-document.getElementById("formEditar").addEventListener("submit", (e) => {
+document.getElementById("formEditar")?.addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
   const tipo = document.getElementById("editTipo").value;
@@ -4013,7 +4013,7 @@ document.getElementById("formEditar").addEventListener("submit", (e) => {
   document.getElementById("modalEditar").classList.remove("visible");
   alert("✅ Datos actualizados correctamente.");
 });
-document.getElementById("btnVerDniEdit").addEventListener("click", () => {
+document.getElementById("btnVerDniEdit")?.addEventListener("click", () => {
   const tipo = document.getElementById("editTipo").value; const code = document.getElementById("editCode").value; if (!tipo || !code) return;
   const obj = tipo === "alumno" ? state.students[code] : state.teachers[code];
   if (obj && obj.dniPhoto) showImageViewer(obj.dniPhoto); else alert("⚠️ Sin foto DNI.");
@@ -4028,7 +4028,7 @@ function abrirEditarGrupo(groupId) {
   Object.keys(state.teachers).forEach(code => { const t = state.teachers[code]; const opt = document.createElement("option"); opt.value = code; opt.textContent = t.nombre; if (code === g.teacherCode) opt.selected = true; selTeacher.appendChild(opt); });
   document.getElementById("modalEditarGrupo").classList.add("visible");
 }
-document.getElementById("formEditarGrupo").addEventListener("submit", (e) => {
+document.getElementById("formEditarGrupo")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const gid = document.getElementById("editGroupId").value; const g = state.groups.find(x => x.id === gid); if (!g) return;
   g.nombre = document.getElementById("editGroupNombre").value.trim(); g.programa = document.getElementById("editGroupPrograma").value.trim();
@@ -6810,47 +6810,72 @@ console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, 
  console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 
 /* ============================================================
+/* ============================================================
    NAVEGACIÓN PORTAL TALENTO (nueva estructura)
    ============================================================ */
 
 // Nivel 1: pestañas principales
 document.querySelectorAll('#dashboardTalento [data-taltab]').forEach(tab => {
-  // ... todo el código que te di ...
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.taltab;
+    document.querySelectorAll('#dashboardTalento [data-taltab]').forEach(t => t.classList.remove('activo'));
+    tab.classList.add('activo');
+    document.querySelectorAll('#dashboardTalento > .dash-contenido > .panel').forEach(p => p.classList.remove('activo'));
+    const panel = document.getElementById('tal-panel-' + target);
+    if (panel) panel.classList.add('activo');
+  });
 });
 
-// ... resto del código de navegación ...
+// Nivel 2: Coordinación Académica
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.admtab;
+    document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(t => t.classList.remove('activo'));
+    tab.classList.add('activo');
+    document.querySelectorAll('#tal-panel-admin > .subpanel').forEach(p => p.classList.remove('activo'));
+    const sub = document.getElementById('adm-sub-' + target);
+    if (sub) sub.classList.add('activo');
+  });
+});
 
-</script>
-</script>
-<a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
-   class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="#fff"><path d="M16 .4C7.4.4.4 7.4.4 16c0 2.8.7 5.5 2.1 7.9L.3 31.7l8-2.1A15.6 15.6 0 0 0 16 31.6C24.6 31.6 31.6 24.6 31.6 16S24.6.4 16 .4zm0 28.6c-2.5 0-4.9-.7-7-2l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.9 12.9 0 0 1 3 16C3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 13-13 13zm7.1-9.7c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.3 1.6-.2.3-.5.3-.9.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8.2-.2.4-.5.6-.7.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.8 0 1.7 1.2 3.3 1.4 3.5.2.2 2.4 3.7 5.9 5.2.8.3 1.5.5 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg>
-</a>
+// Nivel 3 genérico
+function setupInnerTabs(containerSelector, dataAttr, prefix) {
+  document.querySelectorAll(containerSelector + ' [' + dataAttr + ']').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute(dataAttr);
+      document.querySelectorAll(containerSelector + ' [' + dataAttr + ']').forEach(t => t.classList.remove('activo'));
+      tab.classList.add('activo');
+      document.querySelectorAll(containerSelector + ' > .subpanel').forEach(p => p.classList.remove('activo'));
+      const panel = document.getElementById(prefix + target);
+      if (panel) panel.classList.add('activo');
+    });
+  });
+}
 
-<div class="modal-overlay" id="modalCerrarCurso">
-  <div class="modal-box" style="max-width:520px;text-align:left;">
-    <button type="button" class="modal-close" id="btnCerrarCursoModalX">✕</button>
-    <h3 style="color:var(--morado);margin-bottom:12px;">🔒 Cerrar curso y entregar notas</h3>
-    <p id="modalCerrarCursoMsg" style="color:var(--texto);line-height:1.55;margin-bottom:20px;"></p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-      <button type="button" class="btn btn-slate btn-mini" id="btnCerrarCursoCancelar">Cancelar</button>
-      <button type="button" class="btn btn-rojo btn-mini" id="btnCerrarCursoConfirmar">Sí, cerrar y entregar</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modalComprobanteEntrega">
-  <div class="modal-box" style="max-width:720px;text-align:left;padding:24px;">
-    <button type="button" class="modal-close" id="btnComprobanteX">✕</button>
-    <h3 style="color:var(--morado);margin-bottom:8px;">📄 Comprobante de Entrega de notas</h3>
-    <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">Documento generado al cerrar el curso y entregar notas a Coordinación Académica.</p>
-    <div id="comprobanteEntregaBody" class="boleta-preview-container visible" style="box-shadow:none;border:1px solid var(--borde);padding:20px;margin:0;"></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
-      <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobante">⬇️ Descargar</button>
-      <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobante">🖨️ Imprimir</button>
-      <button type="button" class="btn btn-morado btn-mini" id="btnCerrarComprobante">Cerrar</button>
-    </div>
-  </div>
-</div>
+setupInnerTabs('#adm-sub-personas', 'data-personas', 'personas-');
+setupInnerTabs('#adm-sub-estructura', 'data-estructura', 'estructura-');
+setupInnerTabs('#adm-sub-operacion', 'data-operacion', 'operacion-');
+setupInnerTabs('#adm-sub-evaluacion', 'data-evaluacion', 'evaluacion-');
+setupInnerTabs('#tal-panel-config', 'data-config', 'config-');
 
-</body>
-</html>
+// Accesos rápidos
+document.querySelectorAll('[data-goto-tal]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tal = btn.dataset.gotoTal;
+    const sub = btn.dataset.gotoSub;
+    const inner = btn.dataset.gotoInner;
+    document.querySelector(`#dashboardTalento [data-taltab="${tal}"]`)?.click();
+    if (sub) {
+      setTimeout(() => {
+        document.querySelector(`#tal-panel-admin [data-admtab="${sub}"]`)?.click();
+        if (inner) {
+          setTimeout(() => {
+            const map = { personas: 'data-personas', estructura: 'data-estructura', operacion: 'data-operacion', evaluacion: 'data-evaluacion' };
+            const attr = map[sub];
+            if (attr) document.querySelector(`#adm-sub-${sub} [${attr}="${inner}"]`)?.click();
+          }, 60);
+        }
+      }, 60);
+    }
+  });
+});
