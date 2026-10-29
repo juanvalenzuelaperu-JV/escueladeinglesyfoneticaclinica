@@ -4844,8 +4844,7 @@ document.getElementById('btnVolverAsistencia')?.addEventListener('click', () => 
   if (info) info.textContent = '';
   const btnSave = document.getElementById('dBtnGuardarAsistencia');
   const btnEdit = document.getElementById('btnEditarAsistencia');
-  if (btnSave) btnSave.disabled = true;
-  if (btnEdit) btnEdit.disabled = true;
+  asisSyncBotones();
 });
 
 function buildBoletaPagoHTML(teacherCode) {
@@ -6827,18 +6826,33 @@ function getCalEventsForGroup(gid, onlyEval) {
   return events;
 }
 
+/* ----- helpers de Asistencia ----- */
+function asisGrupoTieneGuardado(gid) {
+  if (!gid || !asisCalColumns || !asisCalColumns.length) return false;
+  return asisCalColumns.some(col => {
+    const rec = state.asistenciaDiaria && state.asistenciaDiaria[gid + '_' + col.fecha];
+    return rec && rec.registros && Object.keys(rec.registros).length > 0;
+  });
+}
+function asisSyncBotones() {
+  const gid = document.getElementById('dAsisGrupo')?.value;
+  const btnSave = document.getElementById('dBtnGuardarAsistencia');
+  const btnEdit = document.getElementById('btnEditarAsistencia');
+  const hayCols = !!(gid && asisCalColumns && asisCalColumns.length);
+  const bloqueado = hayCols && !asisEditMode && asisGrupoTieneGuardado(gid);
+  if (btnSave) btnSave.disabled = !hayCols || bloqueado;
+  if (btnEdit) btnEdit.disabled = !hayCols;
+}
+
 function loadAsisFromCalendar() {
   const gid = document.getElementById('dAsisGrupo')?.value;
   const info = document.getElementById('dAsisCalInfo');
-  const btnSave = document.getElementById('dBtnGuardarAsistencia');
-  const btnEdit = document.getElementById('btnEditarAsistencia');
   asisEditMode = false;
   if (!gid) {
     if (info) info.textContent = '';
     asisCalColumns = []; asisClaseCount = 0;
-    buildAsisTableFromCal(true);
-    if (btnSave) btnSave.disabled = true;
-    if (btnEdit) btnEdit.disabled = true;
+    buildAsisTableFromCal();
+    asisSyncBotones();
     return;
   }
   asisCalColumns = getCalEventsForGroup(gid, false);
@@ -6848,44 +6862,47 @@ function loadAsisFromCalendar() {
   asisClaseCount = asisCalColumns.length;
   if (info) {
     info.innerHTML = asisClaseCount
-      ? `✅ ${asisClaseCount} día(s) de clase desde Calendarización.`
+      ? `✅ ${asisClaseCount} día(s) de clase desde Calendarización. La fecha y la clase están bloqueadas.`
       : '⚠️ No hay eventos calendarizados para este grupo. Programa clases en <strong>Coordinación Académica → Calendarización</strong>.';
   }
-  buildAsisTableFromCal(false);
-  if (btnSave) btnSave.disabled = !asisClaseCount;
-  if (btnEdit) btnEdit.disabled = !asisClaseCount;
+  buildAsisTableFromCal();
+  asisSyncBotones();
   try { renderAsisHistorial(); } catch (e) {}
 }
 
-function buildAsisTableFromCal(locked) {
+function buildAsisTableFromCal() {
   const gid = document.getElementById('dAsisGrupo')?.value;
   const head = document.getElementById('dAsisHead'), body = document.getElementById('dAsisBody');
   if (!head || !body) return;
   if (!gid || !asisCalColumns.length) {
-    head.innerHTML = '<tr><th style="position:sticky;left:0;background:#fff;">Alumnos</th></tr>';
+    head.innerHTML = '<tr><th style="position:sticky;left:0;z-index:1;color:#fff;">Alumnos</th></tr>';
     body.innerHTML = gid ? '<tr><td class="empty-state">Sin días calendarizados.</td></tr>' : '';
     return;
   }
   const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
-  let th = '<tr><th style="position:sticky;left:0;background:#fff;z-index:1;">Alumnos</th>';
+  const bloqueado = !asisEditMode && asisGrupoTieneGuardado(gid);
+
+  // Cabecera: nombre y fecha fijos (solo lectura), letras en blanco
+  let th = '<tr><th style="position:sticky;left:0;z-index:1;color:#fff;">Alumnos</th>';
   asisCalColumns.forEach((col, i) => {
     const idx = i + 1;
-    th += `<th style="min-width:120px;">
-      <div style="font-size:.8rem;font-weight:800;color:var(--morado);">${col.nombre || 'Clase'}</div>
-      <input type="date" data-asis-fecha="${idx}" value="${col.fecha || ''}" style="font-size:.78rem;padding:4px;border-radius:6px;border:1px solid var(--borde);width:100%;margin-top:4px;">
+    th += `<th style="min-width:120px;color:#fff;">
+      <div style="font-size:.8rem;font-weight:800;color:#fff;">🔒 ${col.nombre || 'Clase'}</div>
+      <div style="font-size:.78rem;color:#fff;margin-top:4px;font-weight:600;">📅 ${formatearFecha(col.fecha)}</div>
+      <input type="hidden" data-asis-fecha="${idx}" value="${col.fecha}">
     </th>`;
   });
   head.innerHTML = th + '</tr>';
+
+  // Cuerpo: las marcas guardadas se muestran siempre
   body.innerHTML = codes.map(c => {
     let tds = `<td style="position:sticky;left:0;background:#fff;z-index:1;"><strong>${state.students[c]?.nombre || c}</strong><br><small>${c}</small></td>`;
     asisCalColumns.forEach((col, i) => {
       const idx = i + 1;
       const key = gid + '_' + col.fecha;
-      const saved = (state.asistenciaDiaria && state.asistenciaDiaria[key] && state.asistenciaDiaria[key].registros)
-        ? state.asistenciaDiaria[key].registros[c] : '';
-      const cur = saved || '';
-      const dis = (locked && !asisEditMode) ? 'disabled' : '';
-      tds += `<td><select data-asis-st="${c}" data-asis-cl="${idx}" ${dis} style="padding:6px;border-radius:6px;border:1.5px solid var(--borde);font-size:.85rem;width:100%;">
+      const cur = (state.asistenciaDiaria && state.asistenciaDiaria[key] && state.asistenciaDiaria[key].registros)
+        ? (state.asistenciaDiaria[key].registros[c] || '') : '';
+      tds += `<td><select data-asis-st="${c}" data-asis-cl="${idx}" ${bloqueado ? 'disabled' : ''} style="padding:6px;border-radius:6px;border:1.5px solid var(--borde);font-size:.85rem;width:100%;">
         <option value="">—</option>
         <option value="present" ${cur==='present'||cur==='Present'?'selected':''}>Presente</option>
         <option value="late" ${cur==='late'||cur==='Late'?'selected':''}>Tardanza</option>
@@ -6904,7 +6921,7 @@ document.getElementById('dBtnGuardarAsistencia')?.addEventListener('click', () =
   if (!gid || !asisCalColumns.length) { alert('Selecciona un grupo con días calendarizados.'); return; }
   if (!state.asistenciaDiaria) state.asistenciaDiaria = {};
   for (let i = 1; i <= asisCalColumns.length; i++) {
-    const fecha = document.querySelector(`[data-asis-fecha="${i}"]`)?.value || asisCalColumns[i - 1].fecha;
+    const fecha = asisCalColumns[i - 1].fecha;   // bloqueado: viene del calendario
     const key = gid + '_' + fecha;
     const rows = {};
     document.querySelectorAll(`[data-asis-cl="${i}"]`).forEach(sel => {
@@ -6917,7 +6934,8 @@ document.getElementById('dBtnGuardarAsistencia')?.addEventListener('click', () =
   }
   saveState();
   asisEditMode = false;
-  buildAsisTableFromCal(true);
+  buildAsisTableFromCal();      // vuelve a mostrar lo guardado, bloqueado
+  asisSyncBotones();
   document.getElementById('dAsisMsg')?.classList.add('visible');
   setTimeout(() => document.getElementById('dAsisMsg')?.classList.remove('visible'), 3000);
   try { renderAsisHistorial(); } catch (e) {}
@@ -6929,9 +6947,9 @@ document.getElementById('btnEditarAsistencia')?.addEventListener('click', () => 
     alert('Selecciona un grupo con días calendarizados.'); return;
   }
   asisEditMode = true;
-  buildAsisTableFromCal(false);
+  document.querySelectorAll('#dAsisBody select').forEach(sel => { sel.disabled = false; });
   document.getElementById('dBtnGuardarAsistencia').disabled = false;
-  alert('Modo edición activado. Corrige las marcas y pulsa Guardar Asistencia.');
+  alert('Modo edición activado. Corrige las marcas y pulsa Guardar.');
 });
 
 /* ===== Registro de Notas conectado a Calendarización ===== */
