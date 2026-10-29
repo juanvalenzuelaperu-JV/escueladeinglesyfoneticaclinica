@@ -1319,6 +1319,7 @@
           <div class="panel" id="adm-panel-estados_grupos">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📁 Estados de grupos</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Consulta qué grupos siguen abiertos y cuáles ya fueron cerrados por los docentes.</p>
+           <button type="button" class="btn btn-azul btn-mini" id="btnActualizarEstadosGrupos" style="margin-bottom:16px;">🔄 Actualizar</button>
             <div class="resumen-grid" style="margin-bottom:20px;">
               <div class="resumen-card verde"><div class="et">Grupos abiertos</div><div class="val" id="estGruposAbiertos">—</div></div>
               <div class="resumen-card morado"><div class="et">Grupos cerrados</div><div class="val" id="estGruposCerrados">—</div></div>
@@ -3325,6 +3326,8 @@ function ejecutarCierreCurso() {
   const fechaCierre = new Date().toISOString().slice(0, 10);
   group.cerrado = true;
   group.fechaCierre = fechaCierre;
+  group.cerradoPor = group.teacherCode;
+  group.cerradoEn = new Date().toISOString();
 
   const teacher = state.teachers[group.teacherCode] || {};
   const alumnosResumen = (group.studentCodes || []).map(code => {
@@ -3380,7 +3383,7 @@ function ejecutarCierreCurso() {
 function reabrirCurso(groupId) {
   const group = state.groups.find(g => g.id === groupId); if (!group) return;
   if (!confirm(`¿Reabrir el curso "${group.nombre}"?`)) return;
-  group.cerrado = false; delete group.fechaCierre;
+  group.cerrado = false; delete group.fechaCierre; delete group.cerradoPor; delete group.cerradoEn;
   saveState(); alert("✅ Curso reabierto.");
 }
 function renderAdminHistorialCursos() {
@@ -4426,7 +4429,17 @@ document.getElementById("formEditarGrupo").addEventListener("submit", (e) => {
 /* ============================================================
    SYNC Y RELOJES
    ============================================================ */
-window.addEventListener("storage", (e) => { if (e.key === STORAGE_KEY) { state = loadState(); if (currentStudentCode && state.students[currentStudentCode]) currentStudent = state.students[currentStudentCode]; if (currentTeacherCode && state.teachers[currentTeacherCode]) currentTeacher = state.teachers[currentTeacherCode]; refreshAll(); } });
+window.addEventListener("storage", async (e) => {
+  if (e.key !== STORAGE_KEY) return;
+  try {
+    const fresh = await loadState();
+    if (!fresh) return;
+    state = fresh;
+    if (currentStudentCode && state.students[currentStudentCode]) currentStudent = state.students[currentStudentCode];
+    if (currentTeacherCode && state.teachers[currentTeacherCode]) currentTeacher = state.teachers[currentTeacherCode];
+    refreshAll();
+  } catch (err) { console.warn(err); }
+});
 setInterval(() => {
   if (currentStudentCode) { const r = document.getElementById("relojA"); if (r) r.textContent = horaActual(); }
   if (currentTeacherCode) { const r = document.getElementById("relojD"); if (r) r.textContent = horaActual(); }
@@ -5068,40 +5081,46 @@ function renderAdminEstadosGrupos() {
   if (!cont) return;
   const groups = state.groups || [];
   const abiertos = groups.filter(g => !g.cerrado);
-  const cerrados = groups.filter(g => g.cerrado);
-  const elA = document.getElementById('estGruposAbiertos');
-  const elC = document.getElementById('estGruposCerrados');
-  const elT = document.getElementById('estGruposTotal');
-  if (elA) elA.textContent = abiertos.length;
-  if (elC) elC.textContent = cerrados.length;
-  if (elT) elT.textContent = groups.length;
-  if (!groups.length) {
-    cont.innerHTML = '<div class="empty-state">No hay grupos registrados.</div>';
-    return;
-  }
-  const renderTable = (lista, titulo) => {
+  const cerrados = groups.filter(g => g.cerrado)
+    .sort((a, b) => (b.cerradoEn || b.fechaCierre || '').localeCompare(a.cerradoEn || a.fechaCierre || ''));
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('estGruposAbiertos', abiertos.length);
+  set('estGruposCerrados', cerrados.length);
+  set('estGruposTotal', groups.length);
+  if (!groups.length) { cont.innerHTML = '<div class="empty-state">No hay grupos registrados.</div>'; return; }
+
+  const rcEnviados = g => (g.studentCodes || []).filter(code =>
+    (state.reportCards || []).some(rc => rc.studentCode === code && rc.teacherCode === g.teacherCode)).length;
+
+  const renderTable = (lista, titulo, esCerrado) => {
     if (!lista.length) return `<h5 style="margin:16px 0 8px;color:var(--slate);">${titulo}</h5><div class="empty-state" style="padding:10px;">Ninguno</div>`;
     let html = `<h5 style="margin:16px 0 8px;color:var(--slate);">${titulo} (${lista.length})</h5>
       <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:18px;">
-      <table class="admin-table" style="min-width:800px;"><thead><tr><th>Grupo</th><th>Programa</th><th>Docente</th><th>Horario</th><th>Frecuencia</th><th>Alumnos</th><th>Estado</th><th>Fecha cierre</th></tr></thead><tbody>`;
+      <table class="admin-table" style="min-width:${esCerrado ? 1000 : 800}px;"><thead><tr>
+        <th>Grupo</th><th>Programa</th><th>Docente</th><th>Horario</th><th>Frecuencia</th><th>Alumnos</th><th>Report Cards</th><th>Estado</th>
+        ${esCerrado ? '<th>Fecha cierre</th><th>Hora</th><th>Cerrado por</th>' : ''}
+      </tr></thead><tbody>`;
     lista.forEach(g => {
       const teacher = state.teachers[g.teacherCode];
       const tName = teacher ? teacher.nombre : (g.teacherCode || '—');
+      const n = (g.studentCodes || []).length;
+      const quien = g.cerradoPor ? ((state.teachers[g.cerradoPor] || {}).nombre || g.cerradoPor) : '—';
+      const hora = g.cerradoEn ? new Date(g.cerradoEn).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : '—';
       html += `<tr>
         <td><strong>${g.nombre || '—'}</strong></td>
         <td>${g.programa || '—'}</td>
         <td>${tName}</td>
         <td>${g.horario || '—'}</td>
         <td>${g.frecuencia || '—'}</td>
-        <td>${(g.studentCodes || []).length}</td>
+        <td>${n}</td>
+        <td>${rcEnviados(g)} / ${n}</td>
         <td>${g.cerrado ? '<span class="cerrado-badge">🔒 Cerrado</span>' : '<span class="estado estado-present">Abierto</span>'}</td>
-        <td>${g.fechaCierre ? (typeof formatearFecha === 'function' ? formatearFecha(g.fechaCierre) : g.fechaCierre) : '—'}</td>
+        ${esCerrado ? `<td>${g.fechaCierre ? formatearFecha(g.fechaCierre) : '—'}</td><td>${hora}</td><td>${quien}</td>` : ''}
       </tr>`;
     });
-    html += '</tbody></table></div>';
-    return html;
+    return html + '</tbody></table></div>';
   };
-  cont.innerHTML = renderTable(abiertos, '🟢 Grupos abiertos') + renderTable(cerrados, '🔒 Grupos cerrados');
+  cont.innerHTML = renderTable(abiertos, '🟢 Grupos abiertos', false) + renderTable(cerrados, '🔒 Grupos cerrados', true);
 }
 
 /* Pago docente: grupos del docente */
@@ -7358,7 +7377,21 @@ document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
     if (tab.dataset.dtab === 'calendario') setTimeout(renderTeacherCalendario, 40);
   });
 });
-console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+/* Estados de grupos: traer lo último de Supabase */
+async function refrescarEstadosGrupos() {
+  try {
+    const fresh = await loadState();
+    if (fresh) state = fresh;
+  } catch (e) { console.warn('No se pudo actualizar desde Supabase:', e); }
+  renderAdminEstadosGrupos();
+}
+document.getElementById('btnActualizarEstadosGrupos')?.addEventListener('click', refrescarEstadosGrupos);
+document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'estados_grupos') refrescarEstadosGrupos();
+  });
+});
+   console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
    class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
