@@ -8103,6 +8103,196 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
   console.log('✅ Asistencia del alumno vinculada a Calendarización de clases.');
 })();
    console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+ /* ============================================================
+   PATCH: Días de meses anteriores y posteriores en calendarios
+   Afecta a: 📅 Calendarización + 📅 Calendarización de clases
+   ============================================================ */
+(function () {
+  function buildCellsWithNeighbors(yy, mm) {
+    const first = new Date(yy, mm - 1, 1);
+    const last = new Date(yy, mm, 0);
+    const startDay = first.getDay();
+    const lastDate = last.getDate();
+    const totalCells = Math.ceil((startDay + lastDate) / 7) * 7;
+    const cells = [];
+    for (let i = startDay - 1; i >= 0; i--) {
+      const d = new Date(yy, mm - 1, -i);
+      cells.push({
+        iso: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+        day: d.getDate(),
+        outside: true
+      });
+    }
+    for (let day = 1; day <= lastDate; day++) {
+      cells.push({
+        iso: yy + '-' + String(mm).padStart(2, '0') + '-' + String(day).padStart(2, '0'),
+        day: day,
+        outside: false
+      });
+    }
+    for (let i = 1; i <= totalCells - cells.length; i++) {
+      const d = new Date(yy, mm, i);
+      cells.push({
+        iso: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+        day: d.getDate(),
+        outside: true
+      });
+    }
+    return cells;
+  }
+
+  window.renderCalendarizacion = function () {
+    const mesInp = document.getElementById('calMesSelect');
+    if (!mesInp) return;
+    if (!mesInp.value) {
+      const d = new Date();
+      mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+    const parts = mesInp.value.split('-').map(Number);
+    const yy = parts[0], mm = parts[1];
+    const grid = document.getElementById('calGrid');
+    if (!grid) return;
+    if (!state.calendarEvents) state.calendarEvents = {};
+
+    renderCalLegend();
+    fillCalTipoSelect();
+
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let html = dias.map(d => '<div style="text-align:center;font-weight:700;font-size:.78rem;color:var(--gris);padding:8px 4px;">' + d + '</div>').join('');
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const cells = buildCellsWithNeighbors(yy, mm);
+
+    cells.forEach(cell => {
+      const evs = state.calendarEvents[cell.iso] || [];
+      const isToday = cell.iso === todayIso;
+      const isSelected = cell.iso === calSelectedDate;
+      const dots = evs.slice(0, 4).map(ev =>
+        '<span style="width:7px;height:7px;border-radius:50%;background:' + calTipoColor(ev.tipo) + ';display:inline-block;" title="' + calTipoLabel(ev.tipo, ev.nombre) + '"></span>'
+      ).join('');
+      const more = evs.length > 4 ? '<span style="font-size:.65rem;color:var(--gris);">+' + (evs.length - 4) + '</span>' : '';
+      const opac = cell.outside ? 'opacity:.55;' : '';
+      const bg = cell.outside ? '#fafafa' : (evs.length ? '#f0f7ff' : '#fff');
+      const numColor = cell.outside ? '#94a3b8' : (isToday ? 'var(--azul-medio)' : 'var(--texto)');
+      const evTxtColor = cell.outside ? '#94a3b8' : 'var(--azul)';
+
+      html += '<div data-cal-day="' + cell.iso + '" role="button" tabindex="0"'
+        + ' style="border:1px solid ' + (isToday ? 'var(--azul-medio)' : 'var(--borde)') + ';border-radius:10px;min-height:78px;padding:8px;cursor:pointer;' + opac + 'background:' + bg + ';transition:box-shadow .15s,transform .15s;outline:' + (isSelected ? '2px solid var(--azul-medio)' : 'none') + ';box-shadow:' + (isSelected ? '0 0 0 3px rgba(0,102,204,.18)' : 'none') + ';"'
+        + ' onmouseover="this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.transform=\'\'">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+        + '<span style="font-weight:800;font-size:.95rem;color:' + numColor + ';">' + cell.day + '</span>'
+        + (isToday ? '<span style="font-size:.65rem;font-weight:700;color:var(--azul-medio);">HOY</span>' : '')
+        + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;align-items:center;">' + dots + more + '</div>'
+        + (evs.length ? '<div style="font-size:.68rem;color:' + evTxtColor + ';margin-top:4px;font-weight:600;">' + evs.length + ' evento' + (evs.length > 1 ? 's' : '') + '</div>' : '')
+        + '</div>';
+    });
+
+    grid.innerHTML = html;
+    grid.querySelectorAll('[data-cal-day]').forEach(el => {
+      el.addEventListener('click', () => {
+        const clickedMonth = el.dataset.calDay.slice(0, 7);
+        if (clickedMonth !== mesInp.value) {
+          mesInp.value = clickedMonth;
+          window.renderCalendarizacion();
+        }
+        openCalDay(el.dataset.calDay);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+      });
+    });
+
+    if (calSelectedDate && calSelectedDate.startsWith(mesInp.value)) {
+      openCalDay(calSelectedDate);
+    } else {
+      const panel = document.getElementById('calEventPanel');
+      if (panel) panel.style.display = 'none';
+    }
+    renderCalMesResumen();
+  };
+
+  function patchClasesGrid() {
+    const grid = document.getElementById('ccGrid');
+    const mesInp = document.getElementById('ccMes');
+    if (!grid || !mesInp || !mesInp.value) return;
+    const parts = mesInp.value.split('-').map(Number);
+    const yy = parts[0], mm = parts[1];
+    const first = new Date(yy, mm - 1, 1);
+    const last = new Date(yy, mm, 0);
+    const startDay = first.getDay();
+    const lastDate = last.getDate();
+    const totalCells = Math.ceil((startDay + lastDate) / 7) * 7;
+
+    const children = Array.from(grid.children);
+    if (children.some(c => c.dataset && c.dataset.ccOutside === '1')) return;
+
+    const groupSel = document.getElementById('ccGrupoSelect');
+    if (!groupSel || !groupSel.value) return;
+    const groupId = groupSel.value;
+    const group = (state.groups || []).find(g => g.id === groupId);
+    if (!group) return;
+
+    function makeOutsideCell(iso, dayNum) {
+      const div = document.createElement('div');
+      div.dataset.ccDay = iso;
+      div.dataset.ccOutside = '1';
+      div.setAttribute('role', 'button');
+      div.setAttribute('tabindex', '0');
+      div.style.cssText = 'border:1px solid var(--borde);border-radius:10px;min-height:66px;padding:8px;cursor:pointer;background:#fafafa;opacity:.55;transition:transform .12s;';
+      div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;">'
+        + '<span style="font-weight:800;font-size:.95rem;color:#94a3b8;">' + dayNum + '</span>'
+        + '</div>';
+      div.addEventListener('click', () => {
+        const clickedMonth = iso.slice(0, 7);
+        if (clickedMonth !== mesInp.value) {
+          mesInp.value = clickedMonth;
+          mesInp.dispatchEvent(new Event('change'));
+        }
+      });
+      return div;
+    }
+
+    const DATA_START = 7;
+    const prevCount = startDay;
+    for (let i = 0; i < prevCount; i++) {
+      const target = children[DATA_START + i];
+      if (!target) break;
+      if (target.hasAttribute('data-cc-day')) break;
+      const d = new Date(yy, mm - 1, -i);
+      const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      grid.replaceChild(makeOutsideCell(iso, d.getDate()), target);
+    }
+    const usedSoFar = startDay + lastDate;
+    const nextNeeded = totalCells - usedSoFar;
+    for (let i = 1; i <= nextNeeded; i++) {
+      const d = new Date(yy, mm, i);
+      const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      grid.appendChild(makeOutsideCell(iso, d.getDate()));
+    }
+  }
+
+  const ccGridEl = document.getElementById('ccGrid');
+  if (ccGridEl) {
+    const obs = new MutationObserver(() => {
+      setTimeout(patchClasesGrid, 0);
+    });
+    obs.observe(ccGridEl, { childList: true });
+  }
+
+  setTimeout(() => {
+    try {
+      const isCalTab = document.getElementById('adm-panel-calendarizacion')?.classList.contains('activo');
+      if (isCalTab && document.getElementById('calGrid')) window.renderCalendarizacion();
+    } catch (e) { console.warn(e); }
+    try {
+      const isClasesTab = document.getElementById('adm-panel-calendarizacion_clases')?.classList.contains('activo');
+      if (isClasesTab) patchClasesGrid();
+    } catch (e) { console.warn(e); }
+  }, 350);
+
+  console.log('✅ Patch calendarios (días de meses vecinos) cargado.');
+})();
 </script>
                     ↑
         AQUÍ VA EL BLOQUE D (antes del console.log)
