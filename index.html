@@ -2851,73 +2851,75 @@ function loginTeacher(code) {
   try {
     currentTeacherCode = code;
     currentTeacher = state.teachers[code];
-    currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
-
-    // Ocultar otros portales sin fallar si falta alguno
-    const hideEl    = id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
-    const hideDash  = id => { const el = document.getElementById(id); if (el) el.classList.remove('visible'); };
-    hideEl('portalCards');
-    hideDash('dashboardAlumno');
-    hideDash('dashboardTalento');
-    hideDash('dashboardPadre');
-
-    // Mostrar dashboard docente (validación explícita)
-    const dashD = document.getElementById('dashboardDocente');
-    if (!dashD) {
-      console.error('❌ #dashboardDocente no existe en el HTML. Fue eliminado por error.');
-      alert('Falta el bloque HTML del dashboard docente. Revisa el archivo.');
+    if (!currentTeacher) {
+      alert('Docente no encontrado: ' + code);
       return;
     }
-    dashD.classList.add('visible');
+    currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
+
+    const $ = id => document.getElementById(id);
+    // Ocultar otros portales
+    if ($('portalCards'))      $('portalCards').style.display = 'none';
+    if ($('dashboardAlumno'))  $('dashboardAlumno').classList.remove('visible');
+    if ($('dashboardTalento')) $('dashboardTalento').classList.remove('visible');
+    if ($('dashboardPadre'))   $('dashboardPadre').classList.remove('visible');
+
+    const dash = $('dashboardDocente');
+    if (!dash) {
+      alert('❌ Falta #dashboardDocente en el HTML.');
+      console.error('HTML roto: falta dashboardDocente');
+      return;
+    }
+    dash.classList.add('visible');
 
     // Cabecera
-    const nameEl = document.getElementById('dashNombreD');
-    if (nameEl) nameEl.textContent = currentTeacher.nombre;
-    const areaEl = document.getElementById('dashAreaD');
-    if (areaEl) areaEl.textContent = currentTeacher.area || 'Docente';
+    if ($('dashNombreD')) $('dashNombreD').textContent = currentTeacher.nombre || code;
+    if ($('dashAreaD'))   $('dashAreaD').textContent   = currentTeacher.area || 'Docente';
 
-    const avatar = document.getElementById('dashAvatarD');
+    const avatar = $('dashAvatarD');
     if (avatar) {
       if (currentTeacher.formalPhoto) {
-        avatar.innerHTML = `<img src="${currentTeacher.formalPhoto}" alt="Foto">`;
+        avatar.innerHTML = '<img src="' + currentTeacher.formalPhoto + '" alt="Foto">';
         avatar.style.padding = '0';
       } else {
-        avatar.textContent = 'PR';
-        avatar.style.padding = '';
+        avatar.textContent = 'PR'; avatar.style.padding = '';
       }
     }
 
-    // Selects de grupos
-    const selAsis = document.getElementById('dAsisGrupo');
+    // Selects
+    const selAsis = $('dAsisGrupo');
     if (selAsis) {
       selAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
       getTeacherGroups(currentTeacherCode).forEach(g => {
-        const o = document.createElement('option'); o.value = g.id; o.textContent = g.nombre;
+        const o = document.createElement('option');
+        o.value = g.id; o.textContent = g.nombre;
         selAsis.appendChild(o);
       });
     }
-    const selRcGroup = document.getElementById('rcGroupSelect');
-    if (selRcGroup) {
-      selRcGroup.innerHTML = '<option value="">Selecciona un grupo...</option>';
+    const selRc = $('rcGroupSelect');
+    if (selRc) {
+      selRc.innerHTML = '<option value="">Selecciona un grupo...</option>';
       getTeacherGroups(currentTeacherCode).forEach(g => {
-        const o = document.createElement('option'); o.value = g.id; o.textContent = g.nombre;
-        selRcGroup.appendChild(o);
+        const o = document.createElement('option');
+        o.value = g.id; o.textContent = g.nombre;
+        selRc.appendChild(o);
       });
     }
 
-    // Cada render aislado para que un fallo no tumbe el dashboard
-    try { renderTeacherSignature(); }  catch (e) { console.warn('renderTeacherSignature:', e); }
-    try { renderTeacherPhoto(); }      catch (e) { console.warn('renderTeacherPhoto:', e); }
-    try { refreshTeacherView(); }      catch (e) { console.warn('refreshTeacherView:', e); }
+    // Cada render aislado → un fallo no tumba el login
+    try { renderTeacherSignature(); } catch (e) { console.warn('signature:', e); }
+    try { renderTeacherPhoto(); }     catch (e) { console.warn('photo:', e); }
+    try { refreshTeacherView(); }     catch (e) { console.error('refreshTeacherView:', e); }
 
-    const reloj = document.getElementById('relojD');
-    if (reloj) reloj.textContent = horaActual();
+    if ($('relojD')) $('relojD').textContent = horaActual();
+    try { history.pushState({ portal: 'docente' }, '', '#docente'); } catch (e) {}
 
-    history.pushState({ portal: 'docente' }, '', '#docente');
-    console.log('✅ Login docente OK:', code);
+    console.log('✅ Login docente OK:', code,
+      '· dashboard visible:', dash.classList.contains('visible'),
+      '· display:', getComputedStyle(dash).display);
   } catch (e) {
     console.error('❌ Error crítico en loginTeacher:', e);
-    alert('Error al abrir el portal docente: ' + e.message);
+    alert('Error abriendo portal docente:\n\n' + e.message + '\n\nRevisa la consola (F12).');
   }
 }
 function loginTalento() {
