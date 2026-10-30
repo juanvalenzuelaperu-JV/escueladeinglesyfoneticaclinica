@@ -1011,13 +1011,9 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
                   <tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;" id="rcAverage">—</td></tr></tfoot>
                 </table>
               </div>
-              <div class="rc-comment-box"><h4>Teacher's Comment</h4><p id="rcCommentDisplay">---</p></div>
-              <div class="rc-footer"><div></div><div class="rc-signature"><img id="rcSignatureImg" style="display:none;"><p id="rcTeacherSignatureName">Firma del Docente</p></div></div>
-            </div>
-            <div class="tform-acciones rc-actions-print" style="margin-top: 30px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-              <button class="btn btn-verde" id="btnConfirmSendRC">Confirmar envío al Alumno</button>
-              <button class="btn btn-slate" id="btnDownloadRC">Descargar RC</button>
-            </div>
+              <div class="tform-acciones rc-actions-print" style="margin-top: 30px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+  <button class="btn btn-verde" id="btnConfirmSendRC">Confirmar envío al Alumno</button>
+</div>
           </div>
         </div>
         <div class="panel" id="dpanel-historial">
@@ -4189,37 +4185,53 @@ document.getElementById('btnCerrarAvisoRC')?.addEventListener('click', () => {
   lastRcNotifyStudent = null;
 });
 
-document.getElementById("btnDownloadRC")?.addEventListener("click", () => {
-  if (!currentRcData) { alert('Primero genera el Report Card.'); return; }
-  const filename = 'ReportCard_' + (currentRcData.studentCode || 'alumno') + '_' + (currentRcData.date || '');
-
-  // ✅ FIX: usar el elemento VISIBLE del preview (incluye el gráfico Chart.js)
-  const printable = document.getElementById('rcPrintableArea');
-  if (printable && typeof window.descargarElementoPDF === 'function') {
-    window.descargarElementoPDF(printable, filename);
+function renderTeacherHistorialRC() {
+  const cont = document.getElementById("dHistorialRCLista");
+  if (!cont) return;
+  cont.innerHTML = "";
+  const myRCs = (state.reportCards || []).filter(rc => rc.teacherCode === currentTeacherCode);
+  if (!myRCs.length) {
+    cont.innerHTML = `<div class="empty-state">📭 Aún no has generado Report Cards.</div>`;
     return;
   }
+  myRCs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-  // Fallback por si algo falla
-  const html = typeof buildReportCardHTML === 'function'
-    ? buildReportCardHTML(currentRcData)
-    : (printable?.innerHTML || '');
-  if (typeof window.descargarComoPDF === 'function') {
-    window.descargarComoPDF(html, filename);
-  } else if (typeof imprimirReportCard === 'function') {
-    imprimirReportCard(currentRcData);
-  }
-});
-function renderTeacherHistorialRC() {
-  const cont = document.getElementById("dHistorialRCLista"); cont.innerHTML = "";
-  const myRCs = state.reportCards.filter(rc => rc.teacherCode === currentTeacherCode);
-  if (!myRCs.length) { cont.innerHTML = `<div class="empty-state">📭 Sin RC generados.</div>`; return; }
-  myRCs.sort((a, b) => b.date.localeCompare(a.date));
-  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:900px;"><thead><tr><th>Fecha</th><th>Alumno</th><th>Código</th><th>Ciclo</th><th>Nota</th><th>Estado</th></tr></thead><tbody>`;
-  myRCs.forEach(rc => { const student = state.students[rc.studentCode]; const est = getRcEstado(rc); html += `<tr><td>${formatearFecha(rc.date)}</td><td>${student ? student.nombre : '—'}</td><td><code>${rc.studentCode}</code></td><td>${rc.ciclo || '—'}</td><td><strong>${rc.average}</strong></td><td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td></tr>`; });
-  html += `</tbody></table></div>`; cont.innerHTML = html;
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;">
+    <table style="min-width:1000px;width:100%;">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Alumno</th>
+          <th>Código</th>
+          <th>Ciclo</th>
+          <th>Nota</th>
+          <th>Estado</th>
+          <th style="min-width:260px;">Teacher's Comment</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  myRCs.forEach(rc => {
+    const student = state.students[rc.studentCode];
+    const est = getRcEstado(rc);
+    const comentario = rc.comment && String(rc.comment).trim()
+      ? rc.comment
+      : '<span style="color:var(--gris);font-style:italic;">Sin comentario</span>';
+    html += `<tr>
+      <td style="white-space:nowrap;">${formatearFecha(rc.date)}</td>
+      <td>${student ? student.nombre : '—'}</td>
+      <td><code>${rc.studentCode}</code></td>
+      <td>${rc.ciclo || '—'}</td>
+      <td><strong>${rc.average}</strong></td>
+      <td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td>
+      <td style="font-size:.88rem;line-height:1.45;max-width:340px;white-space:normal;word-break:break-word;" title="${(rc.comment || '').replace(/"/g, '&quot;')}">${comentario}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  cont.innerHTML = html;
 }
-function renderTeacherPago() {
+ function renderTeacherPago() {
   const resumen = document.getElementById("dPagoResumen");
   const gruposLista = document.getElementById("dPagoGruposLista");
   const bonifBox = document.getElementById("dPagoBonificaciones");
