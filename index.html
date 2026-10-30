@@ -2813,16 +2813,33 @@ document.getElementById("loginFormDocente").addEventListener("submit", (e) => {
 });
 document.getElementById("loginFormTalento").addEventListener("submit", (e) => {
   e.preventDefault();
-  const code = document.getElementById("codigoTalento").value;
-  const error = document.getElementById("errorTalento"); error.classList.remove("visible");
-  if (code.toUpperCase() === "JESUS" || code === TALENTO_CODE || code === ADMIN_CODE) {
-    document.getElementById("modalTalento").classList.remove("visible");
-    document.getElementById("codigoTalento").value = "";
-    loginTalento();
+  e.stopPropagation();
+  const raw = (document.getElementById("codigoTalento").value || "").trim();
+  const code = raw.toUpperCase();
+  const error = document.getElementById("errorTalento");
+  if (error) error.classList.remove("visible");
+  const validCodes = new Set([
+    "JESUS",
+    String(TALENTO_CODE || "").trim().toUpperCase(),
+    String(ADMIN_CODE || "").trim().toUpperCase()
+  ]);
+  if (validCodes.has(code) && code) {
+    document.getElementById("modalTalento")?.classList.remove("visible");
+    const inp = document.getElementById("codigoTalento");
+    if (inp) inp.value = "";
+    try {
+      loginTalento();
+    } catch (err) {
+      console.error("Error en loginTalento:", err);
+      alert("Error al abrir Portal Talento: " + (err && err.message ? err.message : err));
+    }
     return;
   }
-  error.classList.add("visible");
-  document.getElementById("codigoTalento").value = "";
+  if (error) {
+    error.textContent = "Código incorrecto.";
+    error.classList.add("visible");
+  }
+  if (document.getElementById("codigoTalento")) document.getElementById("codigoTalento").value = "";
 });
 
 /* ============================================================
@@ -2923,30 +2940,68 @@ function loginTeacher(code) {
   }
 }
 function loginTalento() {
-  adminLoggedIn = true; currentStudentCode = null; currentStudent = null; currentTeacherCode = null; currentTeacher = null;
-  if (!state) state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  adminLoggedIn = true;
+  currentStudentCode = null; currentStudent = null;
+  currentTeacherCode = null; currentTeacher = null;
+  currentPadreCode = null; currentPadre = null;
+  try {
+    if (!state) state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  } catch (e) {
+    state = { groups: [], teachers: {}, students: {}, iconos: {} };
+  }
   if (!state.groups) state.groups = [];
   if (!state.teachers) state.teachers = {};
   if (!state.students) state.students = {};
   if (!state.iconos) state.iconos = {};
-  document.getElementById("portalCards").style.display = "none";
-  document.getElementById("dashboardAlumno").classList.remove("visible");
-  document.getElementById("dashboardDocente").classList.remove("visible");
-  document.getElementById("dashboardTalento").classList.add("visible");
-  const selAdmAsis = document.getElementById("admAsisGrupo");
-  if (selAdmAsis) { selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>'; (state.groups || []).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAdmAsis.appendChild(opt); }); }
-  try { renderAdminLetterhead(); } catch (e) {}
-  try { renderAdminFounder(); } catch (e) {}
-  try { renderAdminCourses(); } catch (e) {}
-  try { refreshAdminView(); } catch (e) {}
-  try { renderIconografia(); } catch (e) {}
-  try { aplicarIconosInterfaz(); } catch (e) {}
-  const reloj = document.getElementById("relojTal"); if (reloj) reloj.textContent = horaActual();
-}
-document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirTal").addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 
+  // Asegurar que la sección Portales esté visible (slider)
+  try {
+    const portalSec = document.getElementById("portal");
+    if (portalSec) {
+      document.querySelectorAll(".slide").forEach(s => s.classList.remove("activo", "entra-der", "entra-izq"));
+      portalSec.classList.add("activo");
+    }
+    document.body.classList.add("en-dashboard");
+  } catch (e) {}
+
+  const cards = document.getElementById("portalCards");
+  if (cards) cards.style.display = "none";
+  document.getElementById("dashboardAlumno")?.classList.remove("visible");
+  document.getElementById("dashboardDocente")?.classList.remove("visible");
+  document.getElementById("dashboardPadre")?.classList.remove("visible");
+  const dash = document.getElementById("dashboardTalento");
+  if (!dash) throw new Error("No se encontró #dashboardTalento en el DOM");
+  dash.classList.add("visible");
+
+  const selAdmAsis = document.getElementById("admAsisGrupo");
+  if (selAdmAsis) {
+    selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
+    (state.groups || []).forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g.id;
+      opt.textContent = g.nombre || g.id;
+      selAdmAsis.appendChild(opt);
+    });
+  }
+  try { renderAdminLetterhead(); } catch (e) { console.warn(e); }
+  try { renderAdminFounder(); } catch (e) { console.warn(e); }
+  try { renderAdminCourses(); } catch (e) { console.warn(e); }
+  try { refreshAdminView(); } catch (e) { console.warn(e); }
+  try { renderIconografia(); } catch (e) { console.warn(e); }
+  try { aplicarIconosInterfaz(); } catch (e) { console.warn(e); }
+  const reloj = document.getElementById("relojTal");
+  if (reloj && typeof horaActual === "function") reloj.textContent = horaActual();
+  console.log("✅ Portal Talento abierto");
+}
+ document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirTal").addEventListener("click", () => {
+  adminLoggedIn = false;
+  document.getElementById("dashboardTalento")?.classList.remove("visible");
+  const cards = document.getElementById("portalCards");
+  if (cards) cards.style.display = "grid";
+  document.body.classList.remove("en-dashboard");
+});
 /* ============================================================
    TABS
    ============================================================ */
