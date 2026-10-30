@@ -1173,6 +1173,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <button class="dash-tab" data-admtab="matriculas">📋 Matrículas</button>
             <button class="dash-tab" data-admtab="programacion">🗓️ Programación de cursos</button>
             <button class="dash-tab" data-admtab="calendarizacion">📅 Calendarización</button>
+            <button class="dash-tab" data-admtab="calendarizacion_clases">📅 Calendarización de clases</button>
             <span class="tab-group-label">Operación</span>
             <button class="dash-tab" data-admtab="asistencia">📅 Asistencia</button>
             <button class="dash-tab" data-admtab="reporte_dia">📋 Reporte del día</button>
@@ -1637,6 +1638,44 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           </div>
 
           <!-- REPORTE DEL DÍA -->
+                   <!-- CALENDARIZACIÓN DE CLASES -->
+          <div class="panel" id="adm-panel-calendarizacion_clases">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización de clases</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">
+              Indica las fechas en las que se dictarán clases por cada grupo. Estas fechas se sincronizan automáticamente con la <strong>Asistencia del docente</strong> y el <strong>Calendario</strong> del alumno.
+            </p>
+
+            <div class="tform admin-form">
+              <div class="tform-grid">
+                <div class="campo">
+                  <label>Grupo <span class="req">*</span></label>
+                  <select id="ccGrupoSelect"><option value="">Selecciona un grupo...</option></select>
+                </div>
+                <div class="campo">
+                  <label>Mes <span class="req">*</span></label>
+                  <input type="month" id="ccMes">
+                </div>
+              </div>
+              <div id="ccDocenteInfo"></div>
+            </div>
+
+            <div class="tform-acciones" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="btn btn-azul btn-mini" id="ccBtnMarcarHabiles">📅 Marcar todos los días de semana del mes</button>
+              <button type="button" class="btn btn-rojo btn-mini" id="ccBtnLimpiarMes">🗑️ Limpiar mes</button>
+              <button type="button" class="btn btn-verde btn-mini" id="ccBtnGuardar">💾 Guardar clases del grupo</button>
+            </div>
+
+            <div id="ccLeyenda" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:.78rem;">
+              <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;background:#dcfce7;border:1px solid #86efac;border-radius:3px;display:inline-block;"></span>Día de clase</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:3px;display:inline-block;"></span>Fin de semana marcado</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;background:#fff;border:2px solid #0066cc;border-radius:3px;display:inline-block;"></span>Hoy</span>
+            </div>
+
+            <div id="ccGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
+
+            <div id="ccResumenMes"></div>
+          </div>
+          <!-- FIN CALENDARIZACIÓN DE CLASES -->
           <div class="panel" id="adm-panel-reporte_dia">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Reporte del día</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Monitorea hasta medianoche las tareas del día: asistencia guardada por docentes, registros de notas y eventos calendarizados. Marca cumplido / no cumplido por grupo.</p>
@@ -2212,6 +2251,10 @@ function backfillState(parsed) {
     if (!parsed.oficinaImagenes.direccion) parsed.oficinaImagenes.direccion = { sello: "", membrete: "" };
   }
   Object.keys(parsed.teachers || {}).forEach(k => { if (parsed.teachers[k].pagoHora === undefined) parsed.teachers[k].pagoHora = 0; });
+   Object.keys(parsed.teachers || {}).forEach(k => { if (parsed.teachers[k].banco === undefined) parsed.teachers[k].banco = ""; });
+  if (!parsed.planillaPagos) parsed.planillaPagos = {};
+  if (!parsed.planillaAbierta) parsed.planillaAbierta = null;
+  if (!parsed.clasesPorGrupo) parsed.clasesPorGrupo = {};
   (parsed.groups || []).forEach(g => {
     if (g.programa === undefined) g.programa = g.nombre || "";
     if (g.frecuencia === undefined) g.frecuencia = "";
@@ -7680,7 +7723,253 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
     if (tab.dataset.admtab === 'historial_rc') setTimeout(renderAdminHistorialRC, 40);
   });
 });
+ /* ============================================================
+   CALENDARIZACIÓN DE CLASES (Coordinación Académica)
+   ============================================================ */
+(function () {
+  const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  let ccSelectedGroup = null;
+  let ccSelectedMonth = null;
+  let ccPendingDates = new Set();
+
+  function ensureState() {
+    if (!state.clasesPorGrupo) state.clasesPorGrupo = {};
+    if (!state.calendarEvents) state.calendarEvents = {};
+  }
+  function getClasesGrupo(gid) {
+    ensureState();
+    return state.clasesPorGrupo[gid] || [];
+  }
+  function mesStartEnd() {
+    const [yy, mm] = ccSelectedMonth.split('-').map(Number);
+    const mmStr = String(mm).padStart(2, '0');
+    return { start: `${yy}-${mmStr}-01`, end: `${yy}-${mmStr}-31`, yy, mm };
+  }
+
+  function tryPatchMeta() {
+    try {
+      if (typeof CAL_TIPO_META !== 'undefined' && CAL_TIPO_META && !CAL_TIPO_META.clase) {
+        CAL_TIPO_META.clase = { label: 'Clase', color: '#10b981', emoji: '📚' };
+      }
+    } catch (e) {}
+  }
+  tryPatchMeta();
+  setTimeout(tryPatchMeta, 300);
+  setTimeout(tryPatchMeta, 1500);
+
+  function fillGrupoSelect() {
+    const sel = document.getElementById('ccGrupoSelect');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Selecciona un grupo...</option>';
+    (state.groups || []).filter(g => !g.cerrado).forEach(g => {
+      const t = state.teachers[g.teacherCode];
+      const o = document.createElement('option');
+      o.value = g.id;
+      o.textContent = `${g.nombre || g.programa || g.id} · ${t ? t.nombre : 'Sin docente'}${g.horario ? ' · ' + g.horario : ''}`;
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  }
+
+  function initMes() {
+    const inp = document.getElementById('ccMes');
+    if (!inp) return;
+    if (!inp.value) {
+      const d = new Date();
+      inp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+  }
+
+  function renderDocenteInfo() {
+    const cont = document.getElementById('ccDocenteInfo');
+    if (!cont) return;
+    if (!ccSelectedGroup) { cont.innerHTML = ''; return; }
+    const g = (state.groups || []).find(x => x.id === ccSelectedGroup);
+    if (!g) { cont.innerHTML = ''; return; }
+    const t = state.teachers[g.teacherCode];
+    cont.innerHTML = `<div style="background:#f8fafc;padding:12px 14px;border-radius:10px;border-left:4px solid var(--azul);margin-top:12px;font-size:.88rem;">
+      <p style="margin:0 0 4px;"><strong>Docente:</strong> ${t ? t.nombre : 'Sin asignar'}${t && t.telefono ? ' · 📱 ' + t.telefono : ''}</p>
+      <p style="margin:0;"><strong>Grupo:</strong> ${g.nombre || g.programa || g.id}${g.horario ? ' · ' + g.horario : ''}${g.frecuencia ? ' · ' + g.frecuencia : ''}</p>
+    </div>`;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('ccGrid');
+    if (!grid || !ccSelectedMonth) return;
+    if (!ccSelectedGroup) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Selecciona un grupo para empezar.</div>';
+      document.getElementById('ccResumenMes').innerHTML = '';
+      return;
+    }
+    const { yy, mm } = mesStartEnd();
+    const first = new Date(yy, mm - 1, 1);
+    const last = new Date(yy, mm, 0);
+    const startDay = first.getDay();
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let html = dias.map(d => `<div style="text-align:center;font-weight:700;font-size:.78rem;color:var(--gris);padding:8px 4px;">${d}</div>`).join('');
+    for (let i = 0; i < startDay; i++) html += '<div></div>';
+
+    for (let day = 1; day <= last.getDate(); day++) {
+      const key = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isSelected = ccPendingDates.has(key);
+      const isToday = key === todayIso;
+      const dw = new Date(key + 'T12:00:00').getDay();
+      const esFinde = dw === 0 || dw === 6;
+      const bg = isSelected ? (esFinde ? '#fef3c7' : '#dcfce7') : (isToday ? '#f0f7ff' : '#fff');
+      const border = isToday ? '2px solid var(--azul-medio)' : '1px solid var(--borde)';
+      const colorTexto = isSelected ? (esFinde ? '#b45309' : '#15803d') : (isToday ? 'var(--azul-medio)' : 'var(--texto)');
+      html += `<div data-cc-day="${key}" role="button" tabindex="0"
+        style="border:${border};border-radius:10px;min-height:66px;padding:8px;cursor:pointer;background:${bg};transition:transform .12s;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:800;font-size:.95rem;color:${colorTexto};">${day}</span>
+          ${isToday ? '<span style="font-size:.62rem;font-weight:700;color:var(--azul-medio);">HOY</span>' : ''}
+        </div>
+        <div style="font-size:1.35rem;text-align:center;color:${colorTexto};font-weight:800;line-height:1.1;">${isSelected ? '✓' : ''}</div>
+      </div>`;
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll('[data-cc-day]').forEach(el => {
+      el.addEventListener('click', () => toggleDia(el.dataset.ccDay));
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDia(el.dataset.ccDay); }
+      });
+    });
+    renderResumenMes();
+  }
+
+  function toggleDia(key) {
+    if (ccPendingDates.has(key)) ccPendingDates.delete(key);
+    else ccPendingDates.add(key);
+    renderGrid();
+  }
+
+  function renderResumenMes() {
+    const cont = document.getElementById('ccResumenMes');
+    if (!cont || !ccSelectedGroup || !ccSelectedMonth) { if (cont) cont.innerHTML = ''; return; }
+    const { start, end, yy, mm } = mesStartEnd();
+    const enMes = [...ccPendingDates].filter(d => d >= start && d <= end).sort();
+    const totalGrupo = getClasesGrupo(ccSelectedGroup).length;
+    cont.innerHTML = `<div class="resumen-grid">
+      <div class="resumen-card verde"><div class="et">Clases del mes (${MESES_ES[mm - 1]} ${yy})</div><div class="val">${enMes.length}</div></div>
+      <div class="resumen-card azul"><div class="et">Total clases del grupo</div><div class="val">${totalGrupo}</div></div>
+      <div class="resumen-card amarillo"><div class="et">Última clase marcada</div><div class="val" style="font-size:1rem;">${enMes.length ? formatearFecha(enMes[enMes.length - 1]) : '—'}</div></div>
+    </div>
+    ${enMes.length ? `<div style="margin-top:10px;font-size:.85rem;color:var(--gris);"><strong>Fechas del mes:</strong> ${enMes.map(d => formatearFecha(d)).join(', ')}</div>` : ''}`;
+  }
+
+  function marcarHabiles() {
+    if (!ccSelectedGroup) { alert('Selecciona un grupo.'); return; }
+    if (!ccSelectedMonth) return;
+    const { yy, mm } = mesStartEnd();
+    const last = new Date(yy, mm, 0);
+    for (let day = 1; day <= last.getDate(); day++) {
+      const key = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dw = new Date(key + 'T12:00:00').getDay();
+      if (dw !== 0 && dw !== 6) ccPendingDates.add(key);
+    }
+    renderGrid();
+  }
+
+  function limpiarMes() {
+    if (!ccSelectedMonth) return;
+    if (!confirm(`¿Quitar todas las clases marcadas de ${MESES_ES[mesStartEnd().mm - 1]}?`)) return;
+    const { start, end } = mesStartEnd();
+    [...ccPendingDates].forEach(d => { if (d >= start && d <= end) ccPendingDates.delete(d); });
+    renderGrid();
+  }
+
+  function saveClases() {
+    if (!ccSelectedGroup) { alert('Selecciona un grupo.'); return; }
+    ensureState();
+    const prev = new Set(getClasesGrupo(ccSelectedGroup));
+    const now = new Set(ccPendingDates);
+    state.clasesPorGrupo[ccSelectedGroup] = [...now].sort();
+
+    const added = [...now].filter(d => !prev.has(d));
+    const removed = [...prev].filter(d => !now.has(d));
+
+    added.forEach(fecha => {
+      if (!state.calendarEvents[fecha]) state.calendarEvents[fecha] = [];
+      const yaExiste = state.calendarEvents[fecha].some(ev =>
+        ev.grupoId === ccSelectedGroup && ev.tipo === 'clase' && ev.origen === 'clases_tab'
+      );
+      if (!yaExiste) {
+        state.calendarEvents[fecha].push({
+          id: 'cev_clase_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          grupoId: ccSelectedGroup,
+          tipo: 'clase',
+          nombre: 'Clase',
+          nota: null,
+          origen: 'clases_tab',
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+
+    removed.forEach(fecha => {
+      if (!state.calendarEvents[fecha]) return;
+      state.calendarEvents[fecha] = state.calendarEvents[fecha].filter(ev =>
+        !(ev.grupoId === ccSelectedGroup && ev.tipo === 'clase' && ev.origen === 'clases_tab')
+      );
+      if (!state.calendarEvents[fecha].length) delete state.calendarEvents[fecha];
+    });
+
+    saveState();
+    alert(`✅ Clases guardadas: ${now.size} fecha(s) para este grupo.`);
+    renderResumenMes();
+  }
+
+  function renderCalendarizacionClases() {
+    ensureState();
+    tryPatchMeta();
+    fillGrupoSelect();
+    initMes();
+    if (!ccSelectedMonth) {
+      const inp = document.getElementById('ccMes');
+      ccSelectedMonth = inp && inp.value ? inp.value : null;
+    }
+    if (!ccSelectedGroup) {
+      const sel = document.getElementById('ccGrupoSelect');
+      ccSelectedGroup = sel && sel.value ? sel.value : null;
+    }
+    ccPendingDates = new Set(ccSelectedGroup ? getClasesGrupo(ccSelectedGroup) : []);
+    renderDocenteInfo();
+    renderGrid();
+  }
+
+  document.getElementById('ccGrupoSelect')?.addEventListener('change', (e) => {
+    ccSelectedGroup = e.target.value || null;
+    ccPendingDates = new Set(ccSelectedGroup ? getClasesGrupo(ccSelectedGroup) : []);
+    renderDocenteInfo();
+    renderGrid();
+  });
+  document.getElementById('ccMes')?.addEventListener('change', (e) => {
+    ccSelectedMonth = e.target.value || null;
+    renderGrid();
+  });
+  document.getElementById('ccBtnMarcarHabiles')?.addEventListener('click', marcarHabiles);
+  document.getElementById('ccBtnLimpiarMes')?.addEventListener('click', limpiarMes);
+  document.getElementById('ccBtnGuardar')?.addEventListener('click', saveClases);
+
+  document.querySelectorAll('#tal-panel-admin [data-admtab="calendarizacion_clases"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(renderCalendarizacionClases, 50));
+  });
+
+  window.renderCalendarizacionClases = renderCalendarizacionClases;
+  console.log('✅ Módulo Calendarización de clases cargado.');
+})();
    console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.admtab === 'historial_rc') setTimeout(renderAdminHistorialRC, 40);
+  });
+});
+   console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
+</script>
+                    ↑
+        AQUÍ VA EL BLOQUE D (antes del console.log)
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
    class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
