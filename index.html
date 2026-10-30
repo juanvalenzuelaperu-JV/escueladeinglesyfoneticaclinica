@@ -4191,9 +4191,21 @@ document.getElementById('btnCerrarAvisoRC')?.addEventListener('click', () => {
 
 document.getElementById("btnDownloadRC")?.addEventListener("click", () => {
   if (!currentRcData) { alert('Primero genera el Report Card.'); return; }
-  const html = typeof buildReportCardHTML === 'function' ? buildReportCardHTML(currentRcData) : (document.getElementById('rcPrintableArea')?.innerHTML || '');
+  const filename = 'ReportCard_' + (currentRcData.studentCode || 'alumno') + '_' + (currentRcData.date || '');
+
+  // ✅ FIX: usar el elemento VISIBLE del preview (incluye el gráfico Chart.js)
+  const printable = document.getElementById('rcPrintableArea');
+  if (printable && typeof window.descargarElementoPDF === 'function') {
+    window.descargarElementoPDF(printable, filename);
+    return;
+  }
+
+  // Fallback por si algo falla
+  const html = typeof buildReportCardHTML === 'function'
+    ? buildReportCardHTML(currentRcData)
+    : (printable?.innerHTML || '');
   if (typeof window.descargarComoPDF === 'function') {
-    window.descargarComoPDF(html, 'ReportCard_' + (currentRcData.studentCode || 'alumno') + '_' + (currentRcData.date || ''));
+    window.descargarComoPDF(html, filename);
   } else if (typeof imprimirReportCard === 'function') {
     imprimirReportCard(currentRcData);
   }
