@@ -1671,6 +1671,10 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         <div class="panel" id="tal-panel-contabilidad">
           <div class="subportal-tabs">
             <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
+                     <div class="subportal-tabs">
+            <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
+            <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
+          </div>
             <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
           </div>
           <div class="subpanel activo" id="cont-subpanel-pago">
@@ -1720,6 +1724,43 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
               </div>
               <div class="boleta-preview-container" id="admPagoPreview"></div>
             </div>
+          </div>
+                   <div class="subpanel" id="cont-subpanel-planilla">
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📋 Planilla de Trabajadores</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">Consolidado de pagos por área — datos tomados del Pago Docente. Las celdas de Banco, Fecha, Nro. de operación y Comprobante son editables y se guardan con el botón <strong>Guardar Planilla</strong>.</p>
+
+            <div class="tform admin-form">
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+                <div class="campo" style="margin:0;min-width:200px;">
+                  <label>Periodo</label>
+                  <select id="planillaPeriodo"></select>
+                </div>
+                <div class="campo" style="margin:0;min-width:160px;">
+                  <label>Área</label>
+                  <select id="planillaFiltroArea">
+                    <option value="">Todas</option>
+                    <option value="Dirección">Dirección</option>
+                    <option value="Docencia">Docencia</option>
+                  </select>
+                </div>
+                <div class="campo" style="margin:0;min-width:220px;">
+                  <label>Buscar</label>
+                  <input type="text" id="planillaBuscar" placeholder="Nombre o DNI...">
+                </div>
+                <button type="button" class="btn btn-azul btn-mini" id="planillaBtnVerMes">📅 Ver planilla del mes</button>
+              </div>
+            </div>
+
+            <div class="resumen-grid" id="planillaResumen" style="margin-bottom:18px;"></div>
+
+            <div class="tform-acciones" style="margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="btn btn-verde btn-mini" id="planillaBtnGuardar">💾 Guardar Planilla</button>
+              <button type="button" class="btn btn-azul btn-mini" id="planillaBtnPreview">👁️ Vista preliminar general</button>
+              <button type="button" class="btn btn-slate btn-mini" id="planillaBtnImprimir">🖨️ Imprimir</button>
+              <button type="button" class="btn btn-slate btn-mini" id="planillaBtnDescargar">⬇️ Descargar</button>
+            </div>
+
+            <div id="planillaTablaWrap"></div>
           </div>
           <div class="subpanel" id="cont-subpanel-firma">
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
@@ -2212,6 +2253,9 @@ function backfillState(parsed) {
     if (!parsed.oficinaImagenes.direccion) parsed.oficinaImagenes.direccion = { sello: "", membrete: "" };
   }
   Object.keys(parsed.teachers || {}).forEach(k => { if (parsed.teachers[k].pagoHora === undefined) parsed.teachers[k].pagoHora = 0; });
+   Object.keys(parsed.teachers || {}).forEach(k => { if (parsed.teachers[k].banco === undefined) parsed.teachers[k].banco = ""; });
+  if (!parsed.planillaPagos) parsed.planillaPagos = {};
+  if (!parsed.planillaAbierta) parsed.planillaAbierta = null;
   (parsed.groups || []).forEach(g => {
     if (g.programa === undefined) g.programa = g.nombre || "";
     if (g.frecuencia === undefined) g.frecuencia = "";
@@ -7680,6 +7724,551 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
     if (tab.dataset.admtab === 'historial_rc') setTimeout(renderAdminHistorialRC, 40);
   });
 });
+ /* ============================================================
+   PLANILLA DE TRABAJADORES (Contabilidad y Finanzas)
+   ============================================================ */
+(function () {
+  const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function periodoActualKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  function periodoLabel(key) {
+    if (!key) return '—';
+    const [y, m] = key.split('-').map(Number);
+    return `${MESES_ES[m - 1]} ${y}`;
+  }
+  function areaNormalizada(t) {
+    const a = String(t && t.area ? t.area : '').toLowerCase();
+    if (a.indexOf('direcc') !== -1 || a.indexOf('direct') !== -1) return 'Dirección';
+    return 'Docencia';
+  }
+  function safeId(code) { return String(code).replace(/[^a-zA-Z0-9]/g, '_'); }
+
+  function ensurePlanillaState() {
+    if (!state.planillaPagos) state.planillaPagos = {};
+    if (!state.planillaAbierta) state.planillaAbierta = periodoActualKey();
+    if (!state.planillaPagos[state.planillaAbierta]) state.planillaPagos[state.planillaAbierta] = {};
+  }
+  function getPlanillaEntry(periodo, code) {
+    ensurePlanillaState();
+    if (!state.planillaPagos[periodo]) state.planillaPagos[periodo] = {};
+    return state.planillaPagos[periodo][code] || null;
+  }
+  function setPlanillaEntry(periodo, code, data) {
+    ensurePlanillaState();
+    if (!state.planillaPagos[periodo]) state.planillaPagos[periodo] = {};
+    state.planillaPagos[periodo][code] = data;
+  }
+
+  function fillPlanillaPeriodoSelect() {
+    ensurePlanillaState();
+    const sel = document.getElementById('planillaPeriodo');
+    if (!sel) return;
+    const keys = new Set(Object.keys(state.planillaPagos));
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      keys.add(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    }
+    const sorted = [...keys].sort();
+    const cur = state.planillaAbierta;
+    sel.innerHTML = sorted.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${periodoLabel(k)}</option>`).join('');
+  }
+
+  function renderPlanillaTrabajadores() {
+    ensurePlanillaState();
+    fillPlanillaPeriodoSelect();
+    const periodo = state.planillaAbierta;
+    const cont = document.getElementById('planillaTablaWrap');
+    const resumen = document.getElementById('planillaResumen');
+    if (!cont) return;
+
+    const codes = Object.keys(state.teachers || {});
+    const filtroArea = document.getElementById('planillaFiltroArea')?.value || '';
+    const q = (document.getElementById('planillaBuscar')?.value || '').toLowerCase().trim();
+
+    const docentes = codes.map(code => {
+      const t = state.teachers[code];
+      const pago = typeof calcPagoDocente === 'function' ? calcPagoDocente(code) : { base: 0, subPed: 0, subExt: 0, subB: 0, subD: 0, total: 0, p: {} };
+      const entry = getPlanillaEntry(periodo, code) || {};
+      const area = areaNormalizada(t);
+      return { code, t, pago, entry, area };
+    }).filter(d => {
+      if (filtroArea && d.area !== filtroArea) return false;
+      if (q) {
+        const nom = String(d.t.nombre || '').toLowerCase();
+        const dni = String(d.t.dni || '').toLowerCase();
+        if (nom.indexOf(q) === -1 && dni.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    let totDoc = docentes.length;
+    let totHorasPed = 0, totHorasExt = 0, totBonif = 0, totDesc = 0, granTotal = 0, pagados = 0;
+    docentes.forEach(d => {
+      totHorasPed += parseFloat(d.pago.p && d.pago.p.horasPed) || 0;
+      totHorasExt += parseFloat(d.pago.p && d.pago.p.horasExt) || 0;
+      totBonif += d.pago.subB || 0;
+      totDesc += d.pago.subD || 0;
+      granTotal += d.pago.total || 0;
+      if (d.entry.pagado) pagados++;
+    });
+
+    if (resumen) {
+      resumen.innerHTML = `
+        <div class="resumen-card slate"><div class="et">Trabajadores</div><div class="val">${totDoc}</div></div>
+        <div class="resumen-card azul"><div class="et">Horas ped. + ext.</div><div class="val" style="font-size:1.3rem;">${totHorasPed} h + ${totHorasExt} h</div></div>
+        <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val">S/ ${totBonif.toFixed(2)}</div></div>
+        <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Descuentos</div><div class="val">S/ ${totDesc.toFixed(2)}</div></div>
+        <div class="resumen-card verde"><div class="et">Gran total</div><div class="val">S/ ${granTotal.toFixed(2)}</div></div>
+        <div class="resumen-card morado"><div class="et">Pagados</div><div class="val">${pagados}/${totDoc}</div></div>
+      `;
+    }
+
+    const areas = ['Dirección', 'Docencia'];
+    let html = '';
+    let totalGeneral = 0;
+    areas.forEach(areaNombre => {
+      const items = docentes.filter(d => d.area === areaNombre);
+      if (!items.length && filtroArea && filtroArea !== areaNombre) return;
+      const areaIcon = areaNombre === 'Dirección' ? '🎯' : '👨‍🏫';
+      html += `<tr style="background:linear-gradient(90deg,#eff6ff,#fff);"><td colspan="14" style="padding:12px 16px;font-weight:800;color:var(--azul);font-size:.98rem;">${areaIcon} ÁREA: ${areaNombre.toUpperCase()}</td></tr>`;
+      if (!items.length) {
+        html += `<tr><td colspan="14" style="text-align:center;color:var(--gris);padding:14px;font-size:.88rem;">Sin trabajadores en esta área.</td></tr>`;
+        return;
+      }
+      let subAreaTotal = 0;
+      items.forEach(d => {
+        const t = d.t;
+        const entry = d.entry;
+        const neto = d.pago.total || 0;
+        subAreaTotal += neto;
+        const pagado = !!entry.pagado;
+        const comprobante = entry.comprobante || '';
+        const sid = safeId(d.code);
+        html += `<tr>
+          <td style="position:sticky;left:0;background:#fff;z-index:1;min-width:160px;"><strong>${t.nombre || d.code}</strong><br><small style="color:var(--gris);">${d.code}</small></td>
+          <td>${t.dni || '—'}</td>
+          <td>${t.telefono || '—'}</td>
+          <td><input type="text" data-planilla-banco="${d.code}" value="${String(t.banco || '').replace(/"/g, '&quot;')}" placeholder="—" style="width:110px;padding:6px;border:1.5px solid var(--borde);border-radius:6px;font-size:.85rem;"></td>
+          <td style="text-align:right;">S/ ${(parseFloat(t.pagoHora) || 0).toFixed(2)}</td>
+          <td style="text-align:right;">${parseFloat(d.pago.p && d.pago.p.horasPed) || 0} h</td>
+          <td style="text-align:right;">${parseFloat(d.pago.p && d.pago.p.horasExt) || 0} h</td>
+          <td style="text-align:right;color:var(--verde);">+ S/ ${d.pago.subB.toFixed(2)}</td>
+          <td style="text-align:right;color:var(--rojo);">− S/ ${d.pago.subD.toFixed(2)}</td>
+          <td style="text-align:right;font-weight:800;color:var(--azul);">S/ ${neto.toFixed(2)}</td>
+          <td><input type="date" data-planilla-fecha="${d.code}" value="${entry.fechaPago || ''}" style="padding:6px;border:1.5px solid var(--borde);border-radius:6px;font-size:.82rem;"></td>
+          <td><input type="text" data-planilla-op="${d.code}" value="${String(entry.numeroOperacion || '').replace(/"/g, '&quot;')}" placeholder="OP-…" style="width:110px;padding:6px;border:1.5px solid var(--borde);border-radius:6px;font-size:.85rem;"></td>
+          <td style="text-align:center;min-width:110px;">
+            <input type="file" id="planillaCompr_${sid}" accept="image/*" style="display:none;" data-planilla-compr-file="${d.code}">
+            <button type="button" class="btn btn-mini btn-azul" data-planilla-subir="${d.code}" title="Subir comprobante">📎 ${comprobante ? 'Cambiar' : 'Subir'}</button>
+            ${comprobante ? `<button type="button" class="btn btn-mini btn-slate" data-planilla-ver-compr="${d.code}" title="Ver comprobante" style="margin-top:4px;">👁️ Ver</button>` : ''}
+          </td>
+          <td style="text-align:center;min-width:200px;">
+            <div class="acciones-cell">
+              <button type="button" class="btn btn-mini btn-azul" data-planilla-detalle="${d.code}" title="Ver detalle">👁️</button>
+              <button type="button" class="btn btn-mini btn-morado" data-planilla-boleta="${d.code}" title="Imprimir boleta">🖨️</button>
+              <button type="button" class="btn btn-mini ${pagado ? 'btn-verde' : 'btn-slate'}" data-planilla-pagado="${d.code}" title="${pagado ? 'Pagado' : 'Marcar pagado'}">${pagado ? '✅ Pagado' : '💾 Pagado'}</button>
+            </div>
+          </td>
+        </tr>`;
+      });
+      totalGeneral += subAreaTotal;
+      html += `<tr style="background:#f8fafc;font-weight:800;"><td colspan="9" style="text-align:right;padding:10px;">SUBTOTAL ${areaNombre.toUpperCase()}:</td><td style="text-align:right;color:var(--azul);">S/ ${subAreaTotal.toFixed(2)}</td><td colspan="4"></td></tr>`;
+    });
+    html += `<tr style="background:linear-gradient(90deg,#7c3aed,#a78bfa);color:#fff;font-weight:800;"><td colspan="9" style="text-align:right;padding:12px;">TOTAL GENERAL DEL PERIODO (${periodoLabel(periodo)}):</td><td style="text-align:right;font-size:1.1rem;">S/ ${totalGeneral.toFixed(2)}</td><td colspan="4"></td></tr>`;
+
+    cont.innerHTML = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;">
+      <table class="admin-table" style="min-width:1500px;"><thead><tr>
+        <th style="position:sticky;left:0;background:#004a8f;z-index:2;color:#fff;">Docente</th>
+        <th style="color:#fff;">DNI</th>
+        <th style="color:#fff;">Teléfono</th>
+        <th style="color:#fff;">Banco</th>
+        <th style="color:#fff;text-align:right;">Pago/h</th>
+        <th style="color:#fff;text-align:right;">H.Ped</th>
+        <th style="color:#fff;text-align:right;">H.Ext</th>
+        <th style="color:#fff;text-align:right;">Bonif.</th>
+        <th style="color:#fff;text-align:right;">Desc.</th>
+        <th style="color:#fff;text-align:right;">Neto</th>
+        <th style="color:#fff;">Fecha pago</th>
+        <th style="color:#fff;">Nro. op.</th>
+        <th style="color:#fff;text-align:center;">Comprobante</th>
+        <th style="color:#fff;text-align:center;">Acciones</th>
+      </tr></thead><tbody>${html}</tbody></table></div>`;
+
+    cont.querySelectorAll('[data-planilla-subir]').forEach(btn => {
+      btn.addEventListener('click', () => document.getElementById('planillaCompr_' + safeId(btn.dataset.planillaSubir))?.click());
+    });
+    cont.querySelectorAll('[data-planilla-compr-file]').forEach(inp => {
+      inp.addEventListener('change', () => subirComprobantePlanilla(inp.dataset.planillaComprFile, inp.files && inp.files[0]));
+    });
+    cont.querySelectorAll('[data-planilla-ver-compr]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const entry = getPlanillaEntry(periodo, btn.dataset.planillaVerCompr);
+        if (entry && entry.comprobante) showImageViewer(entry.comprobante);
+      });
+    });
+    cont.querySelectorAll('[data-planilla-detalle]').forEach(btn => {
+      btn.addEventListener('click', () => abrirModalDetallePlanilla(btn.dataset.planillaDetalle));
+    });
+    cont.querySelectorAll('[data-planilla-boleta]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.dataset.planillaBoleta;
+        if (typeof buildBoletaPagoHTML !== 'function') return;
+        const w = window.open('', '_blank');
+        w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ' + code + '</title><style>body{font-family:Segoe UI,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}.boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px}.boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}</style></head><body>' + buildBoletaPagoHTML(code) + '</body></html>');
+        w.document.close();
+        setTimeout(() => w.print(), 400);
+      });
+    });
+    cont.querySelectorAll('[data-planilla-pagado]').forEach(btn => {
+      btn.addEventListener('click', () => togglePagado(btn.dataset.planillaPagado, periodo));
+    });
+  }
+
+  function togglePagado(code, periodo) {
+    const t = state.teachers[code];
+    if (!t) return;
+    const entry = getPlanillaEntry(periodo, code) || {};
+    const wasPagado = !!entry.pagado;
+    if (wasPagado) {
+      if (!confirm(`¿Desmarcar a ${t.nombre} como pagado en ${periodoLabel(periodo)}?`)) return;
+      entry.pagado = false;
+      setPlanillaEntry(periodo, code, entry);
+    } else {
+      const pago = typeof calcPagoDocente === 'function' ? calcPagoDocente(code) : { total: 0 };
+      const montoTxt = (pago.total || 0).toFixed(2);
+      if (!confirm(`Marcar como pagado a ${t.nombre}\nMonto: S/ ${montoTxt}\nPeriodo: ${periodoLabel(periodo)}\n\n¿Confirmar?`)) return;
+      entry.pagado = true;
+      entry.fechaPago = entry.fechaPago || new Date().toISOString().slice(0, 10);
+      entry.monto = parseFloat(pago.total) || 0;
+      entry.marcadoEn = new Date().toISOString();
+      setPlanillaEntry(periodo, code, entry);
+    }
+    saveState();
+    renderPlanillaTrabajadores();
+  }
+
+  async function subirComprobantePlanilla(code, file) {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('Máximo 2 MB.'); return; }
+    try {
+      const url = await procesarImagen(file, 'comprobantes-planilla');
+      const periodo = state.planillaAbierta;
+      const entry = getPlanillaEntry(periodo, code) || {};
+      entry.comprobante = url;
+      setPlanillaEntry(periodo, code, entry);
+      saveState();
+      alert('✅ Comprobante subido.');
+      renderPlanillaTrabajadores();
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  function guardarPlanilla() {
+    ensurePlanillaState();
+    const periodo = state.planillaAbierta;
+    const cont = document.getElementById('planillaTablaWrap');
+    if (!cont) return;
+    cont.querySelectorAll('[data-planilla-banco]').forEach(inp => {
+      const code = inp.dataset.planillaBanco;
+      if (state.teachers[code]) state.teachers[code].banco = inp.value.trim();
+    });
+    cont.querySelectorAll('[data-planilla-fecha]').forEach(inp => {
+      const code = inp.dataset.planillaFecha;
+      const entry = getPlanillaEntry(periodo, code) || {};
+      entry.fechaPago = inp.value || '';
+      setPlanillaEntry(periodo, code, entry);
+    });
+    cont.querySelectorAll('[data-planilla-op]').forEach(inp => {
+      const code = inp.dataset.planillaOp;
+      const entry = getPlanillaEntry(periodo, code) || {};
+      entry.numeroOperacion = inp.value.trim();
+      setPlanillaEntry(periodo, code, entry);
+    });
+    saveState();
+    alert('✅ Planilla guardada correctamente.');
+    renderPlanillaTrabajadores();
+  }
+
+  function abrirModalVerPlanillaMes() {
+    ensurePlanillaState();
+    document.getElementById('modalVerPlanillaMes')?.remove();
+    const keys = new Set(Object.keys(state.planillaPagos || {}));
+    const now = new Date();
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      keys.add(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    }
+    const sorted = [...keys].sort().reverse();
+    const actualKey = periodoActualKey();
+    let html = '<div class="modal-overlay visible" id="modalVerPlanillaMes"><div class="modal-box" style="max-width:560px;text-align:left;">';
+    html += '<button type="button" class="modal-close" onclick="document.getElementById(\'modalVerPlanillaMes\').remove()">✕</button>';
+    html += '<h3 style="margin-bottom:8px;">📅 Planilla por mes</h3>';
+    html += '<p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">Selecciona el periodo que quieres consultar o editar.</p>';
+    html += '<div style="display:flex;flex-direction:column;gap:10px;">';
+    sorted.forEach(k => {
+      const items = state.planillaPagos[k] || {};
+      const codes = Object.keys(state.teachers || {});
+      let total = 0, pagados = 0;
+      codes.forEach(c => {
+        const pago = typeof calcPagoDocente === 'function' ? calcPagoDocente(c) : { total: 0 };
+        total += pago.total || 0;
+        if (items[c] && items[c].pagado) pagados++;
+      });
+      const isCurrent = k === actualKey;
+      const isPast = k < actualKey;
+      const badge = isCurrent
+        ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:50px;font-size:.72rem;font-weight:800;">EN CURSO</span>'
+        : isPast
+          ? '<span style="background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:50px;font-size:.72rem;font-weight:800;">CERRADO</span>'
+          : '<span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:50px;font-size:.72rem;font-weight:800;">PRÓXIMO</span>';
+      html += `<button type="button" class="insc-option-btn" data-planilla-mes="${k}" style="text-align:left;">
+        <strong>${periodoLabel(k)} ${badge}</strong>
+        <small>${codes.length} docentes · S/ ${total.toFixed(2)} · ${pagados}/${codes.length} pagados</small>
+      </button>`;
+    });
+    html += '</div></div></div>';
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap);
+    wrap.querySelectorAll('[data-planilla-mes]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.planillaAbierta = btn.dataset.planillaMes;
+        saveState();
+        document.getElementById('modalVerPlanillaMes')?.remove();
+        renderPlanillaTrabajadores();
+      });
+    });
+  }
+
+  function abrirModalDetallePlanilla(code) {
+    const t = state.teachers[code];
+    if (!t) return;
+    document.getElementById('modalDetallePlanilla')?.remove();
+    const periodo = state.planillaAbierta;
+    const pago = typeof calcPagoDocente === 'function' ? calcPagoDocente(code) : { base: 0, subPed: 0, subExt: 0, subB: 0, subD: 0, total: 0, p: {} };
+    const entry = getPlanillaEntry(periodo, code) || {};
+    const groups = typeof getTeacherGroups === 'function' ? getTeacherGroups(code) : [];
+    const bonifs = (pago.p && pago.p.bonificaciones) || [];
+    const descs = (pago.p && pago.p.descuentos) || [];
+
+    let html = '<div class="modal-overlay visible" id="modalDetallePlanilla"><div class="modal-box" style="max-width:720px;text-align:left;max-height:90vh;overflow-y:auto;">';
+    html += '<button type="button" class="modal-close" onclick="document.getElementById(\'modalDetallePlanilla\').remove()">✕</button>';
+    html += `<h3 style="margin-bottom:10px;">👁️ Detalle: ${t.nombre}</h3>`;
+    html += `<div style="background:#f8fafc;padding:12px 14px;border-radius:10px;border-left:4px solid var(--azul);margin-bottom:16px;font-size:.88rem;">
+      <p style="margin:0 0 4px;"><strong>Área:</strong> ${areaNormalizada(t)} · <strong>Código:</strong> ${code}</p>
+      <p style="margin:0 0 4px;"><strong>DNI:</strong> ${t.dni || '—'} · <strong>Teléfono:</strong> ${t.telefono || '—'}</p>
+      <p style="margin:0;"><strong>Banco:</strong> ${t.banco || '—'} · <strong>Periodo:</strong> ${periodoLabel(periodo)}</p>
+    </div>`;
+
+    html += `<h4 style="color:var(--azul);font-size:.95rem;margin-bottom:10px;">📊 Resumen de pago</h4>
+      <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;">
+        <table style="width:100%;font-size:.88rem;border-collapse:collapse;">
+          <tbody>
+            <tr><td style="padding:8px;">Pago/hora base</td><td style="padding:8px;text-align:right;">S/ ${pago.base.toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;">Horas pedagógicas (${(pago.p && pago.p.horasPed) || 0} h)</td><td style="padding:8px;text-align:right;">S/ ${pago.subPed.toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;">Horas extra (${(pago.p && pago.p.horasExt) || 0} h × S/ ${((pago.p && pago.p.pagoHoraExtra) || 0).toFixed(2)})</td><td style="padding:8px;text-align:right;">S/ ${pago.subExt.toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;color:var(--verde);">+ Bonificaciones</td><td style="padding:8px;text-align:right;color:var(--verde);">S/ ${pago.subB.toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;color:var(--rojo);">− Descuentos</td><td style="padding:8px;text-align:right;color:var(--rojo);">S/ ${pago.subD.toFixed(2)}</td></tr>
+            <tr style="background:#f0fdf4;font-weight:800;"><td style="padding:10px;">NETO A PAGAR</td><td style="padding:10px;text-align:right;color:var(--verde);font-size:1.1rem;">S/ ${pago.total.toFixed(2)}</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+
+    if (groups.length) {
+      html += `<h4 style="color:var(--azul);font-size:.95rem;margin:14px 0 10px;">📚 Grupos asignados</h4>
+        <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;">
+          <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
+            <thead><tr style="background:#f1f5f9;"><th style="padding:8px;text-align:left;">Grupo</th><th style="padding:8px;">Programa</th><th style="padding:8px;">Nivel</th><th style="padding:8px;">Horario</th><th style="padding:8px;text-align:right;">Horas</th></tr></thead>
+            <tbody>${groups.map(g => `<tr><td style="padding:8px;"><strong>${g.nombre}</strong></td><td style="padding:8px;">${g.programa || '—'}</td><td style="padding:8px;">${g.nivelTexto || g.nivel || '—'}</td><td style="padding:8px;">${g.horario || '—'}</td><td style="padding:8px;text-align:right;">${g.totalHoras || 0} h</td></tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+    }
+
+    html += `<h4 style="color:var(--verde);font-size:.95rem;margin:14px 0 10px;">➕ Bonificaciones</h4>
+      <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;">
+        <table style="width:100%;font-size:.85rem;"><tbody>
+          ${bonifs.length ? bonifs.map(b => `<tr><td style="padding:8px;">${b.concepto || '—'}</td><td style="padding:8px;text-align:right;color:var(--verde);">+ S/ ${(parseFloat(b.monto) || 0).toFixed(2)}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;padding:10px;color:var(--gris);">Sin bonificaciones.</td></tr>'}
+        </tbody></table>
+      </div>`;
+
+    html += `<h4 style="color:var(--rojo);font-size:.95rem;margin:14px 0 10px;">➖ Descuentos</h4>
+      <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:14px;">
+        <table style="width:100%;font-size:.85rem;"><tbody>
+          ${descs.length ? descs.map(d => `<tr><td style="padding:8px;">${d.concepto || '—'}</td><td style="padding:8px;text-align:right;color:var(--rojo);">− S/ ${(parseFloat(d.monto) || 0).toFixed(2)}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;padding:10px;color:var(--gris);">Sin descuentos.</td></tr>'}
+        </tbody></table>
+      </div>`;
+
+    const sid = safeId(code);
+    html += `<h4 style="color:var(--morado);font-size:.95rem;margin:14px 0 10px;">🧾 Comprobante de depósito</h4>
+      <div style="background:#f8fafc;padding:12px;border-radius:10px;border:1px dashed #cbd5e1;margin-bottom:16px;">
+        <input type="file" id="planillaDetalleComprFile_${sid}" accept="image/*" style="display:none;">
+        <button type="button" class="btn btn-azul btn-mini" data-planilla-detalle-subir="${code}">📎 Subir comprobante</button>
+        ${entry.comprobante ? `<button type="button" class="btn btn-slate btn-mini" data-planilla-detalle-ver="${code}" style="margin-left:6px;">👁️ Ver comprobante</button>` : '<span style="color:var(--gris);font-size:.85rem;margin-left:8px;">Sin comprobante aún.</span>'}
+      </div>`;
+
+    html += `<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid var(--borde);padding-top:14px;">
+      <button type="button" class="btn btn-morado btn-mini" id="planillaDetalleBoleta">🖨️ Imprimir boleta</button>
+      <button type="button" class="btn btn-slate btn-mini" onclick="document.getElementById('modalDetallePlanilla').remove()">Cerrar</button>
+    </div>`;
+    html += '</div></div>';
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap);
+
+    wrap.querySelector('[data-planilla-detalle-subir]')?.addEventListener('click', () => {
+      document.getElementById('planillaDetalleComprFile_' + sid)?.click();
+    });
+    wrap.querySelector('#planillaDetalleComprFile_' + sid)?.addEventListener('change', (e) => {
+      subirComprobantePlanilla(code, e.target.files && e.target.files[0]).then(() => {
+        document.getElementById('modalDetallePlanilla')?.remove();
+        abrirModalDetallePlanilla(code);
+      });
+    });
+    wrap.querySelector('[data-planilla-detalle-ver]')?.addEventListener('click', () => {
+      const freshEntry = getPlanillaEntry(periodo, code);
+      if (freshEntry && freshEntry.comprobante) showImageViewer(freshEntry.comprobante);
+    });
+    wrap.querySelector('#planillaDetalleBoleta')?.addEventListener('click', () => {
+      if (typeof buildBoletaPagoHTML !== 'function') return;
+      const w = window.open('', '_blank');
+      w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boleta ' + code + '</title><style>body{font-family:Segoe UI,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}.boleta-total-row{background:#7c3aed;color:#fff;padding:14px;font-weight:800;display:flex;justify-content:space-between;margin-top:12px;border-radius:8px}.boleta-info-grid{background:#f8fafc;padding:14px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}</style></head><body>' + buildBoletaPagoHTML(code) + '</body></html>');
+      w.document.close();
+      setTimeout(() => w.print(), 400);
+    });
+  }
+
+  function buildVistaPreliminarPlanillaHTML() {
+    ensurePlanillaState();
+    const periodo = state.planillaAbierta;
+    const codes = Object.keys(state.teachers || {});
+    const areas = ['Dirección', 'Docencia'];
+    const contImg = (state.oficinaImagenes && state.oficinaImagenes.contabilidad) || { sello: '', membrete: '' };
+    const lh = contImg.membrete ? `<div style="text-align:center;margin-bottom:14px;"><img src="${contImg.membrete}" style="max-height:80px;max-width:100%;"></div>` : '';
+
+    let totalGeneral = 0;
+    let areasHTML = '';
+    areas.forEach(areaNombre => {
+      const items = codes.filter(c => areaNormalizada(state.teachers[c]) === areaNombre);
+      if (!items.length) return;
+      const icon = areaNombre === 'Dirección' ? '🎯' : '👨‍🏫';
+      let subTotal = 0;
+      const rows = items.map(code => {
+        const t = state.teachers[code];
+        const pago = typeof calcPagoDocente === 'function' ? calcPagoDocente(code) : { total: 0 };
+        subTotal += pago.total || 0;
+        const entry = getPlanillaEntry(periodo, code) || {};
+        return `<tr>
+          <td>${t.nombre || code}</td>
+          <td>${t.dni || '—'}</td>
+          <td>${t.banco || '—'}</td>
+          <td style="text-align:right;">S/ ${(pago.total || 0).toFixed(2)}</td>
+          <td>${entry.fechaPago ? entry.fechaPago.split('-').reverse().join('/') : '—'}</td>
+          <td>${entry.numeroOperacion || '—'}</td>
+          <td style="text-align:center;">${entry.comprobante ? '✅' : '—'}</td>
+        </tr>`;
+      }).join('');
+      totalGeneral += subTotal;
+      areasHTML += `
+        <h4 style="color:#004aad;font-size:.95rem;margin:14px 0 8px;">${icon} ÁREA: ${areaNombre.toUpperCase()}</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:6px;">
+          <thead><tr style="background:#004aad;color:#fff;">
+            <th style="padding:7px;text-align:left;">Docente</th>
+            <th style="padding:7px;">DNI</th>
+            <th style="padding:7px;">Banco</th>
+            <th style="padding:7px;text-align:right;">Neto</th>
+            <th style="padding:7px;">F.pago</th>
+            <th style="padding:7px;">Nro. op.</th>
+            <th style="padding:7px;text-align:center;">Compr.</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr style="background:#f8fafc;font-weight:800;">
+            <td colspan="3" style="padding:8px;text-align:right;">SUBTOTAL ${areaNombre.toUpperCase()}:</td>
+            <td style="padding:8px;text-align:right;color:#004aad;">S/ ${subTotal.toFixed(2)}</td>
+            <td colspan="3"></td>
+          </tr></tfoot>
+        </table>`;
+    });
+
+    return `${lh}
+      <div style="text-align:center;margin-bottom:16px;">
+        <h2 style="color:#004aad;margin:0;">PLANILLA GENERAL DE TRABAJADORES</h2>
+        <p style="color:#6b7280;margin:4px 0;">Periodo: <strong>${periodoLabel(periodo)}</strong></p>
+        <p style="color:#6b7280;margin:0;">Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
+      </div>
+      ${areasHTML || '<p style="text-align:center;color:#6b7280;">Sin datos.</p>'}
+      <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa);color:#fff;padding:14px 20px;border-radius:10px;font-weight:800;display:flex;justify-content:space-between;margin-top:16px;">
+        <span>TOTAL GENERAL DEL PERIODO</span><span>S/ ${totalGeneral.toFixed(2)}</span>
+      </div>
+      <div style="text-align:center;margin-top:40px;">
+        ${contImg.sello ? `<img src="${contImg.sello}" style="max-height:80px;margin-bottom:6px;display:block;margin-left:auto;margin-right:auto;">` : ''}
+        <p style="border-top:1px solid #9ca3af;padding-top:5px;width:220px;margin:0 auto;font-size:.85rem;color:#6b7280;">Sello Contabilidad y Finanzas</p>
+      </div>
+      <p style="font-size:.75rem;color:#9ca3af;margin-top:20px;text-align:center;">Documento generado el ${new Date().toLocaleString('es')} · Jotavalenzuela</p>`;
+  }
+
+  function abrirModalVistaPreliminar() {
+    document.getElementById('modalVistaPreliminar')?.remove();
+    const html = buildVistaPreliminarPlanillaHTML();
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div class="modal-overlay visible" id="modalVistaPreliminar"><div class="modal-box" style="max-width:780px;text-align:left;max-height:90vh;overflow-y:auto;">
+      <button type="button" class="modal-close" onclick="document.getElementById('modalVistaPreliminar').remove()">✕</button>
+      <h3 style="margin-bottom:14px;">👁️ Vista preliminar general</h3>
+      <div id="planillaVistaPreviaBody" style="background:#fff;border:1px solid var(--borde);border-radius:12px;padding:20px;">${html}</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;">
+        <button type="button" class="btn btn-slate btn-mini" id="planillaModalBtnImprimir">🖨️ Imprimir</button>
+        <button type="button" class="btn btn-verde btn-mini" id="planillaModalBtnDescargar">⬇️ Descargar PDF</button>
+        <button type="button" class="btn btn-morado btn-mini" onclick="document.getElementById('modalVistaPreliminar').remove()">Cerrar</button>
+      </div>
+    </div></div>`;
+    document.body.appendChild(wrap);
+    document.getElementById('planillaModalBtnImprimir')?.addEventListener('click', imprimirPlanilla);
+    document.getElementById('planillaModalBtnDescargar')?.addEventListener('click', descargarPlanillaPDF);
+  }
+
+  function imprimirPlanilla() {
+    const html = buildVistaPreliminarPlanillaHTML();
+    const w = window.open('', '_blank');
+    w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Planilla ' + periodoLabel(state.planillaAbierta) + '</title><style>body{font-family:Segoe UI,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:7px;border:1px solid #ddd;font-size:.85rem}th{background:#004aad;color:#fff}@media print{body{padding:0}}</style></head><body>' + html + '</body></html>');
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }
+
+  function descargarPlanillaPDF() {
+    const html = buildVistaPreliminarPlanillaHTML();
+    if (typeof window.descargarComoPDF === 'function') {
+      window.descargarComoPDF(html, 'Planilla_' + state.planillaAbierta);
+    } else {
+      alert('Función PDF no disponible. Usa el botón Imprimir y guarda como PDF.');
+    }
+  }
+
+  window.renderPlanillaTrabajadores = renderPlanillaTrabajadores;
+
+  /* Hooks: cambio de subtab */
+  document.querySelectorAll('[data-cont-subtab="planilla"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(renderPlanillaTrabajadores, 50));
+  });
+
+  /* Hooks: controles */
+  document.getElementById('planillaPeriodo')?.addEventListener('change', (e) => {
+    state.planillaAbierta = e.target.value;
+    saveState();
+    renderPlanillaTrabajadores();
+  });
+  document.getElementById('planillaFiltroArea')?.addEventListener('change', renderPlanillaTrabajadores);
+  document.getElementById('planillaBuscar')?.addEventListener('input', renderPlanillaTrabajadores);
+  document.getElementById('planillaBtnVerMes')?.addEventListener('click', abrirModalVerPlanillaMes);
+  document.getElementById('planillaBtnGuardar')?.addEventListener('click', guardarPlanilla);
+  document.getElementById('planillaBtnPreview')?.addEventListener('click', abrirModalVistaPreliminar);
+  document.getElementById('planillaBtnImprimir')?.addEventListener('click', imprimirPlanilla);
+  document.getElementById('planillaBtnDescargar')?.addEventListener('click', descargarPlanillaPDF);
+
+  console.log('✅ Módulo Planilla de Trabajadores cargado.');
+})();
    console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
