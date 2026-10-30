@@ -8293,6 +8293,94 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
 
   console.log('✅ Patch calendarios (días de meses vecinos) cargado.');
 })();
+ /* ============================================================
+   PATCH: Asistencia del docente lee fechas DIRECTAMENTE desde
+   "Calendarización de clases" (state.clasesPorGrupo).
+   Complementa con evaluaciones de calendarEvents si existen.
+   ============================================================ */
+(function () {
+  // Reemplaza getCalEventsForGroup: mergea clasesPorGrupo + calendarEvents
+  getCalEventsForGroup = function (gid, onlyEval) {
+    const events = [];
+
+    // 1) Fechas calendarizadas (fuente de verdad de "Calendarización de clases")
+    const clasesDirectas = (state.clasesPorGrupo && state.clasesPorGrupo[gid]) || [];
+    const clasesSet = new Set(clasesDirectas);
+
+    if (!onlyEval) {
+      clasesDirectas.forEach(fecha => {
+        events.push({
+          fecha,
+          tipo: 'clase',
+          nombre: 'Clase',
+          id: 'clase_' + fecha,
+          origen: 'clasesPorGrupo'
+        });
+      });
+    }
+
+    // 2) Eventos adicionales (evaluaciones, etc.) de calendarEvents
+    const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
+
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      (state.calendarEvents[fecha] || []).forEach(ev => {
+        if (ev.grupoId !== gid) return;
+
+        // Si es "clase" ya viene de clasesPorGrupo → evitar duplicado
+        if (ev.tipo === 'clase') {
+          if (clasesSet.has(fecha)) return;
+          // "clase" legacy (data antigua) que no está en clasesPorGrupo → incluir
+          if (!onlyEval) {
+            events.push({ fecha, tipo: 'clase', nombre: ev.nombre || 'Clase', id: ev.id });
+          }
+          return;
+        }
+
+        const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
+        const isEval = evalTypes.includes(ev.tipo) || isCustom;
+        if (onlyEval && !isEval) return;
+        if (!onlyEval && (ev.tipo === 'inicio_curso' || ev.tipo === 'fin_curso')) return;
+
+        events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo, id: ev.id });
+      });
+    });
+
+    // Ordenar: por fecha, y si el mismo día tiene clase + eval, "clase" primero
+    events.sort((a, b) => {
+      if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+      return (a.tipo === 'clase' ? 0 : 1) - (b.tipo === 'clase' ? 0 : 1);
+    });
+    return events;
+  };
+
+  // Forzar re-render al abrir el tab Asistencia (para que tome el nuevo dato)
+  document.querySelectorAll('#dashboardDocente [data-dtab="asistencia"]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setTimeout(() => {
+        try {
+          const sel = document.getElementById('dAsisGrupo');
+          if (sel && sel.value) {
+            fillTeacherGroupSelects();
+            loadAsisFromCalendar();
+          }
+        } catch (e) {}
+      }, 80);
+    });
+  });
+
+  // Si ya está en el tab Asistencia al momento del patch, refrescar
+  setTimeout(() => {
+    try {
+      const panel = document.getElementById('dpanel-asistencia');
+      if (panel && panel.classList.contains('activo')) {
+        const sel = document.getElementById('dAsisGrupo');
+        if (sel && sel.value) loadAsisFromCalendar();
+      }
+    } catch (e) {}
+  }, 400);
+
+  console.log('✅ Asistencia del docente ahora lee fechas desde Calendarización de clases (clasesPorGrupo).');
+})();
 </script>
                     ↑
         AQUÍ VA EL BLOQUE D (antes del console.log)
