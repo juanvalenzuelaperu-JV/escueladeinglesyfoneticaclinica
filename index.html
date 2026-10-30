@@ -7514,7 +7514,7 @@ window.descargarComoPDF = function(htmlContent, filename) {
   const name = (filename || 'documento').replace(/\.pdf$/i, '') + '.pdf';
   const container = document.createElement('div');
   container.innerHTML = htmlContent;
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;padding:20px;background:#fff;font-family:Segoe UI,sans-serif;';
+container.style.cssText = 'position:fixed;top:0;left:0;width:800px;padding:20px;background:#fff;font-family:Segoe UI,sans-serif;z-index:-1;pointer-events:none;';
   document.body.appendChild(container);
   const opt = {
     margin: 10,
