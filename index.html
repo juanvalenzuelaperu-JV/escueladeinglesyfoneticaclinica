@@ -1762,49 +1762,24 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             </div>
           </div>
           <div class="subpanel" id="cont-subpanel-firma">
-                     <!-- ===== PLANILLA DE TRABAJADORES ===== -->
+            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Las imágenes aquí cargadas se usarán en la <strong>Boleta Preliminar de Pago Docente</strong>.</p>
+            <div class="oficina-section">
+              <h4>🏢 Sello de oficina</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contSelloFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContSello">Guardar Sello</button></div>
+              <div class="firma-preview-box" id="contSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
+            </div>
+            <div class="oficina-section">
+              <h4>📄 Membrete</h4>
+              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contMembreteFile" accept="image/*"></div>
+              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContMembrete">Guardar Membrete</button></div>
+              <div class="letterhead-preview-box" id="contMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
+            </div>
+          </div>
+
           <div class="subpanel" id="cont-subpanel-planilla">
             <h4 style="color:var(--slate);margin-bottom:6px;font-size:1rem;font-weight:800;">👥 Planilla de Trabajadores</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">
-              Gestión de personal de la escuela (docentes y administrativos). Los datos se sincronizan con los docentes registrados.
-            </p>
-
-            <!-- Resumen rápido -->
-            <div class="resumen-grid" style="margin-bottom:22px;">
-              <div class="resumen-card azul"><div class="et">Total personal</div><div class="val" id="planillaTotal">—</div></div>
-              <div class="resumen-card verde"><div class="et">Activos</div><div class="val" id="planillaActivos">—</div></div>
-              <div class="resumen-card amarillo"><div class="et">Docentes</div><div class="val" id="planillaDocentes">—</div></div>
-              <div class="resumen-card morado"><div class="et">Administrativos</div><div class="val" id="planillaAdmin">—</div></div>
-            </div>
-
-            <!-- Filtros -->
-            <div class="tform admin-form" style="margin-bottom:18px;">
-              <div class="tform-grid">
-                <div class="campo">
-                  <label>Buscar</label>
-                  <input type="text" id="planillaBuscar" placeholder="Nombre, código o documento...">
-                </div>
-                <div class="campo">
-                  <label>Estado</label>
-                  <select id="planillaFiltroEstado">
-                    <option value="">Todos</option>
-                    <option value="Activo">Activo</option>
-                    <option value="Vacaciones">Vacaciones</option>
-                    <option value="Inactivo">Inactivo</option>
-                    <option value="Baja">Baja</option>
-                  </select>
-                </div>
-                <div class="campo">
-                  <label>Tipo</label>
-                  <select id="planillaFiltroTipo">
-                    <option value="">Todos</option>
-                    <option value="Docente">Docente</option>
-                    <option value="Administrativo">Administrativo</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
             <!-- Tabla de planilla -->
             <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:20px;">
               <table class="admin-table" style="min-width:1100px;">
