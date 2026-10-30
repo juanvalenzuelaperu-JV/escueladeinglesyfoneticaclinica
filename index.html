@@ -7966,6 +7966,142 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
     if (tab.dataset.admtab === 'historial_rc') setTimeout(renderAdminHistorialRC, 40);
   });
 });
+ /* ============================================================
+   ASISTENCIA DEL ALUMNO VINCULADA A CALENDARIZACIÓN DE CLASES
+   Lee los días de clase desde state.calendarEvents (tipo "clase")
+   y el estado desde state.asistenciaDiaria (lo que guarda el docente).
+   ============================================================ */
+(function () {
+  const MAP_ESTADO = {
+    present: 'Present', Present: 'Present',
+    late: 'Late', Late: 'Late',
+    absent: 'Absent', Absent: 'Absent',
+    justified: 'Justified', Justified: 'Justified'
+  };
+
+  // Sobrescribe asistenciaDe() para que combine:
+  //   1) asistenciaDiaria (nuevo, por grupo+fecha) — PRIORIDAD
+  //   2) state.attendance (legacy) — solo si no hay registro nuevo ese día
+  const _origAsistenciaDe = window.asistenciaDe;
+  window.asistenciaDe = function (code) {
+    if (!state) return [];
+    const out = [];
+    const seen = new Set(); // "fecha|grupoId"
+
+    const groups = typeof getStudentGroups === 'function' ? getStudentGroups(code) : [];
+    const groupMap = {};
+    groups.forEach(g => { groupMap[g.id] = g; });
+
+    // 1) Nuevo sistema
+    Object.keys(state.asistenciaDiaria || {}).forEach(key => {
+      const rec = state.asistenciaDiaria[key];
+      if (!rec || !rec.grupoId || !rec.registros) return;
+      if (!groupMap[rec.grupoId]) return;
+      const raw = rec.registros[code];
+      if (!raw) return;
+      const g = groupMap[rec.grupoId];
+      out.push({
+        fecha: rec.fecha,
+        clase: g.nombre || g.programa || g.id,
+        grupoId: rec.grupoId,
+        estado: MAP_ESTADO[raw] || raw,
+        origen: 'calendario'
+      });
+      seen.add(rec.fecha + '|' + rec.grupoId);
+    });
+
+    // 2) Legacy (state.attendance) — solo si no está ya
+    if (Array.isArray(state.attendance)) {
+      state.attendance.filter(a => a.studentCode === code).forEach(a => {
+        let matchedGroupId = null;
+        const claseStr = String(a.clase || '').toLowerCase();
+        Object.keys(groupMap).forEach(gid => {
+          const g = groupMap[gid];
+          if (g.nombre && claseStr.includes(String(g.nombre).toLowerCase())) matchedGroupId = gid;
+        });
+        if (matchedGroupId && seen.has(a.fecha + '|' + matchedGroupId)) return;
+        out.push({
+          fecha: a.fecha,
+          clase: a.clase,
+          estado: a.estado,
+          origen: 'legacy'
+        });
+      });
+    }
+    return out;
+  };
+
+  // Sobrescribe renderStudentAsistencia() para que muestre todos los días
+  // calendarizados + el estado registrado por el docente.
+  window.renderStudentAsistencia = function () {
+    const body = document.getElementById('asistenciaBodyA');
+    if (!body || !currentStudentCode) return;
+    body.innerHTML = '';
+
+    const groups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+    if (!groups.length) {
+      body.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#6b7280;padding:18px;">📭 No estás matriculado en ningún grupo aún.</td></tr>`;
+      return;
+    }
+
+    // Construir lista de días de clase (tipo "clase" en calendarEvents)
+    const dias = [];
+    const seen = new Set();
+    groups.forEach(g => {
+      Object.keys(state.calendarEvents || {}).forEach(fecha => {
+        const evs = (state.calendarEvents[fecha] || []).filter(ev =>
+          ev.grupoId === g.id && ev.tipo === 'clase'
+        );
+        if (!evs.length) return;
+        const k = fecha + '|' + g.id;
+        if (seen.has(k)) return;
+        seen.add(k);
+        const rec = state.asistenciaDiaria?.[g.id + '_' + fecha];
+        const raw = rec?.registros?.[currentStudentCode] || '';
+        dias.push({
+          fecha,
+          grupo: g.nombre || g.programa || g.id,
+          estadoRaw: raw,
+          registrado: !!rec
+        });
+      });
+    });
+    dias.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+    // Si no hay días calendarizados, mostrar el historial legacy (si existe)
+    if (!dias.length) {
+      const legacy = (Array.isArray(state.attendance) ? state.attendance : [])
+        .filter(a => a.studentCode === currentStudentCode);
+      if (!legacy.length) {
+        body.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#6b7280;padding:18px;">📭 Aún no hay clases calendarizadas para tus grupos. La coordinación académica las asignará pronto.</td></tr>`;
+        return;
+      }
+      legacy.sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${formatearFecha(a.fecha)}</td><td>${a.clase}</td><td><span class="estado ${claseEstadoAsistencia(a.estado)}">${a.estado}</span></td>`;
+        body.appendChild(tr);
+      });
+      return;
+    }
+
+    dias.forEach(d => {
+      const tr = document.createElement('tr');
+      let estadoHtml;
+      if (!d.registrado) {
+        estadoHtml = '<span class="estado" style="background:#f1f5f9;color:#64748b;font-weight:700;">Sin registrar</span>';
+      } else if (!d.estadoRaw) {
+        estadoHtml = '<span class="estado" style="background:#fef3c7;color:#b45309;font-weight:700;">Sin marcar</span>';
+      } else {
+        const estado = MAP_ESTADO[d.estadoRaw] || d.estadoRaw;
+        estadoHtml = `<span class="estado ${claseEstadoAsistencia(estado)}">${estado}</span>`;
+      }
+      tr.innerHTML = `<td>${formatearFecha(d.fecha)}</td><td>${d.grupo}</td><td>${estadoHtml}</td>`;
+      body.appendChild(tr);
+    });
+  };
+
+  console.log('✅ Asistencia del alumno vinculada a Calendarización de clases.');
+})();
    console.log('✅ Módulos v4 + v5 (teléfono, PDF, asistencia editable, padres, notas-cal) cargados.');
 </script>
                     ↑
