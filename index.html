@@ -1011,9 +1011,13 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
                   <tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;" id="rcAverage">—</td></tr></tfoot>
                 </table>
               </div>
-              <div class="tform-acciones rc-actions-print" style="margin-top: 30px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-  <button class="btn btn-verde" id="btnConfirmSendRC">Confirmar envío al Alumno</button>
-</div>
+              <div class="rc-comment-box"><h4>Teacher's Comment</h4><p id="rcCommentDisplay">---</p></div>
+              <div class="rc-footer"><div></div><div class="rc-signature"><img id="rcSignatureImg" style="display:none;"><p id="rcTeacherSignatureName">Firma del Docente</p></div></div>
+            </div>
+            <div class="tform-acciones rc-actions-print" style="margin-top: 30px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+              <button class="btn btn-verde" id="btnConfirmSendRC">Confirmar envío al Alumno</button>
+              <button class="btn btn-slate" id="btnDownloadRC">Descargar RC</button>
+            </div>
           </div>
         </div>
         <div class="panel" id="dpanel-historial">
@@ -2813,33 +2817,16 @@ document.getElementById("loginFormDocente").addEventListener("submit", (e) => {
 });
 document.getElementById("loginFormTalento").addEventListener("submit", (e) => {
   e.preventDefault();
-  e.stopPropagation();
-  const raw = (document.getElementById("codigoTalento").value || "").trim();
-  const code = raw.toUpperCase();
-  const error = document.getElementById("errorTalento");
-  if (error) error.classList.remove("visible");
-  const validCodes = new Set([
-    "JESUS",
-    String(TALENTO_CODE || "").trim().toUpperCase(),
-    String(ADMIN_CODE || "").trim().toUpperCase()
-  ]);
-  if (validCodes.has(code) && code) {
-    document.getElementById("modalTalento")?.classList.remove("visible");
-    const inp = document.getElementById("codigoTalento");
-    if (inp) inp.value = "";
-    try {
-      loginTalento();
-    } catch (err) {
-      console.error("Error en loginTalento:", err);
-      alert("Error al abrir Portal Talento: " + (err && err.message ? err.message : err));
-    }
+  const code = document.getElementById("codigoTalento").value;
+  const error = document.getElementById("errorTalento"); error.classList.remove("visible");
+  if (code.toUpperCase() === "JESUS" || code === TALENTO_CODE || code === ADMIN_CODE) {
+    document.getElementById("modalTalento").classList.remove("visible");
+    document.getElementById("codigoTalento").value = "";
+    loginTalento();
     return;
   }
-  if (error) {
-    error.textContent = "Código incorrecto.";
-    error.classList.add("visible");
-  }
-  if (document.getElementById("codigoTalento")) document.getElementById("codigoTalento").value = "";
+  error.classList.add("visible");
+  document.getElementById("codigoTalento").value = "";
 });
 
 /* ============================================================
@@ -2865,143 +2852,50 @@ function renderStudentGroups() {
   groups.forEach(g => { const nivel = getNivelInfo(g.nivel); const badge = document.createElement("span"); badge.className = "dash-group-badge"; badge.innerHTML = `📚 ${g.nombre} · ${nivel.nombre}`; cont.appendChild(badge); });
 }
 function loginTeacher(code) {
-  try {
-    currentTeacherCode = code;
-    currentTeacher = state.teachers[code];
-    if (!currentTeacher) {
-      alert('Docente no encontrado: ' + code);
-      return;
-    }
-    currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
-
-    const $ = id => document.getElementById(id);
-    // Ocultar otros portales
-    if ($('portalCards'))      $('portalCards').style.display = 'none';
-    if ($('dashboardAlumno'))  $('dashboardAlumno').classList.remove('visible');
-    if ($('dashboardTalento')) $('dashboardTalento').classList.remove('visible');
-    if ($('dashboardPadre'))   $('dashboardPadre').classList.remove('visible');
-
-    const dash = $('dashboardDocente');
-    if (!dash) {
-      alert('❌ Falta #dashboardDocente en el HTML.');
-      console.error('HTML roto: falta dashboardDocente');
-      return;
-    }
-    dash.classList.add('visible');
-
-    // Cabecera
-    if ($('dashNombreD')) $('dashNombreD').textContent = currentTeacher.nombre || code;
-    if ($('dashAreaD'))   $('dashAreaD').textContent   = currentTeacher.area || 'Docente';
-
-    const avatar = $('dashAvatarD');
-    if (avatar) {
-      if (currentTeacher.formalPhoto) {
-        avatar.innerHTML = '<img src="' + currentTeacher.formalPhoto + '" alt="Foto">';
-        avatar.style.padding = '0';
-      } else {
-        avatar.textContent = 'PR'; avatar.style.padding = '';
-      }
-    }
-
-    // Selects
-    const selAsis = $('dAsisGrupo');
-    if (selAsis) {
-      selAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
-      getTeacherGroups(currentTeacherCode).forEach(g => {
-        const o = document.createElement('option');
-        o.value = g.id; o.textContent = g.nombre;
-        selAsis.appendChild(o);
-      });
-    }
-    const selRc = $('rcGroupSelect');
-    if (selRc) {
-      selRc.innerHTML = '<option value="">Selecciona un grupo...</option>';
-      getTeacherGroups(currentTeacherCode).forEach(g => {
-        const o = document.createElement('option');
-        o.value = g.id; o.textContent = g.nombre;
-        selRc.appendChild(o);
-      });
-    }
-
-    // Cada render aislado → un fallo no tumba el login
-    try { renderTeacherSignature(); } catch (e) { console.warn('signature:', e); }
-    try { renderTeacherPhoto(); }     catch (e) { console.warn('photo:', e); }
-    try { refreshTeacherView(); }     catch (e) { console.error('refreshTeacherView:', e); }
-
-    if ($('relojD')) $('relojD').textContent = horaActual();
-    try { history.pushState({ portal: 'docente' }, '', '#docente'); } catch (e) {}
-
-    console.log('✅ Login docente OK:', code,
-      '· dashboard visible:', dash.classList.contains('visible'),
-      '· display:', getComputedStyle(dash).display);
-  } catch (e) {
-    console.error('❌ Error crítico en loginTeacher:', e);
-    alert('Error abriendo portal docente:\n\n' + e.message + '\n\nRevisa la consola (F12).');
-  }
+  currentTeacherCode = code; currentTeacher = state.teachers[code];
+  currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
+  document.getElementById("portalCards").style.display = "none";
+  document.getElementById("dashboardAlumno").classList.remove("visible");
+  document.getElementById("dashboardTalento").classList.remove("visible");
+  document.getElementById("dashboardDocente").classList.add("visible");
+  document.getElementById("dashNombreD").textContent = currentTeacher.nombre;
+  document.getElementById("dashAreaD").textContent = currentTeacher.area || "Docente";
+  const avatar = document.getElementById("dashAvatarD");
+  if (currentTeacher.formalPhoto) { avatar.innerHTML = `<img src="${currentTeacher.formalPhoto}" alt="Foto">`; avatar.style.padding = '0'; }
+  else { avatar.textContent = "PR"; avatar.style.padding = ''; }
+  const selAsis = document.getElementById("dAsisGrupo"); selAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
+  getTeacherGroups(currentTeacherCode).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAsis.appendChild(opt); });
+  const selRcGroup = document.getElementById("rcGroupSelect"); selRcGroup.innerHTML = '<option value="">Selecciona un grupo...</option>';
+  getTeacherGroups(currentTeacherCode).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selRcGroup.appendChild(opt); });
+  renderTeacherSignature(); renderTeacherPhoto(); refreshTeacherView();
+  document.getElementById("relojD").textContent = horaActual();
+   history.pushState({ portal: 'docente' }, '', '#docente');
 }
 function loginTalento() {
-  adminLoggedIn = true;
-  currentStudentCode = null; currentStudent = null;
-  currentTeacherCode = null; currentTeacher = null;
-  currentPadreCode = null; currentPadre = null;
-  try {
-    if (!state) state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-  } catch (e) {
-    state = { groups: [], teachers: {}, students: {}, iconos: {} };
-  }
+  adminLoggedIn = true; currentStudentCode = null; currentStudent = null; currentTeacherCode = null; currentTeacher = null;
+  if (!state) state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   if (!state.groups) state.groups = [];
   if (!state.teachers) state.teachers = {};
   if (!state.students) state.students = {};
   if (!state.iconos) state.iconos = {};
-
-  // Asegurar que la sección Portales esté visible (slider)
-  try {
-    const portalSec = document.getElementById("portal");
-    if (portalSec) {
-      document.querySelectorAll(".slide").forEach(s => s.classList.remove("activo", "entra-der", "entra-izq"));
-      portalSec.classList.add("activo");
-    }
-    document.body.classList.add("en-dashboard");
-  } catch (e) {}
-
-  const cards = document.getElementById("portalCards");
-  if (cards) cards.style.display = "none";
-  document.getElementById("dashboardAlumno")?.classList.remove("visible");
-  document.getElementById("dashboardDocente")?.classList.remove("visible");
-  document.getElementById("dashboardPadre")?.classList.remove("visible");
-  const dash = document.getElementById("dashboardTalento");
-  if (!dash) throw new Error("No se encontró #dashboardTalento en el DOM");
-  dash.classList.add("visible");
-
+  document.getElementById("portalCards").style.display = "none";
+  document.getElementById("dashboardAlumno").classList.remove("visible");
+  document.getElementById("dashboardDocente").classList.remove("visible");
+  document.getElementById("dashboardTalento").classList.add("visible");
   const selAdmAsis = document.getElementById("admAsisGrupo");
-  if (selAdmAsis) {
-    selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
-    (state.groups || []).forEach(g => {
-      const opt = document.createElement("option");
-      opt.value = g.id;
-      opt.textContent = g.nombre || g.id;
-      selAdmAsis.appendChild(opt);
-    });
-  }
-  try { renderAdminLetterhead(); } catch (e) { console.warn(e); }
-  try { renderAdminFounder(); } catch (e) { console.warn(e); }
-  try { renderAdminCourses(); } catch (e) { console.warn(e); }
-  try { refreshAdminView(); } catch (e) { console.warn(e); }
-  try { renderIconografia(); } catch (e) { console.warn(e); }
-  try { aplicarIconosInterfaz(); } catch (e) { console.warn(e); }
-  const reloj = document.getElementById("relojTal");
-  if (reloj && typeof horaActual === "function") reloj.textContent = horaActual();
-  console.log("✅ Portal Talento abierto");
+  if (selAdmAsis) { selAdmAsis.innerHTML = '<option value="">Selecciona un grupo...</option>'; (state.groups || []).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAdmAsis.appendChild(opt); }); }
+  try { renderAdminLetterhead(); } catch (e) {}
+  try { renderAdminFounder(); } catch (e) {}
+  try { renderAdminCourses(); } catch (e) {}
+  try { refreshAdminView(); } catch (e) {}
+  try { renderIconografia(); } catch (e) {}
+  try { aplicarIconosInterfaz(); } catch (e) {}
+  const reloj = document.getElementById("relojTal"); if (reloj) reloj.textContent = horaActual();
 }
- document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+document.getElementById("btnSalirA").addEventListener("click", () => { currentStudentCode = null; currentStudent = null; document.getElementById("dashboardAlumno").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
 document.getElementById("btnSalirD").addEventListener("click", () => { currentTeacherCode = null; currentTeacher = null; document.getElementById("dashboardDocente").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
-document.getElementById("btnSalirTal").addEventListener("click", () => {
-  adminLoggedIn = false;
-  document.getElementById("dashboardTalento")?.classList.remove("visible");
-  const cards = document.getElementById("portalCards");
-  if (cards) cards.style.display = "grid";
-  document.body.classList.remove("en-dashboard");
-});
+document.getElementById("btnSalirTal").addEventListener("click", () => { adminLoggedIn = false; document.getElementById("dashboardTalento").classList.remove("visible"); document.getElementById("portalCards").style.display = "grid"; });
+
 /* ============================================================
    TABS
    ============================================================ */
@@ -4295,53 +4189,25 @@ document.getElementById('btnCerrarAvisoRC')?.addEventListener('click', () => {
   lastRcNotifyStudent = null;
 });
 
-function renderTeacherHistorialRC() {
-  const cont = document.getElementById("dHistorialRCLista");
-  if (!cont) return;
-  cont.innerHTML = "";
-  const myRCs = (state.reportCards || []).filter(rc => rc.teacherCode === currentTeacherCode);
-  if (!myRCs.length) {
-    cont.innerHTML = `<div class="empty-state">📭 Aún no has generado Report Cards.</div>`;
-    return;
+document.getElementById("btnDownloadRC")?.addEventListener("click", () => {
+  if (!currentRcData) { alert('Primero genera el Report Card.'); return; }
+  const html = typeof buildReportCardHTML === 'function' ? buildReportCardHTML(currentRcData) : (document.getElementById('rcPrintableArea')?.innerHTML || '');
+  if (typeof window.descargarComoPDF === 'function') {
+    window.descargarComoPDF(html, 'ReportCard_' + (currentRcData.studentCode || 'alumno') + '_' + (currentRcData.date || ''));
+  } else if (typeof imprimirReportCard === 'function') {
+    imprimirReportCard(currentRcData);
   }
-  myRCs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
-  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;">
-    <table style="min-width:1000px;width:100%;">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Alumno</th>
-          <th>Código</th>
-          <th>Ciclo</th>
-          <th>Nota</th>
-          <th>Estado</th>
-          <th style="min-width:260px;">Teacher's Comment</th>
-        </tr>
-      </thead>
-      <tbody>`;
-
-  myRCs.forEach(rc => {
-    const student = state.students[rc.studentCode];
-    const est = getRcEstado(rc);
-    const comentario = rc.comment && String(rc.comment).trim()
-      ? rc.comment
-      : '<span style="color:var(--gris);font-style:italic;">Sin comentario</span>';
-    html += `<tr>
-      <td style="white-space:nowrap;">${formatearFecha(rc.date)}</td>
-      <td>${student ? student.nombre : '—'}</td>
-      <td><code>${rc.studentCode}</code></td>
-      <td>${rc.ciclo || '—'}</td>
-      <td><strong>${rc.average}</strong></td>
-      <td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td>
-      <td style="font-size:.88rem;line-height:1.45;max-width:340px;white-space:normal;word-break:break-word;" title="${(rc.comment || '').replace(/"/g, '&quot;')}">${comentario}</td>
-    </tr>`;
-  });
-
-  html += `</tbody></table></div>`;
-  cont.innerHTML = html;
+});
+function renderTeacherHistorialRC() {
+  const cont = document.getElementById("dHistorialRCLista"); cont.innerHTML = "";
+  const myRCs = state.reportCards.filter(rc => rc.teacherCode === currentTeacherCode);
+  if (!myRCs.length) { cont.innerHTML = `<div class="empty-state">📭 Sin RC generados.</div>`; return; }
+  myRCs.sort((a, b) => b.date.localeCompare(a.date));
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:900px;"><thead><tr><th>Fecha</th><th>Alumno</th><th>Código</th><th>Ciclo</th><th>Nota</th><th>Estado</th></tr></thead><tbody>`;
+  myRCs.forEach(rc => { const student = state.students[rc.studentCode]; const est = getRcEstado(rc); html += `<tr><td>${formatearFecha(rc.date)}</td><td>${student ? student.nombre : '—'}</td><td><code>${rc.studentCode}</code></td><td>${rc.ciclo || '—'}</td><td><strong>${rc.average}</strong></td><td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td></tr>`; });
+  html += `</tbody></table></div>`; cont.innerHTML = html;
 }
- function renderTeacherPago() {
+function renderTeacherPago() {
   const resumen = document.getElementById("dPagoResumen");
   const gruposLista = document.getElementById("dPagoGruposLista");
   const bonifBox = document.getElementById("dPagoBonificaciones");
@@ -7636,7 +7502,7 @@ window.descargarComoPDF = function(htmlContent, filename) {
   const name = (filename || 'documento').replace(/\.pdf$/i, '') + '.pdf';
   const container = document.createElement('div');
   container.innerHTML = htmlContent;
-container.style.cssText = 'position:fixed;top:0;left:0;width:800px;padding:20px;background:#fff;font-family:Segoe UI,sans-serif;z-index:-1;pointer-events:none;';
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;padding:20px;background:#fff;font-family:Segoe UI,sans-serif;';
   document.body.appendChild(container);
   const opt = {
     margin: 10,
