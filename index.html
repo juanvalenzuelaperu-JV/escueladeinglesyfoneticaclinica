@@ -1709,9 +1709,10 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         <!-- SUBPORTAL CONTABILIDAD Y FINANZAS -->
         <div class="panel" id="tal-panel-contabilidad">
           <div class="subportal-tabs">
-            <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
-            <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
-          </div>
+  <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
+  <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
+  <button class="subportal-tab" data-cont-subtab="planilla">👥 Planilla de Trabajadores</button>
+</div>
           <div class="subpanel activo" id="cont-subpanel-pago">
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
             <div class="tform admin-form">
@@ -1761,6 +1762,159 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             </div>
           </div>
           <div class="subpanel" id="cont-subpanel-firma">
+                     <!-- ===== PLANILLA DE TRABAJADORES ===== -->
+          <div class="subpanel" id="cont-subpanel-planilla">
+            <h4 style="color:var(--slate);margin-bottom:6px;font-size:1rem;font-weight:800;">👥 Planilla de Trabajadores</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">
+              Gestión de personal de la escuela (docentes y administrativos). Los datos se sincronizan con los docentes registrados.
+            </p>
+
+            <!-- Resumen rápido -->
+            <div class="resumen-grid" style="margin-bottom:22px;">
+              <div class="resumen-card azul"><div class="et">Total personal</div><div class="val" id="planillaTotal">—</div></div>
+              <div class="resumen-card verde"><div class="et">Activos</div><div class="val" id="planillaActivos">—</div></div>
+              <div class="resumen-card amarillo"><div class="et">Docentes</div><div class="val" id="planillaDocentes">—</div></div>
+              <div class="resumen-card morado"><div class="et">Administrativos</div><div class="val" id="planillaAdmin">—</div></div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="tform admin-form" style="margin-bottom:18px;">
+              <div class="tform-grid">
+                <div class="campo">
+                  <label>Buscar</label>
+                  <input type="text" id="planillaBuscar" placeholder="Nombre, código o documento...">
+                </div>
+                <div class="campo">
+                  <label>Estado</label>
+                  <select id="planillaFiltroEstado">
+                    <option value="">Todos</option>
+                    <option value="Activo">Activo</option>
+                    <option value="Vacaciones">Vacaciones</option>
+                    <option value="Inactivo">Inactivo</option>
+                    <option value="Baja">Baja</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label>Tipo</label>
+                  <select id="planillaFiltroTipo">
+                    <option value="">Todos</option>
+                    <option value="Docente">Docente</option>
+                    <option value="Administrativo">Administrativo</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabla de planilla -->
+            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);margin-bottom:20px;">
+              <table class="admin-table" style="min-width:1100px;">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Nombre completo</th>
+                    <th>Cargo</th>
+                    <th>Tipo contrato</th>
+                    <th>Fecha ingreso</th>
+                    <th>Horas/sem</th>
+                    <th>Sueldo / Tarifa</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="planillaBody">
+                  <tr><td colspan="9" class="empty-state">Cargando planilla...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Formulario para agregar / editar -->
+            <div class="tform admin-form" id="planillaFormBox">
+              <h4 id="planillaFormTitulo">➕ Agregar trabajador</h4>
+              <div class="tform-grid">
+                <div class="campo">
+                  <label>Código <span class="req">*</span></label>
+                  <input type="text" id="plCodigo" placeholder="Ej: EMP-009 o código docente">
+                </div>
+                <div class="campo">
+                  <label>Nombre completo <span class="req">*</span></label>
+                  <input type="text" id="plNombre" placeholder="Nombres y apellidos">
+                </div>
+                <div class="campo">
+                  <label>Documento / Cédula</label>
+                  <input type="text" id="plDocumento" placeholder="Número de documento">
+                </div>
+                <div class="campo">
+                  <label>Teléfono</label>
+                  <input type="text" id="plTelefono" placeholder="+51 999 999 999">
+                </div>
+                <div class="campo">
+                  <label>Email</label>
+                  <input type="email" id="plEmail" placeholder="correo@escuela.com">
+                </div>
+                <div class="campo">
+                  <label>Cargo <span class="req">*</span></label>
+                  <select id="plCargo">
+                    <option value="">Selecciona...</option>
+                    <option value="Profesor de Inglés">Profesor de Inglés</option>
+                    <option value="Coordinador Académico">Coordinador Académico</option>
+                    <option value="Director Académico">Director Académico</option>
+                    <option value="Asistente Administrativa">Asistente Administrativa</option>
+                    <option value="Administrativo">Administrativo</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Recepcionista">Recepcionista</option>
+                    <option value="Contador">Contador</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label>Tipo de contrato</label>
+                  <select id="plContrato">
+                    <option value="Tiempo Completo">Tiempo Completo</option>
+                    <option value="Medio Tiempo">Medio Tiempo</option>
+                    <option value="Por Horas">Por Horas</option>
+                    <option value="Freelance">Freelance</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label>Fecha de ingreso</label>
+                  <input type="date" id="plFechaIngreso">
+                </div>
+                <div class="campo">
+                  <label>Estado</label>
+                  <select id="plEstado">
+                    <option value="Activo">Activo</option>
+                    <option value="Vacaciones">Vacaciones</option>
+                    <option value="Inactivo">Inactivo</option>
+                    <option value="Baja">Baja</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label>Horas semanales</label>
+                  <input type="number" id="plHoras" min="0" step="0.5" value="0">
+                </div>
+                <div class="campo">
+                  <label>Sueldo base / Tarifa hora (S/)</label>
+                  <input type="number" id="plSueldo" min="0" step="0.5" value="0">
+                </div>
+                <div class="campo">
+                  <label>Banco</label>
+                  <input type="text" id="plBanco" placeholder="BCP, Interbank, BBVA...">
+                </div>
+                <div class="campo">
+                  <label>Nº de cuenta</label>
+                  <input type="text" id="plCuenta" placeholder="Número de cuenta">
+                </div>
+                <div class="campo completo">
+                  <label>Observaciones</label>
+                  <textarea id="plObs" rows="2" placeholder="Notas adicionales..."></textarea>
+                </div>
+              </div>
+              <div class="tform-acciones" style="margin-top:14px;">
+                <button type="button" class="btn btn-verde btn-mini" id="btnGuardarPlanilla">💾 Guardar</button>
+                <button type="button" class="btn btn-slate btn-mini" id="btnCancelarPlanilla" style="display:none;">Cancelar edición</button>
+              </div>
+              <div class="mensaje-exito" id="planillaMsg">✅ Trabajador guardado correctamente.</div>
+            </div>
+          </div>
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Las imágenes aquí cargadas se usarán en la <strong>Boleta Preliminar de Pago Docente</strong>.</p>
             <div class="oficina-section">
@@ -2808,6 +2962,202 @@ document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(tab => tab.a
   if (tab.dataset.admtab === "programacion") try { renderAdminCourses(); } catch (e) {}
 }));
 document.querySelectorAll("[data-cont-subtab]").forEach(tab => tab.addEventListener("click", () => {
+ /* ===== PLANILLA DE TRABAJADORES (Contabilidad) ===== */
+function ensurePlanilla() {
+  if (!state.planilla) state.planilla = {};
+}
+
+function renderPlanilla() {
+  ensurePlanilla();
+  const body = document.getElementById('planillaBody');
+  if (!body) return;
+
+  // Sincronizar docentes existentes que aún no estén en planilla
+  Object.keys(state.teachers || {}).forEach(code => {
+    if (!state.planilla[code]) {
+      const t = state.teachers[code];
+      state.planilla[code] = {
+        codigo: code,
+        nombre: t.nombre || '',
+        documento: t.documento || t.dni || '',
+        telefono: t.telefono || t.celular || '',
+        email: t.email || '',
+        cargo: 'Profesor de Inglés',
+        contrato: 'Por Horas',
+        fechaIngreso: t.fechaIngreso || '',
+        estado: 'Activo',
+        horas: 0,
+        sueldo: t.pagoHora || t.baseHora || 0,
+        banco: '',
+        cuenta: '',
+        observaciones: '',
+        esDocente: true
+      };
+    }
+  });
+
+  const q = (document.getElementById('planillaBuscar')?.value || '').trim().toLowerCase();
+  const fEstado = document.getElementById('planillaFiltroEstado')?.value || '';
+  const fTipo = document.getElementById('planillaFiltroTipo')?.value || '';
+
+  let lista = Object.values(state.planilla);
+
+  if (q) {
+    lista = lista.filter(p =>
+      (p.nombre || '').toLowerCase().includes(q) ||
+      (p.codigo || '').toLowerCase().includes(q) ||
+      (p.documento || '').toLowerCase().includes(q)
+    );
+  }
+  if (fEstado) lista = lista.filter(p => p.estado === fEstado);
+  if (fTipo === 'Docente') lista = lista.filter(p => p.esDocente || (p.cargo || '').includes('Profesor') || (p.cargo || '').includes('Docente'));
+  if (fTipo === 'Administrativo') lista = lista.filter(p => !p.esDocente && !(p.cargo || '').includes('Profesor'));
+
+  // Resumen
+  const todos = Object.values(state.planilla);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('planillaTotal', todos.length);
+  set('planillaActivos', todos.filter(p => p.estado === 'Activo').length);
+  set('planillaDocentes', todos.filter(p => p.esDocente || (p.cargo || '').includes('Profesor')).length);
+  set('planillaAdmin', todos.filter(p => !p.esDocente && !(p.cargo || '').includes('Profesor')).length);
+
+  if (!lista.length) {
+    body.innerHTML = '<tr><td colspan="9" class="empty-state">No hay trabajadores que coincidan con los filtros.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = lista.map(p => {
+    const estadoClass = p.estado === 'Activo' ? 'estado-present' :
+                        p.estado === 'Vacaciones' ? 'estado-late' : 'estado-absent';
+    const sueldoTxt = p.contrato === 'Por Horas' || p.contrato === 'Freelance'
+      ? `S/ ${Number(p.sueldo || 0).toFixed(2)}/h`
+      : `S/ ${Number(p.sueldo || 0).toFixed(2)}`;
+    return `<tr>
+      <td><code>${p.codigo}</code></td>
+      <td><strong>${p.nombre || '—'}</strong></td>
+      <td>${p.cargo || '—'}</td>
+      <td>${p.contrato || '—'}</td>
+      <td>${p.fechaIngreso ? formatearFecha(p.fechaIngreso) : '—'}</td>
+      <td style="text-align:center;">${p.horas || '—'}</td>
+      <td>${sueldoTxt}</td>
+      <td><span class="estado ${estadoClass}">${p.estado || '—'}</span></td>
+      <td>
+        <div class="acciones-cell">
+          <button type="button" class="btn btn-mini btn-azul" data-pl-edit="${p.codigo}">✏️</button>
+          <button type="button" class="btn btn-mini btn-rojo" data-pl-del="${p.codigo}">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Eventos de edición y eliminación
+  body.querySelectorAll('[data-pl-edit]').forEach(btn => {
+    btn.addEventListener('click', () => editarPlanilla(btn.dataset.plEdit));
+  });
+  body.querySelectorAll('[data-pl-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.dataset.plDel;
+      if (!confirm(`¿Eliminar a ${state.planilla[code]?.nombre || code} de la planilla?`)) return;
+      delete state.planilla[code];
+      saveState();
+      renderPlanilla();
+    });
+  });
+}
+
+function limpiarFormPlanilla() {
+  document.getElementById('planillaFormTitulo').textContent = '➕ Agregar trabajador';
+  document.getElementById('plCodigo').value = '';
+  document.getElementById('plCodigo').disabled = false;
+  document.getElementById('plNombre').value = '';
+  document.getElementById('plDocumento').value = '';
+  document.getElementById('plTelefono').value = '';
+  document.getElementById('plEmail').value = '';
+  document.getElementById('plCargo').value = '';
+  document.getElementById('plContrato').value = 'Tiempo Completo';
+  document.getElementById('plFechaIngreso').value = '';
+  document.getElementById('plEstado').value = 'Activo';
+  document.getElementById('plHoras').value = '0';
+  document.getElementById('plSueldo').value = '0';
+  document.getElementById('plBanco').value = '';
+  document.getElementById('plCuenta').value = '';
+  document.getElementById('plObs').value = '';
+  document.getElementById('btnCancelarPlanilla').style.display = 'none';
+  window._planillaEditCode = null;
+}
+
+function editarPlanilla(code) {
+  const p = state.planilla[code];
+  if (!p) return;
+  window._planillaEditCode = code;
+  document.getElementById('planillaFormTitulo').textContent = '✏️ Editar trabajador';
+  document.getElementById('plCodigo').value = p.codigo;
+  document.getElementById('plCodigo').disabled = true;
+  document.getElementById('plNombre').value = p.nombre || '';
+  document.getElementById('plDocumento').value = p.documento || '';
+  document.getElementById('plTelefono').value = p.telefono || '';
+  document.getElementById('plEmail').value = p.email || '';
+  document.getElementById('plCargo').value = p.cargo || '';
+  document.getElementById('plContrato').value = p.contrato || 'Tiempo Completo';
+  document.getElementById('plFechaIngreso').value = p.fechaIngreso || '';
+  document.getElementById('plEstado').value = p.estado || 'Activo';
+  document.getElementById('plHoras').value = p.horas || 0;
+  document.getElementById('plSueldo').value = p.sueldo || 0;
+  document.getElementById('plBanco').value = p.banco || '';
+  document.getElementById('plCuenta').value = p.cuenta || '';
+  document.getElementById('plObs').value = p.observaciones || '';
+  document.getElementById('btnCancelarPlanilla').style.display = 'inline-block';
+  document.getElementById('planillaFormBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('btnGuardarPlanilla')?.addEventListener('click', () => {
+  ensurePlanilla();
+  const codigo = (document.getElementById('plCodigo').value || '').trim();
+  const nombre = (document.getElementById('plNombre').value || '').trim();
+  if (!codigo || !nombre) {
+    alert('Código y Nombre son obligatorios.');
+    return;
+  }
+  const cargo = document.getElementById('plCargo').value;
+  state.planilla[codigo] = {
+    codigo,
+    nombre,
+    documento: document.getElementById('plDocumento').value.trim(),
+    telefono: document.getElementById('plTelefono').value.trim(),
+    email: document.getElementById('plEmail').value.trim(),
+    cargo,
+    contrato: document.getElementById('plContrato').value,
+    fechaIngreso: document.getElementById('plFechaIngreso').value,
+    estado: document.getElementById('plEstado').value,
+    horas: parseFloat(document.getElementById('plHoras').value) || 0,
+    sueldo: parseFloat(document.getElementById('plSueldo').value) || 0,
+    banco: document.getElementById('plBanco').value.trim(),
+    cuenta: document.getElementById('plCuenta').value.trim(),
+    observaciones: document.getElementById('plObs').value.trim(),
+    esDocente: cargo.includes('Profesor') || cargo.includes('Docente') || !!state.teachers[codigo]
+  };
+  saveState();
+  document.getElementById('planillaMsg')?.classList.add('visible');
+  setTimeout(() => document.getElementById('planillaMsg')?.classList.remove('visible'), 2500);
+  limpiarFormPlanilla();
+  renderPlanilla();
+});
+
+document.getElementById('btnCancelarPlanilla')?.addEventListener('click', limpiarFormPlanilla);
+
+['planillaBuscar', 'planillaFiltroEstado', 'planillaFiltroTipo'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', renderPlanilla);
+  document.getElementById(id)?.addEventListener('change', renderPlanilla);
+});
+
+// Activar al entrar al tab
+document.querySelectorAll("[data-cont-subtab]").forEach(tab => {
+  tab.addEventListener("click", () => {
+    if (tab.dataset.contSubtab === "planilla") {
+      setTimeout(renderPlanilla, 40);
+    }
+  });
+});
   document.querySelectorAll("[data-cont-subtab]").forEach(t => t.classList.remove("activo"));
   document.querySelectorAll("#tal-panel-contabilidad .subpanel").forEach(p => p.classList.remove("activo"));
   tab.classList.add("activo");
@@ -8300,59 +8650,39 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
    ============================================================ */
 (function () {
   // Reemplaza getCalEventsForGroup: mergea clasesPorGrupo + calendarEvents
-  getCalEventsForGroup = function (gid, onlyEval) {
-    const events = [];
+ getCalEventsForGroup = function (gid, onlyEval) {
+  const events = [];
 
-    // 1) Fechas calendarizadas (fuente de verdad de "Calendarización de clases")
+  // ===== Asistencia: SOLO fechas de Calendarización de clases =====
+  if (!onlyEval) {
     const clasesDirectas = (state.clasesPorGrupo && state.clasesPorGrupo[gid]) || [];
-    const clasesSet = new Set(clasesDirectas);
-
-    if (!onlyEval) {
-      clasesDirectas.forEach(fecha => {
-        events.push({
-          fecha,
-          tipo: 'clase',
-          nombre: 'Clase',
-          id: 'clase_' + fecha,
-          origen: 'clasesPorGrupo'
-        });
-      });
-    }
-
-    // 2) Eventos adicionales (evaluaciones, etc.) de calendarEvents
-    const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
-
-    Object.keys(state.calendarEvents || {}).forEach(fecha => {
-      (state.calendarEvents[fecha] || []).forEach(ev => {
-        if (ev.grupoId !== gid) return;
-
-        // Si es "clase" ya viene de clasesPorGrupo → evitar duplicado
-        if (ev.tipo === 'clase') {
-          if (clasesSet.has(fecha)) return;
-          // "clase" legacy (data antigua) que no está en clasesPorGrupo → incluir
-          if (!onlyEval) {
-            events.push({ fecha, tipo: 'clase', nombre: ev.nombre || 'Clase', id: ev.id });
-          }
-          return;
-        }
-
-        const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
-        const isEval = evalTypes.includes(ev.tipo) || isCustom;
-        if (onlyEval && !isEval) return;
-        if (!onlyEval && (ev.tipo === 'inicio_curso' || ev.tipo === 'fin_curso')) return;
-
-        events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo, id: ev.id });
+    clasesDirectas.forEach(fecha => {
+      events.push({
+        fecha,
+        tipo: 'clase',
+        nombre: 'Clase',
+        id: 'clase_' + fecha,
+        origen: 'clasesPorGrupo'
       });
     });
-
-    // Ordenar: por fecha, y si el mismo día tiene clase + eval, "clase" primero
-    events.sort((a, b) => {
-      if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
-      return (a.tipo === 'clase' ? 0 : 1) - (b.tipo === 'clase' ? 0 : 1);
-    });
+    events.sort((a, b) => a.fecha.localeCompare(b.fecha));
     return events;
-  };
+  }
 
+  // ===== Solo evaluaciones (no lo usa la asistencia hoy, pero se mantiene) =====
+  const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
+  Object.keys(state.calendarEvents || {}).forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => {
+      if (ev.grupoId !== gid) return;
+      const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
+      if (evalTypes.includes(ev.tipo) || isCustom) {
+        events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo, id: ev.id });
+      }
+    });
+  });
+  events.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return events;
+};
   // Forzar re-render al abrir el tab Asistencia (para que tome el nuevo dato)
   document.querySelectorAll('#dashboardDocente [data-dtab="asistencia"]').forEach(tab => {
     tab.addEventListener('click', () => {
