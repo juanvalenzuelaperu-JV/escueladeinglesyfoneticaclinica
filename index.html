@@ -2848,24 +2848,77 @@ function renderStudentGroups() {
   groups.forEach(g => { const nivel = getNivelInfo(g.nivel); const badge = document.createElement("span"); badge.className = "dash-group-badge"; badge.innerHTML = `📚 ${g.nombre} · ${nivel.nombre}`; cont.appendChild(badge); });
 }
 function loginTeacher(code) {
-  currentTeacherCode = code; currentTeacher = state.teachers[code];
-  currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
-  document.getElementById("portalCards").style.display = "none";
-  document.getElementById("dashboardAlumno").classList.remove("visible");
-  document.getElementById("dashboardTalento").classList.remove("visible");
-  document.getElementById("dashboardDocente").classList.add("visible");
-  document.getElementById("dashNombreD").textContent = currentTeacher.nombre;
-  document.getElementById("dashAreaD").textContent = currentTeacher.area || "Docente";
-  const avatar = document.getElementById("dashAvatarD");
-  if (currentTeacher.formalPhoto) { avatar.innerHTML = `<img src="${currentTeacher.formalPhoto}" alt="Foto">`; avatar.style.padding = '0'; }
-  else { avatar.textContent = "PR"; avatar.style.padding = ''; }
-  const selAsis = document.getElementById("dAsisGrupo"); selAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
-  getTeacherGroups(currentTeacherCode).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selAsis.appendChild(opt); });
-  const selRcGroup = document.getElementById("rcGroupSelect"); selRcGroup.innerHTML = '<option value="">Selecciona un grupo...</option>';
-  getTeacherGroups(currentTeacherCode).forEach(g => { const opt = document.createElement("option"); opt.value = g.id; opt.textContent = g.nombre; selRcGroup.appendChild(opt); });
-  renderTeacherSignature(); renderTeacherPhoto(); refreshTeacherView();
-  document.getElementById("relojD").textContent = horaActual();
-   history.pushState({ portal: 'docente' }, '', '#docente');
+  try {
+    currentTeacherCode = code;
+    currentTeacher = state.teachers[code];
+    currentStudentCode = null; currentStudent = null; adminLoggedIn = false;
+
+    // Ocultar otros portales sin fallar si falta alguno
+    const hideEl    = id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+    const hideDash  = id => { const el = document.getElementById(id); if (el) el.classList.remove('visible'); };
+    hideEl('portalCards');
+    hideDash('dashboardAlumno');
+    hideDash('dashboardTalento');
+    hideDash('dashboardPadre');
+
+    // Mostrar dashboard docente (validación explícita)
+    const dashD = document.getElementById('dashboardDocente');
+    if (!dashD) {
+      console.error('❌ #dashboardDocente no existe en el HTML. Fue eliminado por error.');
+      alert('Falta el bloque HTML del dashboard docente. Revisa el archivo.');
+      return;
+    }
+    dashD.classList.add('visible');
+
+    // Cabecera
+    const nameEl = document.getElementById('dashNombreD');
+    if (nameEl) nameEl.textContent = currentTeacher.nombre;
+    const areaEl = document.getElementById('dashAreaD');
+    if (areaEl) areaEl.textContent = currentTeacher.area || 'Docente';
+
+    const avatar = document.getElementById('dashAvatarD');
+    if (avatar) {
+      if (currentTeacher.formalPhoto) {
+        avatar.innerHTML = `<img src="${currentTeacher.formalPhoto}" alt="Foto">`;
+        avatar.style.padding = '0';
+      } else {
+        avatar.textContent = 'PR';
+        avatar.style.padding = '';
+      }
+    }
+
+    // Selects de grupos
+    const selAsis = document.getElementById('dAsisGrupo');
+    if (selAsis) {
+      selAsis.innerHTML = '<option value="">Selecciona un grupo...</option>';
+      getTeacherGroups(currentTeacherCode).forEach(g => {
+        const o = document.createElement('option'); o.value = g.id; o.textContent = g.nombre;
+        selAsis.appendChild(o);
+      });
+    }
+    const selRcGroup = document.getElementById('rcGroupSelect');
+    if (selRcGroup) {
+      selRcGroup.innerHTML = '<option value="">Selecciona un grupo...</option>';
+      getTeacherGroups(currentTeacherCode).forEach(g => {
+        const o = document.createElement('option'); o.value = g.id; o.textContent = g.nombre;
+        selRcGroup.appendChild(o);
+      });
+    }
+
+    // Cada render aislado para que un fallo no tumbe el dashboard
+    try { renderTeacherSignature(); }  catch (e) { console.warn('renderTeacherSignature:', e); }
+    try { renderTeacherPhoto(); }      catch (e) { console.warn('renderTeacherPhoto:', e); }
+    try { refreshTeacherView(); }      catch (e) { console.warn('refreshTeacherView:', e); }
+
+    const reloj = document.getElementById('relojD');
+    if (reloj) reloj.textContent = horaActual();
+
+    history.pushState({ portal: 'docente' }, '', '#docente');
+    console.log('✅ Login docente OK:', code);
+  } catch (e) {
+    console.error('❌ Error crítico en loginTeacher:', e);
+    alert('Error al abrir el portal docente: ' + e.message);
+  }
 }
 function loginTalento() {
   adminLoggedIn = true; currentStudentCode = null; currentStudent = null; currentTeacherCode = null; currentTeacher = null;
