@@ -2186,7 +2186,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 </div>
 <!-- MODAL RC REGISTRADO -->
 <div class="modal-overlay" id="modalRCRegistrado">
- 
   <div class="modal-box" style="max-width:440px; text-align:center; padding:32px 26px;">
     <button class="modal-close" id="btnCerrarRCRegistrado" type="button">✕</button>
     <div style="font-size:3.2rem; margin-bottom:10px;">✅</div>
@@ -2197,12 +2196,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
     <p style="color:var(--texto); font-size:.88rem; margin-bottom:22px;">
       Alumno: <strong id="rcRegistradoAlumno">—</strong>
     </p>
-   <p style="color:var(--texto); font-size:.88rem; margin:-14px 0 22px;">
-  Generado el: <strong id="rcRegistradoFecha">—</strong>
-</p>
-   <p style="color:var(--texto); font-size:.88rem; margin:-14px 0 22px;">
-  Generado el: <strong id="rcRegistradoFecha">—</strong>
-</p>
     <button type="button" class="btn btn-morado" id="btnAceptarRCRegistrado" style="width:100%;">Aceptar</button>
   </div>
 </div>
@@ -4179,7 +4172,7 @@ function abrirModalAvisoRC(studentCode, rc) {
 
 document.getElementById("btnConfirmSendRC")?.addEventListener("click", () => {
   if (!currentRcData) return;
-  const rcCopy = { ...currentRcData, generatedAt: new Date().toISOString() };
+  const rcCopy = { ...currentRcData };
   const studentCode = rcCopy.studentCode;
   // Evitar duplicados exactos del mismo id
   if (!state.reportCards.some(r => r.id === rcCopy.id)) {
@@ -4199,23 +4192,6 @@ document.getElementById("btnConfirmSendRC")?.addEventListener("click", () => {
 }
 document.getElementById("btnCancelarRC")?.addEventListener("click", cerrarPreviewRC);
 document.getElementById("btnCerrarPreviewRC")?.addEventListener("click", cerrarPreviewRC);
- document.getElementById("btnCancelarRC")?.addEventListener("click", cerrarPreviewRC);
-document.getElementById("btnCerrarPreviewRC")?.addEventListener("click", cerrarPreviewRC);
-
-// ▼▼▼ PEGA AQUÍ ▼▼▼
-function formatearFechaHora(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d)) return "—";
-  const p = n => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-// ▲▲▲ HASTA AQUÍ ▲▲▲
-
-let _rcRegistradoPendiente = null;
-
-function mostrarRCRegistrado(studentCode, rc) {
-  ...
  let _rcRegistradoPendiente = null;
 
 function mostrarRCRegistrado(studentCode, rc) {
@@ -4223,8 +4199,6 @@ function mostrarRCRegistrado(studentCode, rc) {
   const nombre = (state.students[studentCode] && state.students[studentCode].nombre) || studentCode;
   const el = document.getElementById("rcRegistradoAlumno");
   if (el) el.textContent = nombre;
- const elF = document.getElementById("rcRegistradoFecha");
-if (elF) elF.textContent = formatearFechaHora(rc.generatedAt);
   document.getElementById("modalRCRegistrado")?.classList.add("visible");
 }
 
@@ -4272,13 +4246,9 @@ function renderTeacherHistorialRC() {
   const cont = document.getElementById("dHistorialRCLista"); cont.innerHTML = "";
   const myRCs = state.reportCards.filter(rc => rc.teacherCode === currentTeacherCode);
   if (!myRCs.length) { cont.innerHTML = `<div class="empty-state">📭 Sin RC generados.</div>`; return; }
-  myRCs.sort((a, b) => (b.generatedAt || b.date || "").localeCompare(a.generatedAt || a.date || ""));
-  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:980px;"><thead><tr><th>Fecha y hora</th><th>Alumno</th><th>Código</th><th>Ciclo</th><th>Nota</th><th>Estado</th></tr></thead><tbody>`;
-  myRCs.forEach(rc => {
-    const student = state.students[rc.studentCode]; const est = getRcEstado(rc);
-    const fechaHora = rc.generatedAt ? formatearFechaHora(rc.generatedAt) : formatearFecha(rc.date);
-    html += `<tr><td>${fechaHora}</td><td>${student ? student.nombre : '—'}</td><td><code>${rc.studentCode}</code></td><td>${rc.ciclo || '—'}</td><td><strong>${rc.average}</strong></td><td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td></tr>`;
-  });
+  myRCs.sort((a, b) => b.date.localeCompare(a.date));
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:900px;"><thead><tr><th>Fecha</th><th>Alumno</th><th>Código</th><th>Ciclo</th><th>Nota</th><th>Estado</th></tr></thead><tbody>`;
+  myRCs.forEach(rc => { const student = state.students[rc.studentCode]; const est = getRcEstado(rc); html += `<tr><td>${formatearFecha(rc.date)}</td><td>${student ? student.nombre : '—'}</td><td><code>${rc.studentCode}</code></td><td>${rc.ciclo || '—'}</td><td><strong>${rc.average}</strong></td><td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td></tr>`; });
   html += `</tbody></table></div>`; cont.innerHTML = html;
 }
 function renderTeacherPago() {
