@@ -8710,6 +8710,187 @@ document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
   }, 400);
 
   console.log('✅ Asistencia del docente ahora lee fechas desde Calendarización de clases (clasesPorGrupo).');
+ function ensurePlanilla() {
+  if (!state.planilla) state.planilla = {};
+}
+
+function renderPlanilla() {
+  ensurePlanilla();
+  var body = document.getElementById('planillaBody');
+  if (!body) { console.log('No existe planillaBody'); return; }
+
+  Object.keys(state.teachers || {}).forEach(function(code) {
+    if (!state.planilla[code]) {
+      var t = state.teachers[code];
+      state.planilla[code] = {
+        codigo: code,
+        nombre: t.nombre || '',
+        documento: t.documento || t.dni || '',
+        telefono: t.telefono || t.celular || '',
+        email: t.email || '',
+        cargo: 'Profesor de Inglés',
+        contrato: 'Por Horas',
+        fechaIngreso: t.fechaIngreso || '',
+        estado: 'Activo',
+        horas: 0,
+        sueldo: t.pagoHora || t.baseHora || 0,
+        banco: '',
+        cuenta: '',
+        observaciones: '',
+        esDocente: true
+      };
+    }
+  });
+
+  var q = (document.getElementById('planillaBuscar') && document.getElementById('planillaBuscar').value || '').trim().toLowerCase();
+  var fEstado = document.getElementById('planillaFiltroEstado') && document.getElementById('planillaFiltroEstado').value || '';
+  var fTipo = document.getElementById('planillaFiltroTipo') && document.getElementById('planillaFiltroTipo').value || '';
+  var lista = Object.values(state.planilla);
+
+  if (q) {
+    lista = lista.filter(function(p) {
+      return (p.nombre || '').toLowerCase().includes(q) || (p.codigo || '').toLowerCase().includes(q);
+    });
+  }
+  if (fEstado) lista = lista.filter(function(p) { return p.estado === fEstado; });
+  if (fTipo === 'Docente') lista = lista.filter(function(p) { return p.esDocente || (p.cargo || '').includes('Profesor'); });
+  if (fTipo === 'Administrativo') lista = lista.filter(function(p) { return !p.esDocente && !(p.cargo || '').includes('Profesor'); });
+
+  var todos = Object.values(state.planilla);
+  function set(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+  set('planillaTotal', todos.length);
+  set('planillaActivos', todos.filter(function(p) { return p.estado === 'Activo'; }).length);
+  set('planillaDocentes', todos.filter(function(p) { return p.esDocente || (p.cargo || '').includes('Profesor'); }).length);
+  set('planillaAdmin', todos.filter(function(p) { return !p.esDocente && !(p.cargo || '').includes('Profesor'); }).length);
+
+  if (!lista.length) {
+    body.innerHTML = '<tr><td colspan="9" class="empty-state">No hay trabajadores.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = lista.map(function(p) {
+    var estadoClass = p.estado === 'Activo' ? 'estado-present' : (p.estado === 'Vacaciones' ? 'estado-late' : 'estado-absent');
+    var sueldoTxt = (p.contrato === 'Por Horas' || p.contrato === 'Freelance') 
+      ? 'S/ ' + Number(p.sueldo || 0).toFixed(2) + '/h' 
+      : 'S/ ' + Number(p.sueldo || 0).toFixed(2);
+    return '<tr>' +
+      '<td><code>' + p.codigo + '</code></td>' +
+      '<td><strong>' + (p.nombre || '-') + '</strong></td>' +
+      '<td>' + (p.cargo || '-') + '</td>' +
+      '<td>' + (p.contrato || '-') + '</td>' +
+      '<td>' + (p.fechaIngreso || '-') + '</td>' +
+      '<td style="text-align:center;">' + (p.horas || '-') + '</td>' +
+      '<td>' + sueldoTxt + '</td>' +
+      '<td><span class="estado ' + estadoClass + '">' + (p.estado || '-') + '</span></td>' +
+      '<td><div class="acciones-cell">' +
+        '<button type="button" class="btn btn-mini btn-azul" onclick="editarPlanilla(\'' + p.codigo + '\')">Editar</button> ' +
+        '<button type="button" class="btn btn-mini btn-rojo" onclick="if(confirm(\'Eliminar?\')){delete state.planilla[\'' + p.codigo + '\'];saveState();renderPlanilla();}">Borrar</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function editarPlanilla(code) {
+  var p = state.planilla[code];
+  if (!p) return;
+  document.getElementById('planillaFormTitulo').textContent = 'Editar trabajador';
+  document.getElementById('plCodigo').value = p.codigo;
+  document.getElementById('plCodigo').disabled = true;
+  document.getElementById('plNombre').value = p.nombre || '';
+  document.getElementById('plDocumento').value = p.documento || '';
+  document.getElementById('plTelefono').value = p.telefono || '';
+  document.getElementById('plEmail').value = p.email || '';
+  document.getElementById('plCargo').value = p.cargo || '';
+  document.getElementById('plContrato').value = p.contrato || 'Tiempo Completo';
+  document.getElementById('plFechaIngreso').value = p.fechaIngreso || '';
+  document.getElementById('plEstado').value = p.estado || 'Activo';
+  document.getElementById('plHoras').value = p.horas || 0;
+  document.getElementById('plSueldo').value = p.sueldo || 0;
+  document.getElementById('plBanco').value = p.banco || '';
+  document.getElementById('plCuenta').value = p.cuenta || '';
+  document.getElementById('plObs').value = p.observaciones || '';
+  document.getElementById('btnCancelarPlanilla').style.display = 'inline-block';
+}
+
+function limpiarFormPlanilla() {
+  document.getElementById('planillaFormTitulo').textContent = 'Agregar trabajador';
+  document.getElementById('plCodigo').value = '';
+  document.getElementById('plCodigo').disabled = false;
+  document.getElementById('plNombre').value = '';
+  document.getElementById('plDocumento').value = '';
+  document.getElementById('plTelefono').value = '';
+  document.getElementById('plEmail').value = '';
+  document.getElementById('plCargo').value = '';
+  document.getElementById('plContrato').value = 'Tiempo Completo';
+  document.getElementById('plFechaIngreso').value = '';
+  document.getElementById('plEstado').value = 'Activo';
+  document.getElementById('plHoras').value = '0';
+  document.getElementById('plSueldo').value = '0';
+  document.getElementById('plBanco').value = '';
+  document.getElementById('plCuenta').value = '';
+  document.getElementById('plObs').value = '';
+  document.getElementById('btnCancelarPlanilla').style.display = 'none';
+}
+
+document.getElementById('btnGuardarPlanilla') && document.getElementById('btnGuardarPlanilla').addEventListener('click', function() {
+  ensurePlanilla();
+  var codigo = (document.getElementById('plCodigo').value || '').trim();
+  var nombre = (document.getElementById('plNombre').value || '').trim();
+  if (!codigo || !nombre) { alert('Codigo y Nombre son obligatorios.'); return; }
+  var cargo = document.getElementById('plCargo').value;
+  state.planilla[codigo] = {
+    codigo: codigo,
+    nombre: nombre,
+    documento: document.getElementById('plDocumento').value.trim(),
+    telefono: document.getElementById('plTelefono').value.trim(),
+    email: document.getElementById('plEmail').value.trim(),
+    cargo: cargo,
+    contrato: document.getElementById('plContrato').value,
+    fechaIngreso: document.getElementById('plFechaIngreso').value,
+    estado: document.getElementById('plEstado').value,
+    horas: parseFloat(document.getElementById('plHoras').value) || 0,
+    sueldo: parseFloat(document.getElementById('plSueldo').value) || 0,
+    banco: document.getElementById('plBanco').value.trim(),
+    cuenta: document.getElementById('plCuenta').value.trim(),
+    observaciones: document.getElementById('plObs').value.trim(),
+    esDocente: cargo.indexOf('Profesor') >= 0 || !!state.teachers[codigo]
+  };
+  saveState();
+  var msg = document.getElementById('planillaMsg');
+  if (msg) { msg.classList.add('visible'); setTimeout(function() { msg.classList.remove('visible'); }, 2500); }
+  limpiarFormPlanilla();
+  renderPlanilla();
+});
+
+document.getElementById('btnCancelarPlanilla') && document.getElementById('btnCancelarPlanilla').addEventListener('click', limpiarFormPlanilla);
+
+['planillaBuscar', 'planillaFiltroEstado', 'planillaFiltroTipo'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', renderPlanilla);
+    el.addEventListener('change', renderPlanilla);
+  }
+});
+
+document.querySelectorAll('[data-cont-subtab]').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('[data-cont-subtab]').forEach(function(t) { t.classList.remove('activo'); });
+    document.querySelectorAll('#tal-panel-contabilidad .subpanel').forEach(function(p) { p.classList.remove('activo'); });
+    this.classList.add('activo');
+    var panel = document.getElementById('cont-subpanel-' + this.dataset.contSubtab);
+    if (panel) panel.classList.add('activo');
+    if (this.dataset.contSubtab === 'planilla') setTimeout(renderPlanilla, 30);
+  });
+});
+
+document.querySelectorAll('[data-cont-subtab]').forEach(function(t) { t.classList.remove('activo'); });
+document.querySelectorAll('#tal-panel-contabilidad .subpanel').forEach(function(p) { p.classList.remove('activo'); });
+var btnPlanilla = document.querySelector('[data-cont-subtab="planilla"]');
+if (btnPlanilla) btnPlanilla.classList.add('activo');
+var panelPlanilla = document.getElementById('cont-subpanel-planilla');
+if (panelPlanilla) panelPlanilla.classList.add('activo');
+renderPlanilla();
+console.log('Planilla lista y visible');
 })();
 </script>
                     ↑
