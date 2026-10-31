@@ -7447,7 +7447,10 @@ function buildAsisTableFromCal() {
   }).join('') || '<tr><td class="empty-state">Sin alumnos.</td></tr>';
 }
 
-document.getElementById('dAsisGrupo')?.addEventListener('change', loadAsisFromCalendar);
+document.getElementById('dAsisGrupo')?.addEventListener('change', async () => {
+  await sincronizarCalendarioDesdeNube();
+  loadAsisFromCalendar();
+});
 
 document.getElementById('dBtnGuardarAsistencia')?.addEventListener('click', () => {
   const gid = document.getElementById('dAsisGrupo')?.value;
@@ -7487,9 +7490,18 @@ document.getElementById('btnEditarAsistencia')?.addEventListener('click', () => 
 
 /* ===== Registro de Notas conectado a Calendarización ===== */
 let notasEditMode = false;
-
-document.getElementById('dNotasGrupo')?.addEventListener('change', () => {
+async function sincronizarCalendarioDesdeNube() {
+  try {
+    const { data, error } = await supabase.from('app_state').select('data').eq('id', 'main').maybeSingle();
+    if (error || !data || !data.data) return;
+    const remoto = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+    if (remoto.calendarEvents) state.calendarEvents = remoto.calendarEvents;
+    if (remoto.clasesPorGrupo) state.clasesPorGrupo = remoto.clasesPorGrupo;
+  } catch (e) { console.warn('No se pudo sincronizar el calendario:', e); }
+}
+document.getElementById('dNotasGrupo')?.addEventListener('change', async () => {
   notasEditMode = false;
+  await sincronizarCalendarioDesdeNube();
   loadNotasFromCalendar();
 });
 
