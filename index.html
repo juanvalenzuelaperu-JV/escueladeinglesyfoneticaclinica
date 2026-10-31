@@ -2553,22 +2553,7 @@ function asistenciaDe(code) {
   return Array.isArray(arr) ? arr : [];
 }
 function porcentajeAsistencia(regs) { if (!regs || !regs.length) return null; const p = regs.filter(r => r.estado === "Present" || r.estado === "Late").length; return Math.round((p / regs.length) * 100); }
-function promedioGeneral(code) {
-  // Igual que el RC: promedio de promedios por criterio
-  const avgs = [];
-CRITERIOS.forEach(c => {
-  let promC = promedioCriterio(studentCode, c.id);
-  if (promC === null && c.id === "online_homework") {
-    promC = promedioCriterio(studentCode, "online_workbook");
-  }
-  if (promC !== null) { gradesObj[c.id] = promC; sum += promC; cnt++; }
-  else gradesObj[c.id] = "—";
-});
-    if (promC !== null) avgs.push(promC);
-  });
-  if (!avgs.length) return null;
-  return +(avgs.reduce((s, v) => s + v, 0) / avgs.length).toFixed(2);
-}
+function promedioGeneral(code) { const grades = state.grades[code] || {}; const valores = Object.values(grades).filter(v => v !== null && v !== undefined && !isNaN(v)); if (!valores.length) return null; return +(valores.reduce((s, v) => s + v, 0) / valores.length).toFixed(2); }
 function promedioCriterio(code, criterioId) { const grades = state.grades[code] || {}; const asgs = state.assignments.filter(a => a.criterio === criterioId); const valores = asgs.map(a => grades[a.id]).filter(v => v !== null && v !== undefined && !isNaN(v)); if (!valores.length) return null; return +(valores.reduce((s, v) => s + v, 0) / valores.length).toFixed(2); }
 function countCalificadas(code, criterioId) { const grades = state.grades[code] || {}; const asgs = state.assignments.filter(a => a.criterio === criterioId); return asgs.filter(a => grades[a.id] !== null && grades[a.id] !== undefined && !isNaN(grades[a.id])).length; }
 function estadoCurso(code) { const prom = promedioGeneral(code); if (prom === null) return { texto: "Pendiente", clase: "pendiente" }; if (prom >= 14.00) return { texto: "Aprobado", clase: "aprobado" }; return { texto: "Desaprobado", clase: "desaprobado" }; }
@@ -3564,101 +3549,17 @@ function renderStudentAsistencia() {
   [...regs].sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(a => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${formatearFecha(a.fecha)}</td><td>${a.clase}</td><td><span class="estado ${claseEstadoAsistencia(a.estado)}">${a.estado}</span></td>`; body.appendChild(tr); });
 }
 function renderStudentReportCards() {
-  const cont = document.getElementById("studentReportCardsList");
-  if (!cont) return;
-  cont.innerHTML = "";
-
-  const myRCs = state.reportCards
-    .filter(rc => rc.studentCode === currentStudentCode)
-    .sort((a, b) => b.date.localeCompare(a.date));
-
-  if (!myRCs.length) {
-    cont.innerHTML = `<div class="empty-state">📭 Aún no tienes Report Cards generados por tu docente.</div>`;
-    return;
-  }
-
-  // Promedio actual (para avisar si difiere del RC guardado)
-  const currentAvg = (typeof promedioGeneral === "function")
-    ? promedioGeneral(currentStudentCode) : null;
-
-  // ---- Tarjeta resumen con el ÚLTIMO RC ----
-  const latest = myRCs[0];
-  const latestEst = getRcEstado(latest);
-  const latestAvgNum = parseFloat(latest.average);
-  const latestAvgTxt = !isNaN(latestAvgNum) ? latestAvgNum.toFixed(2) : (latest.average || "—");
-
-  const resumen = document.createElement("div");
-  resumen.className = "resumen-grid";
-  resumen.style.marginBottom = "20px";
-  resumen.innerHTML = `
-    <div class="resumen-card verde">
-      <div class="et">Último Report Card</div>
-      <div class="val" style="font-size:1.05rem;">${formatearFecha(latest.date)}</div>
-    </div>
-    <div class="resumen-card azul">
-      <div class="et">Promedio Final del RC</div>
-      <div class="val">${latestAvgTxt}</div>
-    </div>
-    <div class="resumen-card morado">
-      <div class="et">Estado Académico</div>
-      <div class="val" style="font-size:1.05rem;">
-        <span class="calif-estado ${latestEst.clase}" style="font-size:.82rem;padding:6px 14px;">${latestEst.texto}</span>
-      </div>
-    </div>`;
-  cont.appendChild(resumen);
-
-  // ---- Lista de cada RC ----
-  myRCs.forEach(rc => {
-    const est = getRcEstado(rc);
-    const avgNum = parseFloat(rc.average);
-    const avgTxt = !isNaN(avgNum) ? avgNum.toFixed(2) : (rc.average || "—");
-    const avgClass = !isNaN(avgNum) ? (avgNum >= 16 ? "alta" : avgNum >= 14 ? "media" : "baja") : "";
-
-    const difiere = currentAvg !== null && !isNaN(avgNum)
-      && Math.abs(currentAvg - avgNum) > 0.01;
-
-    const card = document.createElement("div");
-    card.className = "exam-link-card";
-    card.style.alignItems = "center";
-    card.innerHTML = `
-      <div class="exam-link-info" style="flex:1;">
-        <h4>📄 Report Card — ${formatearFecha(rc.date)}</h4>
-        <p>Docente: ${state.teachers[rc.teacherCode]?.nombre || rc.teacherCode}</p>
-        <div style="margin-top:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
-          <div style="display:flex;align-items:baseline;gap:6px;">
-            <span style="font-size:.75rem;color:var(--gris);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Promedio Final:</span>
-            <span class="assignment-nota ${avgClass}" style="font-size:1.35rem;font-weight:800;">${avgTxt}</span>
-          </div>
-          <span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span>
-        </div>
-        ${difiere ? `<small style="display:block;margin-top:6px;color:#b45309;font-weight:600;">
-          ⚠️ Las notas han cambiado desde este RC (promedio actual: ${currentAvg.toFixed(2)}).
-        </small>` : ""}
-      </div>
-      <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
-        <button class="btn btn-mini btn-azul" data-view-rc="${rc.id}">👁️ Ver</button>
-        <button class="btn btn-mini btn-verde" data-download-rc="${rc.id}">⬇️ Descargar</button>
-        <button class="btn btn-mini btn-slate" data-print-rc="${rc.id}">🖨️ Imprimir</button>
-      </div>`;
+  const cont = document.getElementById("studentReportCardsList"); cont.innerHTML = "";
+  const myRCs = state.reportCards.filter(rc => rc.studentCode === currentStudentCode);
+  if (!myRCs.length) { cont.innerHTML = `<div class="empty-state">📭 Aún no tienes Report Cards.</div>`; return; }
+  myRCs.sort((a, b) => b.date.localeCompare(a.date)).forEach(rc => {
+    const card = document.createElement("div"); card.className = "exam-link-card"; card.style.alignItems = "center";
+    card.innerHTML = `<div class="exam-link-info"><h4>📄 Report Card - ${formatearFecha(rc.date)}</h4><p>Docente: ${state.teachers[rc.teacherCode]?.nombre || rc.teacherCode}</p></div><div class="exam-link-actions"><button class="btn btn-mini btn-azul" data-view-rc="${rc.id}">👁️ Ver</button><button class="btn btn-mini btn-verde" data-download-rc="${rc.id}">⬇️ Descargar</button><button class="btn btn-mini btn-slate" data-print-rc="${rc.id}">🖨️ Imprimir</button></div>`;
     cont.appendChild(card);
   });
-
-  // Listeners (igual que antes)
-  cont.querySelectorAll("[data-view-rc]").forEach(btn =>
-    btn.addEventListener("click", () => {
-      const rc = state.reportCards.find(r => r.id === btn.dataset.viewRc);
-      if (rc) mostrarReportCardModal(rc);
-    }));
-  cont.querySelectorAll("[data-download-rc]").forEach(btn =>
-    btn.addEventListener("click", () => {
-      const rc = state.reportCards.find(r => r.id === btn.dataset.downloadRc);
-      if (rc) descargarReportCard(rc);
-    }));
-  cont.querySelectorAll("[data-print-rc]").forEach(btn =>
-    btn.addEventListener("click", () => {
-      const rc = state.reportCards.find(r => r.id === btn.dataset.printRc);
-      if (rc) imprimirReportCard(rc);
-    }));
+  cont.querySelectorAll("[data-view-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.viewRc); if (rc) mostrarReportCardModal(rc); }));
+  cont.querySelectorAll("[data-download-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.downloadRc); if (rc) descargarReportCard(rc); }));
+  cont.querySelectorAll("[data-print-rc]").forEach(btn => btn.addEventListener("click", () => { const rc = state.reportCards.find(r => r.id === btn.dataset.printRc); if (rc) imprimirReportCard(rc); }));
 }
 document.getElementById("btnIniciarMatricula").addEventListener("click", () => {
   document.getElementById("matriculaInicio").style.display = "none";
