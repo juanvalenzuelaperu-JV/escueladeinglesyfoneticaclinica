@@ -7490,14 +7490,33 @@ document.getElementById('btnEditarAsistencia')?.addEventListener('click', () => 
 
 /* ===== Registro de Notas conectado a Calendarización ===== */
 let notasEditMode = false;
+let notasCalColumns = [];   // ← declaración que faltaba
+
 async function sincronizarCalendarioDesdeNube() {
   try {
     const { data, error } = await supabase.from('app_state').select('data').eq('id', 'main').maybeSingle();
     if (error || !data || !data.data) return;
     const remoto = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-    if (remoto.calendarEvents) state.calendarEvents = remoto.calendarEvents;
-    if (remoto.clasesPorGrupo) state.clasesPorGrupo = remoto.clasesPorGrupo;
-  } catch (e) { console.warn('No se pudo sincronizar el calendario:', e); }
+
+    // Fusionar en lugar de reemplazar (evita que desaparezcan eventos)
+    if (!state.calendarEvents) state.calendarEvents = {};
+    Object.keys(remoto.calendarEvents || {}).forEach(fecha => {
+      const locales = state.calendarEvents[fecha] || [];
+      const ids = new Set(locales.map(e => e.id));
+      const nuevos = (remoto.calendarEvents[fecha] || []).filter(e => !ids.has(e.id));
+      if (nuevos.length) {
+        state.calendarEvents[fecha] = locales.concat(nuevos);
+      }
+    });
+
+    if (!state.clasesPorGrupo) state.clasesPorGrupo = {};
+    Object.keys(remoto.clasesPorGrupo || {}).forEach(gid => {
+      const union = new Set([...(state.clasesPorGrupo[gid] || []), ...(remoto.clasesPorGrupo[gid] || [])]);
+      state.clasesPorGrupo[gid] = [...union].sort();
+    });
+  } catch (e) {
+    console.warn('No se pudo sincronizar el calendario:', e);
+  }
 }
 document.getElementById('dNotasGrupo')?.addEventListener('change', async () => {
   notasEditMode = false;
@@ -9015,9 +9034,6 @@ if (panelPlanilla) panelPlanilla.classList.add('activo');
 renderPlanilla();
 console.log('Planilla lista y visible');
 })();
-</script>
-                    ↑
-        AQUÍ VA EL BLOQUE D (antes del console.log)
 </script>
 <a href="https://wa.me/51915900797?text=Por%20favor%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20ingl%C3%A9s%20y%20fon%C3%A9tica." 
    class="whatsapp-float" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
