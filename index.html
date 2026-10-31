@@ -8155,8 +8155,7 @@ cont.querySelectorAll('[data-hist-down-rc]').forEach(btn => btn.addEventListener
     alert('No se puede descargar: falta el alumno o el docente de este Report Card.');
     return;
   }
-  const nombre = (state.students[rc.studentCode].nombre || rc.studentCode).replace(/[^a-zA-Z0-9]+/g, '_');
-  window.descargarComoPDF(buildReportCardHTML(rc), `ReportCard_${nombre}_${rc.date || ''}`);
+descargarReportCard(rc);
 }));
   cont.querySelectorAll('[data-hist-del-rc]').forEach(btn => btn.addEventListener('click', () => {
     const rc = state.reportCards.find(r => r.id === btn.dataset.histDelRc);
