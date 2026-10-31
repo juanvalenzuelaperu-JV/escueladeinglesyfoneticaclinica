@@ -8136,6 +8136,7 @@ function renderAdminHistorialRC() {
       <td><span class="calif-estado ${est.clase}" style="font-size:.78rem;padding:4px 12px;">${est.texto}</span></td>
       <td><div class="acciones-cell">
         <button type="button" class="btn btn-mini btn-azul" data-hist-ver-rc="${rc.id}">👁️ Ver</button>
+        <button type="button" class="btn btn-mini btn-verde" data-hist-down-rc="${rc.id}">⬇️ Descargar</button>
         <button type="button" class="btn btn-mini btn-rojo" data-hist-del-rc="${rc.id}">🗑️ Eliminar</button>
       </div></td>
     </tr>`;
@@ -8148,7 +8149,15 @@ function renderAdminHistorialRC() {
     if (rc && state.students[rc.studentCode] && state.teachers[rc.teacherCode]) mostrarReportCardModal(rc);
     else alert('No se puede mostrar: falta el alumno o el docente de este Report Card.');
   }));
-
+cont.querySelectorAll('[data-hist-down-rc]').forEach(btn => btn.addEventListener('click', () => {
+  const rc = state.reportCards.find(r => r.id === btn.dataset.histDownRc);
+  if (!rc || !state.students[rc.studentCode] || !state.teachers[rc.teacherCode]) {
+    alert('No se puede descargar: falta el alumno o el docente de este Report Card.');
+    return;
+  }
+  const nombre = (state.students[rc.studentCode].nombre || rc.studentCode).replace(/[^a-zA-Z0-9]+/g, '_');
+  window.descargarComoPDF(buildReportCardHTML(rc), `ReportCard_${nombre}_${rc.date || ''}`);
+}));
   cont.querySelectorAll('[data-hist-del-rc]').forEach(btn => btn.addEventListener('click', () => {
     const rc = state.reportCards.find(r => r.id === btn.dataset.histDelRc);
     if (!rc) return;
