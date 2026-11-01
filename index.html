@@ -9469,5 +9469,296 @@ console.log('Planilla lista y visible');
   };
 })();
 </script>
+ <!-- ============================================================
+     ORDEN + FILTROS + AGRUPACIÓN POR PERIODO EN "MIS GRUPOS"
+     (Coordinación Académica → Grupos)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // ─── Helper: clave YYYY-MM del grupo (usa anio/mes; fallback al timestamp del id) ───
+  function getGroupPeriodKey(g) {
+    if (g.anio && g.mes) return `${g.anio}-${String(g.mes).padStart(2, '0')}`;
+    const m = /grp_(\d+)/.exec(g.id || '');
+    if (m) {
+      const d = new Date(parseInt(m[1]));
+      if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+    return '0000-00';
+  }
+
+  function getGroupPeriodLabel(key) {
+    if (key === '0000-00') return '📁 Sin periodo';
+    const [y, m] = key.split('-').map(Number);
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return `📅 ${meses[m - 1]} ${y}`;
+  }
+
+  // ─── Inyectar barra de filtros si no existe ───
+  function ensureGruposFilterBar() {
+    if (document.getElementById('admGruposFiltros')) return;
+    const lista = document.getElementById('admGroupsLista');
+    if (!lista) return;
+
+    const resumen = document.createElement('div');
+    resumen.id = 'admGruposResumen';
+    resumen.className = 'resumen-grid';
+    resumen.style.marginBottom = '16px';
+
+    const filtros = document.createElement('div');
+    filtros.id = 'admGruposFiltros';
+    filtros.className = 'tform admin-form';
+    filtros.style.marginBottom = '16px';
+    filtros.innerHTML = `
+      <h4 style="margin:0 0 10px;">🔎 Filtrar grupos</h4>
+      <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+        <div class="campo" style="margin:0;">
+          <label>Año</label>
+          <select id="admGruposFiltroAnio"><option value="">Todos los años</option></select>
+        </div>
+        <div class="campo" style="margin:0;">
+          <label>Mes</label>
+          <select id="admGruposFiltroMes"><option value="">Todos los meses</option></select>
+        </div>
+        <div class="campo" style="margin:0;">
+          <label>Estado</label>
+          <select id="admGruposFiltroEstado">
+            <option value="">Todos</option>
+            <option value="abierto">Solo abiertos</option>
+            <option value="cerrado">Solo cerrados</option>
+          </select>
+        </div>
+        <div class="campo" style="margin:0;">
+          <label>Buscar</label>
+          <input type="text" id="admGruposBuscar" placeholder="Grupo, docente o programa...">
+        </div>
+      </div>
+      <div class="tform-acciones" style="margin-top:10px;">
+        <button type="button" class="btn btn-slate btn-mini" id="admGruposLimpiarFiltros">🧹 Limpiar filtros</button>
+      </div>`;
+
+    lista.parentNode.insertBefore(resumen, lista);
+    lista.parentNode.insertBefore(filtros, lista);
+
+    fillGruposFilterSelectors();
+
+    ['admGruposFiltroAnio', 'admGruposFiltroMes', 'admGruposFiltroEstado'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', () => window.renderAdminGrupos());
+    });
+    document.getElementById('admGruposBuscar')?.addEventListener('input', () => {
+      clearTimeout(window._gruposSearchTimeout);
+      window._gruposSearchTimeout = setTimeout(() => window.renderAdminGrupos(), 200);
+    });
+    document.getElementById('admGruposLimpiarFiltros')?.addEventListener('click', () => {
+      document.getElementById('admGruposFiltroAnio').value = '';
+      document.getElementById('admGruposFiltroMes').value = '';
+      document.getElementById('admGruposFiltroEstado').value = '';
+      document.getElementById('admGruposBuscar').value = '';
+      window.renderAdminGrupos();
+    });
+  }
+
+  // ─── Rellenar selectores Año/Mes ───
+  function fillGruposFilterSelectors() {
+    const selA = document.getElementById('admGruposFiltroAnio');
+    const selM = document.getElementById('admGruposFiltroMes');
+    if (!selA || !selM) return;
+    const curA = selA.value, curM = selM.value;
+
+    const anios = new Set();
+    (state.groups || []).forEach(g => {
+      const k = getGroupPeriodKey(g);
+      if (k !== '0000-00') anios.add(k.split('-')[0]);
+    });
+
+    selA.innerHTML = '<option value="">Todos los años</option>';
+    [...anios].sort((a, b) => b - a).forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      selA.appendChild(o);
+    });
+
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    selM.innerHTML = '<option value="">Todos los meses</option>';
+    meses.forEach((n, i) => {
+      const o = document.createElement('option');
+      o.value = String(i + 1).padStart(2, '0');
+      o.textContent = n;
+      selM.appendChild(o);
+    });
+
+    if (curA) selA.value = curA;
+    if (curM) selM.value = curM;
+  }
+
+  // ─── Override de renderAdminGrupos ───
+  window.renderAdminGrupos = function () {
+    ensureGruposFilterBar();
+    fillGruposFilterSelectors();
+
+    const cont = document.getElementById('admGroupsLista');
+    if (!cont) return;
+
+    const all = state.groups || [];
+
+    // ── Resumen superior ──
+    const total = all.length;
+    const abiertos = all.filter(g => !g.cerrado).length;
+    const cerrados = total - abiertos;
+    const resumen = document.getElementById('admGruposResumen');
+    if (resumen) {
+      resumen.innerHTML = `
+        <div class="resumen-card azul"><div class="et">Total grupos</div><div class="val">${total}</div></div>
+        <div class="resumen-card verde"><div class="et">Abiertos</div><div class="val">${abiertos}</div></div>
+        <div class="resumen-card morado"><div class="et">Cerrados</div><div class="val">${cerrados}</div></div>`;
+    }
+
+    if (!total) {
+      cont.innerHTML = '<div class="empty-state">📚 Aún no has creado grupos.</div>';
+      return;
+    }
+
+    // ── Leer filtros ──
+    const fA = document.getElementById('admGruposFiltroAnio')?.value || '';
+    const fM = document.getElementById('admGruposFiltroMes')?.value || '';
+    const fE = document.getElementById('admGruposFiltroEstado')?.value || '';
+    const fQ = (document.getElementById('admGruposBuscar')?.value || '').trim().toLowerCase();
+
+    // ── Filtrar ──
+    const filtrados = all.filter(g => {
+      const k = getGroupPeriodKey(g);
+      const [y, m] = k.split('-');
+      if (fA && y !== fA) return false;
+      if (fM && m !== fM) return false;
+      if (fE === 'abierto' && g.cerrado) return false;
+      if (fE === 'cerrado' && !g.cerrado) return false;
+      if (fQ) {
+        const t = state.teachers[g.teacherCode];
+        const blob = `${g.nombre || ''} ${g.programa || ''} ${t?.nombre || ''}`.toLowerCase();
+        if (!blob.includes(fQ)) return false;
+      }
+      return true;
+    });
+
+    if (!filtrados.length) {
+      cont.innerHTML = '<div class="empty-state">🔍 Ningún grupo coincide con los filtros.</div>';
+      return;
+    }
+
+    // ── Ordenar: más reciente primero ──
+    filtrados.sort((a, b) => getGroupPeriodKey(b).localeCompare(getGroupPeriodKey(a)));
+
+    // ── Agrupar por periodo ──
+    const gruposPorPeriodo = {};
+    filtrados.forEach(g => {
+      const k = getGroupPeriodKey(g);
+      (gruposPorPeriodo[k] = gruposPorPeriodo[k] || []).push(g);
+    });
+
+    // ── Render ──
+    cont.innerHTML = '';
+    Object.keys(gruposPorPeriodo).sort((a, b) => b.localeCompare(a)).forEach(key => {
+      const lista = gruposPorPeriodo[key];
+      const boxId = 'gruposPeriodo_' + key.replace(/[^a-z0-9]/gi, '_');
+
+      // Header colapsable
+      const header = document.createElement('div');
+      header.style.cssText = 'margin:18px 0 10px;padding:10px 14px;background:linear-gradient(90deg,#e0f2fe,#f0f9ff);border-left:4px solid var(--azul-medio);border-radius:8px;font-weight:800;color:var(--azul);font-size:.95rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;';
+      header.innerHTML = `
+        <span>${getGroupPeriodLabel(key)}</span>
+        <span style="display:flex;align-items:center;gap:10px;font-size:.78rem;font-weight:600;color:var(--gris);">
+          <span>${lista.length} grupo(s)</span>
+          <span data-chevron style="font-size:1rem;">▾</span>
+        </span>`;
+      cont.appendChild(header);
+
+      // Contenedor de cards
+      const box = document.createElement('div');
+      box.id = boxId;
+      cont.appendChild(box);
+
+      // Toggle del header
+      header.addEventListener('click', () => {
+        const oculto = box.style.display === 'none';
+        box.style.display = oculto ? '' : 'none';
+        const ch = header.querySelector('[data-chevron]');
+        if (ch) ch.textContent = oculto ? '▾' : '▸';
+      });
+
+      // Cards (mismo HTML de siempre)
+      lista.forEach(g => {
+        const nivel = getNivelInfo(g.nivel);
+        const teacher = state.teachers[g.teacherCode];
+        const teacherName = teacher ? teacher.nombre : 'Sin docente';
+        const studentsNotInGroup = Object.keys(state.students).filter(c => !g.studentCodes.includes(c));
+        const cerrado = g.cerrado === true;
+
+        const card = document.createElement('div');
+        card.className = 'group-card' + (cerrado ? ' cerrado' : '');
+        card.innerHTML = `<div class="group-card-head"><div class="group-info"><span class="group-nivel ${nivel.clase}">${g.nivelTexto || nivel.nombre}</span>${cerrado ? `<span class="cerrado-badge">🔒 Cerrado ${g.fechaCierre ? '(' + formatearFecha(g.fechaCierre) + ')' : ''}</span>` : ''}<strong>${g.nombre}</strong><small>Programa: ${g.programa || '—'} · Docente: <span class="teacher-tag">${teacherName}</span> · ${g.studentCodes.length} alumno(s)</small><small>Frecuencia: ${g.frecuencia || '—'} · Horario: ${g.horario || '—'}</small></div><div class="asg-actions">${cerrado ? `<button class="btn btn-mini btn-verde" data-reabrir-grupo="${g.id}">🔓 Reabrir</button>` : ''}<button class="btn btn-mini btn-morado" data-edit-group="${g.id}">✏️ Editar</button><button class="btn btn-mini btn-rojo" data-del-group="${g.id}">🗑️</button></div></div><div class="group-card-body"><h5>Alumnos</h5><div class="student-chips">${g.studentCodes.length === 0 ? '<span style="color:var(--gris);font-size:.85rem;">Sin alumnos</span>' : g.studentCodes.map(code => { const s = state.students[code]; if (!s) return ""; return `<span class="student-chip">${s.nombre} <button data-remove-student="${code}" data-group-id="${g.id}">×</button></span>`; }).join("")}</div><div class="group-add-student"><select data-add-student-select="${g.id}"><option value="">Seleccionar alumno...</option>${studentsNotInGroup.map(code => { const s = state.students[code]; return `<option value="${code}">${s.nombre} (${code})</option>`; }).join("")}</select><button class="btn btn-mini btn-verde" data-add-student-btn="${g.id}">+ Agregar</button></div>${librosCardHTML(g.id, true)}</div>`;
+        box.appendChild(card);
+      });
+    });
+
+    // ── Event handlers (idénticos al original) ──
+    cont.querySelectorAll('[data-reabrir-grupo]').forEach(btn =>
+      btn.addEventListener('click', () => reabrirCurso(btn.dataset.reabrirGrupo)));
+    cont.querySelectorAll('[data-del-group]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const group = state.groups.find(x => x.id === btn.dataset.delGroup);
+        if (confirm(`¿Eliminar grupo?`)) {
+          state.groups = state.groups.filter(g => g.id !== group.id);
+          saveState();
+        }
+      }));
+    cont.querySelectorAll('[data-edit-group]').forEach(btn =>
+      btn.addEventListener('click', () => abrirEditarGrupo(btn.dataset.editGroup)));
+    cont.querySelectorAll('[data-remove-student]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const group = state.groups.find(g => g.id === btn.dataset.groupId);
+        if (group) {
+          group.studentCodes = group.studentCodes.filter(c => c !== btn.dataset.removeStudent);
+          saveState();
+        }
+      }));
+    cont.querySelectorAll('[data-add-student-btn]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.addStudentBtn;
+        const sel = cont.querySelector(`[data-add-student-select="${gid}"]`);
+        const code = sel.value;
+        if (!code) return;
+        const group = state.groups.find(g => g.id === gid);
+        if (group && !group.studentCodes.includes(code)) {
+          group.studentCodes.push(code);
+          saveState();
+        }
+      }));
+    cont.querySelectorAll('[data-upload-libro-mes]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.libroGroup;
+        const tipo = btn.dataset.uploadLibroMes;
+        const inp = document.getElementById('libroMes_' + gid + '_' + tipo);
+        if (!inp || !inp.files?.[0]) { alert('Selecciona un archivo.'); return; }
+        subirLibroMes(gid, tipo, inp.files[0]);
+      }));
+    cont.querySelectorAll('[data-del-libro-mes]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.libroGroup;
+        const tipo = btn.dataset.delLibroMes;
+        if (!confirm('¿Eliminar este libro?')) return;
+        const g = state.groups.find(x => x.id === gid);
+        if (!g || !g.librosMes) return;
+        delete g.librosMes[tipo];
+        saveState();
+        refreshAll();
+      }));
+  };
+
+  console.log('✅ Filtros + orden + agrupación por periodo cargados en "Mis grupos".');
+})();
+</script>
 </body>
 </html>
