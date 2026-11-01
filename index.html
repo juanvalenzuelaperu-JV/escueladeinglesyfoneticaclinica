@@ -1587,11 +1587,26 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           <div class="panel" id="adm-panel-calendarizacion">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Selecciona el mes y haz clic en cualquier día del calendario. En el panel lateral podrás asignar grupos, tipos de evaluación, inicio/fin de curso u otros eventos.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
-              <div class="campo" style="margin:0;min-width:180px;"><label>Mes a programar</label><input type="month" id="calMesSelect"></div>
-              <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
-              <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
-            </div>
+            <div class="tform admin-form" style="margin-bottom:18px;">
+  <div class="tform-grid">
+    <div class="campo">
+      <label>Grupo <span class="req">*</span></label>
+      <select id="calFiltroGrupo">
+        <option value="">Selecciona un grupo...</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Mes <span class="req">*</span></label>
+      <input type="month" id="calMesSelect">
+    </div>
+  </div>
+  <div id="calDocenteInfo" style="margin-top:10px;"></div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+  <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
+  <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
+</div>
             <div id="calLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:.78rem;"></div>
             <div style="display:grid;grid-template-columns:1fr minmax(280px,360px);gap:20px;align-items:start;">
               <div>
@@ -6786,6 +6801,51 @@ function openCalDay(key) {
     el.style.boxShadow = el.dataset.calDay === key ? '0 0 0 3px rgba(0,102,204,.18)' : 'none';
   });
 }
+ /* ===== Filtro simple de Calendarización (estilo clases) ===== */
+function fillCalGrupoSelectFiltro() {
+  const sel = document.getElementById('calFiltroGrupo');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Selecciona un grupo...</option>';
+
+  (state.groups || [])
+    .filter(g => !g.cerrado)
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+    .forEach(g => {
+      const t = state.teachers[g.teacherCode];
+      const o = document.createElement('option');
+      o.value = g.id;
+      o.textContent = `${g.nombre || g.id}${t ? ' · ' + t.nombre : ''}`;
+      sel.appendChild(o);
+    });
+
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+function renderCalDocenteInfo() {
+  const cont = document.getElementById('calDocenteInfo');
+  const gid = document.getElementById('calFiltroGrupo')?.value;
+  if (!cont) return;
+  if (!gid) {
+    cont.innerHTML = '';
+    return;
+  }
+  const g = (state.groups || []).find(x => x.id === gid);
+  if (!g) { cont.innerHTML = ''; return; }
+  const t = state.teachers[g.teacherCode];
+  cont.innerHTML = `
+    <div style="background:#f8fafc;padding:12px 14px;border-radius:10px;border-left:4px solid var(--azul);font-size:.88rem;">
+      <p style="margin:0 0 4px;"><strong>Docente:</strong> ${t ? t.nombre : 'Sin asignar'}${t?.telefono ? ' · 📱 ' + t.telefono : ''}</p>
+      <p style="margin:0;"><strong>Grupo:</strong> ${g.nombre || g.id}${g.horario ? ' · ' + g.horario : ''}${g.frecuencia ? ' · ' + g.frecuencia : ''}</p>
+    </div>`;
+}
+
+function getEventosFiltrados(fecha) {
+  const all = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+  const gid = document.getElementById('calFiltroGrupo')?.value || '';
+  if (!gid) return all;
+  return all.filter(ev => ev.grupoId === gid);
+}
 function renderCalendarizacion() {
   const mesInp = document.getElementById('calMesSelect');
   if (!mesInp) return;
@@ -6800,7 +6860,8 @@ function renderCalendarizacion() {
   const grid = document.getElementById('calGrid');
   if (!grid) return;
   if (!state.calendarEvents) state.calendarEvents = {};
-
+ fillCalGrupoSelectFiltro();
+renderCalDocenteInfo();
   renderCalLegend();
   fillCalTipoSelect();
 
@@ -6811,7 +6872,7 @@ function renderCalendarizacion() {
   const todayIso = new Date().toISOString().slice(0, 10);
   for (let day = 1; day <= last.getDate(); day++) {
     const key = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const evs = state.calendarEvents[key] || [];
+    const evs = getEventosFiltrados(key);
     const isToday = key === todayIso;
     const isSelected = key === calSelectedDate;
     const dots = evs.slice(0, 4).map(ev =>
@@ -6986,6 +7047,10 @@ document.getElementById('btnCalResumen')?.addEventListener('click', () => {
 });
 document.getElementById('calMesSelect')?.addEventListener('change', () => {
   calSelectedDate = null;
+  renderCalendarizacion();
+});
+ document.getElementById('calFiltroGrupo')?.addEventListener('change', () => {
+  renderCalDocenteInfo();
   renderCalendarizacion();
 });
 
