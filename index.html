@@ -2574,7 +2574,9 @@ function countCalificadas(code, criterioId) { const grades = state.grades[code] 
 function estadoCurso(code) { const prom = promedioGeneral(code); if (prom === null) return { texto: "Pendiente", clase: "pendiente" }; if (prom >= 14.00) return { texto: "Aprobado", clase: "aprobado" }; return { texto: "Desaprobado", clase: "desaprobado" }; }
 function getNivelInfo(nivelId) { return NIVELES.find(n => n.id === nivelId) || { id: nivelId, nombre: nivelId, clase: "" }; }
 function getStudentGroups(code) { return state.groups.filter(g => g.studentCodes.includes(code)); }
-function getTeacherGroups(teacherCode) { return state.groups.filter(g => g.teacherCode === teacherCode); }
+function getTeacherGroups(teacherCode) {
+  return state.groups.filter(g => g.teacherCode === teacherCode && !g.cerrado);
+}
 function getTeacherStudents(teacherCode) { const groups = getTeacherGroups(teacherCode); const codes = new Set(); groups.forEach(g => g.studentCodes.forEach(c => codes.add(c))); return [...codes].filter(c => state.students[c]); }
 function genUsernameByDate(year, month, day, existing) {
   if (!year || !month || !day) return "";
