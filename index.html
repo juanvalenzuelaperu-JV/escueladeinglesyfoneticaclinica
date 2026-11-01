@@ -1280,24 +1280,71 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             </div>
           </div>
 
-          <div class="panel" id="adm-panel-grupos">
-            <div class="tform admin-form">
-              <h4>➕ Crear nuevo grupo</h4>
-              <form id="admNewGroupForm" class="tform-grid">
-  <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admGroupPrograma" placeholder="Ej: Basic" required></div>
-  <div class="campo"><label>Nivel (texto libre) <span class="req">*</span></label><input type="text" id="admGroupNivel" placeholder="Ej: Básico / B1 / Intermedio" required></div>
-  <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
-  <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
-  <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A - Tarde" required></div>
-  <div class="campo"><label>Total horas del ciclo</label><input type="number" id="admGroupTotalHoras" min="0" step="1" value="40" placeholder="Ej: 40"></div>
-  <div class="campo completo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
-  <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear grupo</button></div></div>
-</form>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Grupos creados</h4>
-            <div id="admGroupsLista"></div>
-          </div>
+         <div class="panel" id="adm-panel-grupos">
 
+  <!-- PASO 1: Elegir Año y Mes -->
+  <div class="tform admin-form" id="gruposPaso1">
+    <h4>📅 Definir periodo del grupo</h4>
+    <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Primero indica el año y el mes al que pertenecerá el grupo. Luego podrás crear el grupo.</p>
+    <div class="tform-grid">
+      <div class="campo">
+        <label>Año <span class="req">*</span></label>
+        <select id="admGroupAnio">
+          <option value="">Selecciona año...</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label>Mes <span class="req">*</span></label>
+        <select id="admGroupMes">
+          <option value="">Selecciona mes...</option>
+          <option value="01">Enero</option>
+          <option value="02">Febrero</option>
+          <option value="03">Marzo</option>
+          <option value="04">Abril</option>
+          <option value="05">Mayo</option>
+          <option value="06">Junio</option>
+          <option value="07">Julio</option>
+          <option value="08">Agosto</option>
+          <option value="09">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+    </div>
+    <div class="tform-acciones" style="margin-top:12px;">
+      <button type="button" class="btn btn-azul btn-mini" id="btnContinuarGrupo">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 2: Formulario de creación (oculto al inicio) -->
+  <div id="gruposPaso2" style="display:none;">
+    <div class="tform admin-form">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <h4 style="margin:0;">➕ Crear nuevo grupo</h4>
+        <div id="gruposPeriodoBadge" style="background:#e0f2fe;color:#0369a1;font-weight:700;font-size:.85rem;padding:6px 14px;border-radius:50px;"></div>
+      </div>
+      <form id="admNewGroupForm" class="tform-grid">
+        <div class="campo"><label>Programa <span class="req">*</span></label><input type="text" id="admGroupPrograma" placeholder="Ej: Basic" required></div>
+        <div class="campo"><label>Nivel (texto libre) <span class="req">*</span></label><input type="text" id="admGroupNivel" placeholder="Ej: Básico / B1 / Intermedio" required></div>
+        <div class="campo"><label>Frecuencia <span class="req">*</span></label><input type="text" id="admGroupFrecuencia" placeholder="Ej: 2 veces por semana" required></div>
+        <div class="campo"><label>Horario <span class="req">*</span></label><input type="text" id="admGroupHorario" placeholder="Ej: 19:00-21:00" required></div>
+        <div class="campo"><label>Nombre del grupo <span class="req">*</span></label><input type="text" id="admGroupNombre" placeholder="Ej: Basic A - Tarde" required></div>
+        <div class="campo"><label>Total horas del ciclo</label><input type="number" id="admGroupTotalHoras" min="0" step="1" value="40" placeholder="Ej: 40"></div>
+        <div class="campo completo"><label>Docente <span class="req">*</span></label><select id="admGroupTeacher" required><option value="">Selecciona docente</option></select></div>
+        <div class="campo completo">
+          <div class="tform-acciones">
+            <button type="button" class="btn btn-slate btn-mini" id="btnVolverPeriodoGrupo">← Cambiar periodo</button>
+            <button type="submit" class="btn btn-verde btn-mini">Crear grupo</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <h4 style="color:var(--slate);margin:24px 0 14px;font-size:1rem;font-weight:800;">Grupos creados</h4>
+  <div id="admGroupsLista"></div>
+</div>
           <div class="panel" id="adm-panel-matriculas">
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📋 Registro de Matrículas y Citas</h4>
             <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
@@ -2968,7 +3015,14 @@ document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(tab => tab.a
   tab.classList.add("activo");
   const panel = document.getElementById("adm-panel-" + tab.dataset.admtab);
   if (panel) panel.classList.add("activo");
-  if (tab.dataset.admtab === "grupos") try { refreshAdminTeacherSelects(); } catch (e) {}
+    if (tab.dataset.admtab === "grupos") {
+    try { refreshAdminTeacherSelects(); } catch (e) {}
+    // PASO 4: inicializar selects de Año/Mes y mostrar Paso 1
+    setTimeout(() => {
+      initGroupAnioSelect();
+      mostrarPasoGrupo(1);
+    }, 40);
+  }
   if (tab.dataset.admtab === "examenes") try { refreshAdminExamGroups(); } catch (e) {}
   if (tab.dataset.admtab === "programacion") try { renderAdminCourses(); } catch (e) {}
 }));
@@ -4691,7 +4745,54 @@ function renderAdminDocentes() {
   body.querySelectorAll("[data-edit-docente]").forEach(btn => btn.addEventListener("click", () => abrirEditar(btn.dataset.editDocente, "docente")));
   body.querySelectorAll("[data-del-docente]").forEach(btn => btn.addEventListener("click", () => { const code = btn.dataset.delDocente; const grupos = getTeacherGroups(code); if (grupos.length > 0) { alert(`No puedes eliminar, tiene grupos.`); return; } if (confirm(`¿Eliminar?`)) { delete state.teachers[code]; delete state.signatures[code]; saveState(); } }));
 }
-function renderAdminGrupos() {
+/* ===== Creación de grupos por Año y Mes ===== */
+function initGroupAnioSelect() {
+  const sel = document.getElementById('admGroupAnio');
+  if (!sel) return;
+  const cur = sel.value;
+  const year = new Date().getFullYear();
+  sel.innerHTML = '<option value="">Selecciona año...</option>';
+  for (let y = year - 1; y <= year + 2; y++) {
+    const o = document.createElement('option');
+    o.value = y;
+    o.textContent = y;
+    sel.appendChild(o);
+  }
+  if (cur) sel.value = cur;
+}
+
+function mostrarPasoGrupo(paso) {
+  const p1 = document.getElementById('gruposPaso1');
+  const p2 = document.getElementById('gruposPaso2');
+  if (!p1 || !p2) return;
+  if (paso === 1) {
+    p1.style.display = '';
+    p2.style.display = 'none';
+  } else {
+    p1.style.display = 'none';
+    p2.style.display = '';
+    const anio = document.getElementById('admGroupAnio')?.value;
+    const mes = document.getElementById('admGroupMes')?.value;
+    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const badge = document.getElementById('gruposPeriodoBadge');
+    if (badge) badge.textContent = `${meses[parseInt(mes,10)]} ${anio}`;
+  }
+}
+
+document.getElementById('btnContinuarGrupo')?.addEventListener('click', () => {
+  const anio = document.getElementById('admGroupAnio')?.value;
+  const mes = document.getElementById('admGroupMes')?.value;
+  if (!anio || !mes) {
+    alert('Selecciona el Año y el Mes antes de continuar.');
+    return;
+  }
+  mostrarPasoGrupo(2);
+});
+
+document.getElementById('btnVolverPeriodoGrupo')?.addEventListener('click', () => {
+  mostrarPasoGrupo(1);
+});
+ function renderAdminGrupos() {
   const cont = document.getElementById("admGroupsLista"); cont.innerHTML = "";
   if (!state.groups.length) { cont.innerHTML = `<div class="empty-state">📚 Aún no has creado grupos.</div>`; return; }
   state.groups.forEach(g => {
@@ -4770,26 +4871,29 @@ document.getElementById("admNewGroupForm")?.addEventListener("submit", (e) => {
   else if (nt.includes("avanz") || nt.includes("c1") || nt.includes("c2")) nivel = "intermedio";
 
   const id = "grp_" + Date.now();
-  state.groups.push({
-    id,
-    nombre,
-    nivel,
-    nivelTexto,
-    teacherCode,
-    studentCodes: [],
-    programa,
-    frecuencia,
-    horario,
-    totalHoras,
-    cerrado: false,
-    librosMes: {}
-  });
+ state.groups.push({
+  id,
+  nombre,
+  nivel,
+  nivelTexto,
+  teacherCode,
+  studentCodes: [],
+  programa,
+  frecuencia,
+  horario,
+  totalHoras,
+  cerrado: false,
+  librosMes: {},
+  anio: document.getElementById('admGroupAnio')?.value || '',
+  mes: document.getElementById('admGroupMes')?.value || ''
+});
   saveState();
   e.target.reset();
   const th = document.getElementById("admGroupTotalHoras");
   if (th) th.value = 40;
   try { refreshAdminView(); } catch (err) { try { renderAdminGrupos(); } catch (e2) {} }
   alert("✅ Grupo creado correctamente.");
+ mostrarPasoGrupo(1);
 });
 
 document.getElementById("admNewCourseForm").addEventListener("submit", (e) => {
