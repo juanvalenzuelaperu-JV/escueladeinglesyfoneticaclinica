@@ -1653,6 +1653,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
   <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
   <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
+  <button type="button" class="btn btn-rojo btn-mini" id="btnLimpiarCiclo">🧹 Limpiar ciclo</button>
 </div>
             <div id="calLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:.78rem;"></div>
             <div style="display:grid;grid-template-columns:1fr minmax(280px,360px);gap:20px;align-items:start;">
@@ -7160,6 +7161,121 @@ document.getElementById('btnCalResumen')?.addEventListener('click', () => {
 document.getElementById('calMesSelect')?.addEventListener('change', () => {
   calSelectedDate = null;
   renderCalendarizacion();
+});
+ /* ============================================================
+   BOTÓN "LIMPIAR CICLO" — Elimina todos los eventos del mes
+   seleccionado en Calendarización (con confirmación previa)
+   ============================================================ */
+document.getElementById('btnLimpiarCiclo')?.addEventListener('click', () => {
+  const mesInp = document.getElementById('calMesSelect');
+  if (!mesInp || !mesInp.value) {
+    alert('Primero selecciona un mes en el calendario.');
+    return;
+  }
+  const mes = mesInp.value; // formato YYYY-MM
+  const gidFiltro = document.getElementById('calFiltroGrupo')?.value || '';
+
+  // Etiqueta legible del mes
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const [yy, mm] = mes.split('-').map(Number);
+  const mesLabel = meses[mm - 1] + ' ' + yy;
+
+  if (!state.calendarEvents) state.calendarEvents = {};
+
+  // Contar eventos que se eliminarán (para confirmar al usuario)
+  let count = 0;
+  Object.keys(state.calendarEvents).forEach(fecha => {
+    if (!fecha.startsWith(mes)) return;
+    const evs = state.calendarEvents[fecha] || [];
+    if (gidFiltro) count += evs.filter(e => e.grupoId === gidFiltro).length;
+    else count += evs.length;
+  });
+
+  // Contar también días de clase (clasesPorGrupo) del mes
+  let countClases = 0;
+  if (state.clasesPorGrupo) {
+    if (gidFiltro) {
+      countClases = (state.clasesPorGrupo[gidFiltro] || []).filter(f => f.startsWith(mes)).length;
+    } else {
+      Object.values(state.clasesPorGrupo).forEach(arr => {
+        countClases += (arr || []).filter(f => f.startsWith(mes)).length;
+      });
+    }
+  }
+
+  if (!count && !countClases) {
+    alert(`ℹ️ No hay eventos para limpiar en ${mesLabel}${gidFiltro ? ' para el grupo seleccionado' : ''}.`);
+    return;
+  }
+
+  // Armar mensaje de confirmación
+  const grupoNombre = gidFiltro
+    ? (state.groups.find(g => g.id === gidFiltro)?.nombre || '')
+    : '';
+  const detalleGrupo = gidFiltro
+    ? ` del grupo "${grupoNombre}"`
+    : ' de TODOS los grupos';
+
+  const mensaje =
+    `⚠️ ¿Eliminar TODOS los eventos de ${mesLabel}${detalleGrupo}?\n\n` +
+    `• ${count} evento(s) del calendario (clases, evaluaciones, otros)\n` +
+    `• ${countClases} día(s) marcados en Calendarización de clases\n\n` +
+    `También se eliminarán las evaluaciones creadas automáticamente\n` +
+    `desde el calendario (las notas ya guardadas de los alumnos se\n` +
+    `conservan en el registro de notas).\n\n` +
+    `⛔ Esta acción NO se puede deshacer.`;
+
+  if (!confirm(mensaje)) return;
+
+  // ── 1) Eliminar eventos del mes (respetando filtro de grupo) ─────────
+  Object.keys(state.calendarEvents).forEach(fecha => {
+    if (!fecha.startsWith(mes)) return;
+    if (gidFiltro) {
+      state.calendarEvents[fecha] = (state.calendarEvents[fecha] || [])
+        .filter(e => e.grupoId !== gidFiltro);
+    } else {
+      state.calendarEvents[fecha] = [];
+    }
+    if (!state.calendarEvents[fecha].length) delete state.calendarEvents[fecha];
+  });
+
+  // ── 2) Eliminar días de clase del mes (clasesPorGrupo) ───────────────
+  if (state.clasesPorGrupo) {
+    if (gidFiltro) {
+      state.clasesPorGrupo[gidFiltro] =
+        (state.clasesPorGrupo[gidFiltro] || []).filter(f => !f.startsWith(mes));
+    } else {
+      Object.keys(state.clasesPorGrupo).forEach(gid => {
+        state.clasesPorGrupo[gid] =
+          (state.clasesPorGrupo[gid] || []).filter(f => !f.startsWith(mes));
+      });
+    }
+  }
+
+  // ── 3) Eliminar asignaciones auto-creadas por Calendarización ────────
+  if (Array.isArray(state.assignments)) {
+    state.assignments = state.assignments.filter(a => {
+      if (a.createdBy !== 'calendarizacion') return true;          // conservar manuales
+      if (!a.fechaInicio || !a.fechaInicio.startsWith(mes)) return true;
+      if (gidFiltro && a.grupoId !== gidFiltro) return true;       // conservar otros grupos
+      return false;
+    });
+  }
+
+  // ── 4) Guardar, refrescar y cerrar panel del día ─────────────────────
+  saveState();
+
+  calSelectedDate = null;
+  const panelDia = document.getElementById('calEventPanel');
+  if (panelDia) panelDia.style.display = 'none';
+
+  const resumen = document.getElementById('calMesResumen');
+  if (resumen) resumen.style.display = 'none';
+
+  if (typeof renderCalendarizacion === 'function') renderCalendarizacion();
+
+  alert(`✅ Se eliminaron ${count} evento(s) y ${countClases} día(s) de clase de ${mesLabel}${detalleGrupo}.`);
 });
  document.getElementById('calFiltroGrupo')?.addEventListener('change', () => {
   renderCalDocenteInfo();
