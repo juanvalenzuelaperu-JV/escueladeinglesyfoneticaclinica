@@ -6454,7 +6454,13 @@ document.getElementById('admNewAsgForm')?.addEventListener('submit', (e) => {
 document.querySelectorAll('#tal-panel-admin [data-admtab]').forEach(tab => {
   tab.addEventListener('click', () => {
     if (tab.dataset.admtab === 'asignaciones') setTimeout(() => { refreshCriterioSelect(); renderAdminAsignaciones(); }, 40);
-    if (tab.dataset.admtab === 'calendarizacion') setTimeout(renderCalendarizacion, 40);
+    if (tab.dataset.admtab === 'calendarizacion') {
+      setTimeout(() => {
+        if (typeof fillCalGrupoSelectFiltro === 'function') fillCalGrupoSelectFiltro();
+        if (typeof renderCalDocenteInfo === 'function') renderCalDocenteInfo();
+        if (typeof renderCalendarizacion === 'function') renderCalendarizacion();
+      }, 50);
+    }
     if (tab.dataset.admtab === 'reporte_dia') setTimeout(renderReporteDia, 40);
     if (tab.dataset.admtab === 'padres') setTimeout(renderAdminPadres, 40);
   });
@@ -9230,6 +9236,17 @@ console.log('Planilla lista y visible');
   // Inicio: respeta #seccion si viene en la URL
   const inicial = ids.indexOf(location.hash.slice(1));
   ir(inicial >= 0 ? inicial : 0);
+})();
+ /* ===== Asegurar filtro de grupos en Calendarización ===== */
+(function () {
+  const originalRender = window.renderCalendarizacion;
+  window.renderCalendarizacion = function () {
+    if (typeof fillCalGrupoSelectFiltro === 'function') fillCalGrupoSelectFiltro();
+    if (typeof renderCalDocenteInfo === 'function') renderCalDocenteInfo();
+    if (typeof originalRender === 'function') {
+      return originalRender.apply(this, arguments);
+    }
+  };
 })();
 </script>
 </body>
