@@ -1631,26 +1631,27 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           </div>
 
           <!-- CALENDARIZACIÓN -->
-          <div class="panel" id="adm-panel-calendarizacion">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Selecciona el mes y haz clic en cualquier día del calendario. En el panel lateral podrás asignar grupos, tipos de evaluación, inicio/fin de curso u otros eventos.</p>
-           <div class="tform admin-form" style="margin-bottom:18px;">
-  <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
-    <div class="campo">
+<div class="tform admin-form" style="margin-bottom:18px;">
+  <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); align-items: end;">
+    <div class="campo" style="margin-bottom:0;">
       <label>Mes <span class="req">*</span></label>
       <input type="month" id="calMesSelect">
     </div>
-    <div class="campo">
+    <div class="campo" style="margin-bottom:0;">
       <label>Grupo</label>
       <select id="calFiltroGrupo">
         <option value="">Todos los grupos</option>
       </select>
     </div>
-    <div class="campo">
+    <div class="campo" style="margin-bottom:0;">
       <label>Docente</label>
       <select id="calFiltroDocente">
         <option value="">Todos los docentes</option>
       </select>
+    </div>
+    <div class="campo" style="margin-bottom:0;">
+      <label>&nbsp;</label> <!-- Espacio para alinear el botón con los inputs -->
+      <button type="button" class="btn btn-verde" id="btnCalendarizarAhora" style="width:100%; height: 42px;">✨ Calendarizar ahora</button>
     </div>
   </div>
   <div id="calDocenteInfo" style="margin-top:10px;"></div>
@@ -1659,7 +1660,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
   <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
   <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
-  <button type="button" class="btn btn-verde btn-mini" id="btnCalendarizarAhora">✨ Calendarizar ahora</button>
   <button type="button" class="btn btn-rojo btn-mini" id="btnLimpiarCiclo">🧹 Limpiar ciclo</button>
 </div>
 <div id="calDraftBanner" style="display:none;"></div>
@@ -9983,8 +9983,18 @@ console.log('Planilla lista y visible');
   }
 
   // ─── Iniciar / terminar borrador ───────────────────────────────────
+  // ─── Iniciar / terminar borrador ───────────────────────────────────
   function startCalDraft(groupId, month) {
     window.calDraftMode = { groupId, month, startedAt: Date.now() };
+    
+    // Bloquear los inputs para que no cambien de mes/grupo mientras calendarizan
+    const inpM = document.getElementById('calMesSelect');
+    const selG = document.getElementById('calFiltroGrupo');
+    const selD = document.getElementById('calFiltroDocente');
+    if (inpM) inpM.disabled = true;
+    if (selG) selG.disabled = true;
+    if (selD) selD.disabled = true;
+
     renderCalDraftBanner();
     window.renderCalendarizacion();
   }
@@ -9993,8 +10003,16 @@ console.log('Planilla lista y visible');
     if (!window.calDraftMode) return;
     const { startedAt, month } = window.calDraftMode;
 
+    // Desbloquear los inputs al salir del modo borrador
+    const inpM = document.getElementById('calMesSelect');
+    const selG = document.getElementById('calFiltroGrupo');
+    const selD = document.getElementById('calFiltroDocente');
+    if (inpM) inpM.disabled = false;
+    if (selG) selG.disabled = false;
+    if (selD) selD.disabled = false;
+
     if (!commit) {
-      // Eliminar eventos creados durante el borrador de ESE mes
+      // ... (aquí va tu lógica de borrar eventos cancelados, tal cual estaba) ...
       Object.keys(state.calendarEvents || {}).forEach(fecha => {
         if (!fecha.startsWith(month)) return;
         state.calendarEvents[fecha] = (state.calendarEvents[fecha] || []).filter(ev => {
@@ -10003,7 +10021,6 @@ console.log('Planilla lista y visible');
         });
         if (!state.calendarEvents[fecha].length) delete state.calendarEvents[fecha];
       });
-      // Eliminar asignaciones auto-creadas por Calendarización en ese mes
       if (Array.isArray(state.assignments)) {
         state.assignments = state.assignments.filter(a => {
           if (a.createdBy !== 'calendarizacion') return true;
