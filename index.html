@@ -685,18 +685,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
   </div>
 </section>
 
-<section id="horarios" class="seccion">
-  <div class="contenedor">
-    <div class="seccion-cabecera"><h2>Horarios disponibles</h2><p>Elige el turno que mejor se adapte a tu rutina. Cupos limitados por grupo.</p></div>
-    <div class="tabla-wrap">
-      <table>
-        <thead><tr><th>Programa</th><th>Días</th><th>Horario</th><th>Modalidad</th><th>Matriculados</th><th>Acción</th></tr></thead>
-        <tbody id="tablaHorarios"></tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
 <section id="portal" class="seccion">
   <div class="contenedor">
     <div class="seccion-cabecera"><h2>Bienvenido a Portales</h2><p>Alumno, Docente y Talento. Todo conectado en tiempo real.</p></div>
@@ -2741,26 +2729,114 @@ function aplicarIconosInterfaz() {
    RENDER: HORARIOS
    ============================================================ */
 function renderHorariosTable() {
-  const tbody = document.getElementById('tablaHorarios'); if (!tbody) return;
-  tbody.innerHTML = '';
-  state.courses.forEach(course => {
-    const tr = document.createElement('tr'); tr.dataset.sch = course.id;
-    if (course.tipo === 'cita') {
-      tr.innerHTML = `<td><strong>${course.programa}</strong></td><td>${course.dia || '—'}</td><td>${course.horario || '—'}</td><td>${course.modalidad}</td><td>—</td><td><button class="btn btn-primario btn-mini btn-cita">Separe su cita ahora</button></td>`;
-    } else {
-      const count = state.registrations.filter(r => r.scheduleId === course.id).length;
-      const max = course.max || 12; const isFull = count >= max;
-      tr.innerHTML = `<td><strong>${course.programa}</strong></td><td>${course.dia || '—'}</td><td>${course.horario || '—'}</td><td>${course.modalidad}</td><td><strong>${count}</strong> / ${max}</td><td><button class="btn ${isFull ? 'btn-rojo' : 'btn-primario'} btn-mini btn-inscribirse" data-sch="${course.id}" ${isFull ? 'disabled' : ''}>${isFull ? 'Cupo Lleno' : 'Inscribirse'}</button></td>`;
-    }
-    tbody.appendChild(tr);
-  });
-  tbody.querySelectorAll('.btn-inscribirse').forEach(btn => btn.addEventListener('click', () => {
-    const course = state.courses.find(c => c.id === btn.dataset.sch);
-    if (course) abrirModalInscripcion(course);
-  }));
-  tbody.querySelectorAll('.btn-cita').forEach(btn => btn.addEventListener('click', () => { document.getElementById('modalCita').classList.add('visible'); }));
-}
+  const container = document.getElementById('gridHorarios');
+  if (!container) return;
+  container.innerHTML = '';
 
+  // Filtrar solo los grupos que NO estén cerrados
+  const openGroups = (state.groups || []).filter(g => !g.cerrado);
+
+  if (!openGroups.length) {
+    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--gris); background: #f9fafb; border-radius: 14px; border: 2px dashed #cbd5e1;">
+      📅 Aún no hay grupos abiertos. ¡Vuelve pronto!
+    </div>`;
+    return;
+  }
+
+  openGroups.forEach(g => {
+    const teacher = state.teachers[g.teacherCode];
+    const teacherName = teacher ? teacher.nombre : 'Por asignar';
+    const enrolledCount = g.studentCodes ? g.studentCodes.length : 0;
+    
+    // Asignar colores según el nivel
+    let badgeClass = 'basico';
+    let cardBorder = 'var(--verde)';
+    let btnClass = 'btn-verde';
+    let nivelTexto = g.nivelTexto || getNivelInfo(g.nivel).nombre;
+
+    if (g.nivel === 'intermedio') {
+      badgeClass = 'intermedio';
+      cardBorder = 'var(--azul-medio)';
+      btnClass = 'btn-azul';
+    } else if (g.nivel === 'teens') {
+      badgeClass = 'teens';
+      cardBorder = 'var(--morado)';
+      btnClass = 'btn-morado';
+    }
+
+    const card = document.createElement('article');
+    card.className = 'tarjeta-curso';
+    card.style.borderTop = `4px solid ${cardBorder}`;
+
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span class="group-nivel ${badgeClass}">${nivelTexto}</span>
+        <span style="background:#dcfce7; color:#15803d; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:50px;">🟢 Abierto</span>
+      </div>
+      
+      <h3 style="font-size:1.3rem; margin-bottom:4px; color:var(--azul);">${g.nombre}</h3>
+      <p style="font-size:.88rem; color:var(--gris); margin-bottom:16px;">Programa: ${g.programa || '—'}</p>
+
+      <ul style="display:grid; gap:8px; margin-bottom:20px; list-style:none; padding:0;">
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
+          <span style="font-size:1.1rem;">📅</span> <strong>${g.frecuencia || '—'}</strong>
+        </li>
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
+          <span style="font-size:1.1rem;">⏰</span> ${g.horario || '—'}
+        </li>
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
+          <span style="font-size:1.1rem;">👨‍🏫</span> ${teacherName}
+        </li>
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center; margin-top:4px;">
+          <span style="font-size:1.1rem;">👥</span> <span style="color:var(--gris);">${enrolledCount} alumno(s) matriculados</span>
+        </li>
+      </ul>
+
+      <button class="btn ${btnClass} btn-inscribirse-grupo" data-id="${g.id}" data-programa="${g.programa || g.nombre}" style="width:100%; border-radius:12px;">
+        Inscribirse a este grupo
+      </button>
+    `;
+    
+    container.appendChild(card);
+  });
+
+  // Tarjeta extra estática para las Citas (Terapia)
+  const cardCita = document.createElement('article');
+  cardCita.className = 'tarjeta-curso clinica';
+  cardCita.style.borderTop = '4px solid var(--rosa)';
+  cardCita.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span class="group-nivel" style="background:#fce7f3; color:#be185d;">Especial</span>
+    </div>
+    <h3 style="font-size:1.3rem; margin-bottom:4px; color:var(--rosa);">Terapia del Lenguaje</h3>
+    <p style="font-size:.88rem; color:var(--gris); margin-bottom:16px;">Evaluación y tratamiento personalizado.</p>
+    <ul style="display:grid; gap:8px; margin-bottom:20px; list-style:none; padding:0;">
+      <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
+        <span style="font-size:1.1rem;">🩺</span> Sesión individual (Previa cita)
+      </li>
+    </ul>
+    <button class="btn btn-rosa btn-cita" style="width:100%; border-radius:12px;">Separe su cita ahora</button>
+  `;
+  container.appendChild(cardCita);
+
+  // Conectar los botones con el sistema de inscripción y citas
+  container.querySelectorAll('.btn-inscribirse-grupo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Creamos un objeto compatible con la función abrirModalInscripcion
+      const mockCourse = {
+        id: btn.dataset.id,
+        programa: btn.dataset.programa
+      };
+      abrirModalInscripcion(mockCourse);
+    });
+  });
+
+  container.querySelectorAll('.btn-cita').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('modalCita').classList.add('visible');
+    });
+  });
+}
 /* ============================================================
    INSCRIPCIÓN
    ============================================================ */
@@ -4859,74 +4935,7 @@ function renderAdminMatriculas() {
   });
   body.querySelectorAll("[data-del-reg]").forEach(btn => btn.addEventListener("click", () => { if (confirm("¿Eliminar?")) { state.registrations = state.registrations.filter(r => r.id !== btn.dataset.delReg); saveState(); } }));
 }
-function renderAdminCourses() {
-  const cont = document.getElementById("admCoursesList"); if (!cont) return;
-  if (!state.courses.length) { cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">Sin cursos.</p>`; return; }
-  let html = `<table class="admin-table" style="min-width:760px;"><thead><tr><th>Programa</th><th>Día(s)</th><th>Horario</th><th>Modalidad</th><th>Tipo</th><th>Cupo</th><th>Acción</th></tr></thead><tbody>`;
-  state.courses.forEach(c => { const tipoLabel = c.tipo === 'cita' ? '🩺 Cita' : '📝 Matrícula'; const cupoInfo = c.tipo === 'cita' ? '—' : `${c.max || 12}`; html += `<tr><td><strong>${c.programa}</strong></td><td>${c.dia || '—'}</td><td>${c.horario || '—'}</td><td>${c.modalidad}</td><td>${tipoLabel}</td><td>${cupoInfo}</td><td><button class="btn btn-mini btn-rojo" data-del-course="${c.id}">🗑️</button></td></tr>`; });
-  html += `</tbody></table>`; cont.innerHTML = html;
-  cont.querySelectorAll("[data-del-course]").forEach(btn => btn.addEventListener("click", () => { const course = state.courses.find(c => c.id === btn.dataset.delCourse); if (confirm(`¿Eliminar curso?`)) { state.courses = state.courses.filter(c => c.id !== course.id); saveState(); renderAdminCourses(); } }));
-}
 
-document.getElementById("admNewGroupForm")?.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const programa = document.getElementById("admGroupPrograma")?.value.trim() || "";
-  const nivelTexto = document.getElementById("admGroupNivel")?.value.trim() || "";
-  const frecuencia = document.getElementById("admGroupFrecuencia")?.value.trim() || "";
-  const horario = document.getElementById("admGroupHorario")?.value.trim() || "";
-  const nombre = (document.getElementById("admGroupNombre")?.value || "").trim() || (programa + (nivelTexto ? " · " + nivelTexto : ""));
-  const totalHoras = parseInt(document.getElementById("admGroupTotalHoras")?.value, 10) || 0;
-  const teacherCode = document.getElementById("admGroupTeacher")?.value || "";
-  if (!programa || !nivelTexto || !frecuencia || !horario || !teacherCode) {
-    alert("Completa todos los campos obligatorios.");
-    return;
-  }
-  if (!state.teachers[teacherCode]) {
-    alert("Selecciona un docente válido.");
-    return;
-  }
-  // Map free-text nivel to known ids when possible
-  let nivel = "basico";
-  const nt = nivelTexto.toLowerCase();
-  if (nt.includes("inter") || nt.includes("b1") || nt.includes("b2")) nivel = "intermedio";
-  else if (nt.includes("teen") || nt.includes("adolec") || nt.includes("kid")) nivel = "teens";
-  else if (nt.includes("avanz") || nt.includes("c1") || nt.includes("c2")) nivel = "intermedio";
-
-  const id = "grp_" + Date.now();
- state.groups.push({
-  id,
-  nombre,
-  nivel,
-  nivelTexto,
-  teacherCode,
-  studentCodes: [],
-  programa,
-  frecuencia,
-  horario,
-  totalHoras,
-  cerrado: false,
-  librosMes: {},
-  anio: document.getElementById('admGroupAnio')?.value || '',
-  mes: document.getElementById('admGroupMes')?.value || ''
-});
-  saveState();
-  e.target.reset();
-  const th = document.getElementById("admGroupTotalHoras");
-  if (th) th.value = 40;
-  try { refreshAdminView(); } catch (err) { try { renderAdminGrupos(); } catch (e2) {} }
-  alert("✅ Grupo creado correctamente.");
- mostrarPasoGrupo(1);
-});
-
-document.getElementById("admNewCourseForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const programa = document.getElementById("admCoursePrograma").value.trim(); const dia = document.getElementById("admCourseDia").value.trim();
-  const horario = document.getElementById("admCourseHorario").value.trim(); const modalidad = document.getElementById("admCourseModalidad").value;
-  const tipo = document.getElementById("admCourseTipo").value; const max = parseInt(document.getElementById("admCourseMax").value) || 12;
-  if (!programa) { alert("Completa el programa."); return; }
-  state.courses.push({ id: "sch_" + Date.now(), programa, dia, horario, modalidad, tipo, max });
-  saveState(); e.target.reset(); document.getElementById("admCourseMax").value = 12;
-});
 function renderAdminAsistencia() {
   const groupId = document.getElementById("admAsisGrupo").value; const cont = document.getElementById("admAsisResumen");
   if (!groupId) { cont.innerHTML = `<p style="padding:20px;text-align:center;color:var(--gris);">Selecciona un grupo.</p>`; return; }
