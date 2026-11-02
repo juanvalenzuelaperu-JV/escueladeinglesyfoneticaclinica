@@ -1195,38 +1195,48 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           <div class="aviso-tiempo-real"><span class="punto-live"></span> Solo Coordinación Académica crea cuentas, grupos, cursos y exámenes.</div>
 
           <div class="panel activo" id="adm-panel-alumnos">
-            <div class="tform admin-form">
-              <h4>➕ Crear nueva cuenta de alumno</h4>
-              <form id="admNewAlumnoForm" class="tform-grid">
-                <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admAlumnoNombre" placeholder="Ej: María López" required></div>
-                <div class="campo"><label>Email</label><input type="email" id="admAlumnoEmail" placeholder="maria@escuela.com"></div>
-                <div class="campo"><label>Programa</label><input type="text" id="admAlumnoPrograma" placeholder="Ej: Inglés Basic"></div>
-                <div class="campo"><label>Grupo (opcional)</label><select id="admAlumnoGrupo"><option value="">Sin grupo</option></select></div>
-                <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
-                <div class="campo"><label>Mes de ingreso <span class="req">*</span></label>
-                  <select id="admAlumnoMonth" required>
-                    <option value="">Selecciona mes</option>
-                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
-                    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
-                    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
-                    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-                  </select>
-                </div>
-                <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoDay" placeholder="Ej: 15" min="1" max="31" required></div>
-                <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admAlumnoDni" placeholder="Ej: 45513532" maxlength="8" required></div>
-                <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admAlumnoTelefono" placeholder="Ej: 51999111222" required></div>
-                <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
-                <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div></div>
-                <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div></div>
-                <div class="campo completo" id="admAlumnoCamposExtra"></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
-              </form>
-              <div class="cred-box" id="credAlumno">
-                <strong>✅ Cuenta creada:</strong>
-                <div class="cred-row"><span>Usuario:</span><code id="credUserAlumno">—</code><button data-copy="credUserAlumno">📋</button></div>
-                <div class="cred-row"><span>Contraseña:</span><code id="credPassAlumno">—</code><button data-copy="credPassAlumno">📋</button></div>
-              </div>
-            </div>
+          <div class="tform admin-form">
+  <h4>➕ Crear nueva cuenta de alumno</h4>
+  <form id="admNewAlumnoForm" class="tform-grid">
+    <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="admAlumnoNombre" placeholder="Ej: María López" required></div>
+    <div class="campo"><label>Email</label><input type="email" id="admAlumnoEmail" placeholder="maria@escuela.com"></div>
+    <div class="campo"><label>Programa</label><input type="text" id="admAlumnoPrograma" placeholder="Ej: Inglés Basic"></div>
+    <div class="campo"><label>Grupo (opcional)</label><select id="admAlumnoGrupo"><option value="">Sin grupo</option></select></div>
+    <div class="campo"><label>Año de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoYear" placeholder="Ej: 2026" min="2000" max="2100" required></div>
+    <div class="campo"><label>Mes de ingreso <span class="req">*</span></label>
+      <select id="admAlumnoMonth" required>
+        <option value="">Selecciona mes</option>
+        <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+        <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+        <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+    </div>
+    <div class="campo"><label>Día de ingreso <span class="req">*</span></label><input type="number" id="admAlumnoDay" placeholder="Ej: 15" min="1" max="31" required></div>
+    <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="admAlumnoDni" placeholder="Ej: 45513532" maxlength="8" required></div>
+    <div class="campo"><label>Número de teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="admAlumnoTelefono" placeholder="Ej: 51999111222" required></div>
+    <div class="campo"><label>👨‍👩‍👧 Nombre del padre/madre</label>
+      <select id="admAlumnoParentNombre">
+        <option value="">— Sin vínculo (cuenta independiente) —</option>
+      </select>
+    </div>
+    <div class="campo"><label>📱 Celular del padre/madre</label>
+      <select id="admAlumnoParentCelular">
+        <option value="">— Sin vínculo —</option>
+      </select>
+    </div>
+    <div class="campo completo"><label>Foto del DNI (Evidencia obligatoria) <span class="req">*</span></label><input type="file" id="admAlumnoDniFile" accept="image/*" required></div>
+    <div class="campo"><label>Usuario <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoUser" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar usuario" data-gen-user="alumno">🎲</button></div></div>
+    <div class="campo"><label>Contraseña <span class="req">*</span></label><div class="input-with-btn"><input type="text" id="admAlumnoPass" placeholder="Auto-generado" required><button type="button" class="btn-icon" title="Generar contraseña" data-gen-pass="alumno">🎲</button></div></div>
+    <div class="campo completo" id="admAlumnoCamposExtra"></div>
+    <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear cuenta</button></div></div>
+  </form>
+  <div class="cred-box" id="credAlumno">
+    <strong>✅ Cuenta creada:</strong>
+    <div class="cred-row"><span>Usuario:</span><code id="credUserAlumno">—</code><button data-copy="credUserAlumno">📋</button></div>
+    <div class="cred-row"><span>Contraseña:</span><code id="credPassAlumno">—</code><button data-copy="credPassAlumno">📋</button></div>
+  </div>
+</div>
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">Alumnos registrados</h4>
             <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
               <table class="admin-table" style="min-width:1200px;">
@@ -5385,6 +5395,15 @@ if (!validateCustomFields("admAlumnoCamposExtra", "alumno")) return;
 state.students[user] = { password: pass, nombre, email: email || "—", programa: programa || "—", year: parseInt(year), month: parseInt(month), day: parseInt(day), dni, telefono, dniPhoto: dniPhotoUrl, custom: extrasA };
     state.grades[user] = {};
     if (groupId) { const g = state.groups.find(x => x.id === groupId); if (g && !g.studentCodes.includes(user)) g.studentCodes.push(user); }
+
+    // 🆕 Vincular alumno al padre/madre seleccionado
+    const parentUser = document.getElementById('admAlumnoParentNombre')?.value || '';
+    if (parentUser && state.padres && state.padres[parentUser]) {
+      const p = state.padres[parentUser];
+      if (!Array.isArray(p.hijos)) p.hijos = [];
+      if (!p.hijos.includes(user)) p.hijos.push(user);
+    }
+
     saveState();
     document.getElementById("credUserAlumno").textContent = user; document.getElementById("credPassAlumno").textContent = pass;
     document.getElementById("credAlumno").classList.add("visible"); e.target.reset();
@@ -11541,6 +11560,86 @@ console.log('Planilla lista y visible');
   }
 
   console.log('✅ Módulo edición de padres cargado (delegación de eventos).');
+})();
+</script>
+ <!-- ============================================================
+     DROPDOWNS DE PADRES EN FORMULARIO DE ALUMNOS
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  function fillParentDropdownsAlumno() {
+    const selN = document.getElementById('admAlumnoParentNombre');
+    const selC = document.getElementById('admAlumnoParentCelular');
+    if (!selN || !selC) return;
+
+    const padres = Object.entries(state.padres || {});
+
+    // Preservar selección actual
+    const curN = selN.value;
+    const curC = selC.value;
+
+    selN.innerHTML = '<option value="">— Sin vínculo (cuenta independiente) —</option>';
+    selC.innerHTML = '<option value="">— Sin vínculo —</option>';
+
+    if (!padres.length) {
+      selN.innerHTML += '<option value="" disabled>No hay padres registrados aún</option>';
+      selC.innerHTML += '<option value="" disabled>No hay padres registrados aún</option>';
+      return;
+    }
+
+    padres.sort((a, b) => (a[1].nombre || '').localeCompare(b[1].nombre || ''));
+
+    padres.forEach(([user, p]) => {
+      const optN = document.createElement('option');
+      optN.value = user;
+      optN.textContent = `${p.nombre || user}${p.dni ? ' · DNI ' + p.dni : ''}`;
+      selN.appendChild(optN);
+
+      const optC = document.createElement('option');
+      optC.value = user;
+      optC.textContent = `${p.celular || 'Sin celular'} · ${p.nombre || user}`;
+      selC.appendChild(optC);
+    });
+
+    if (curN && [...selN.options].some(o => o.value === curN)) selN.value = curN;
+    if (curC && [...selC.options].some(o => o.value === curC)) selC.value = curC;
+  }
+
+  window.fillParentDropdownsAlumno = fillParentDropdownsAlumno;
+
+  // Sincronización bidireccional nombre ↔ celular
+  document.addEventListener('change', function (e) {
+    if (!e.target) return;
+    if (e.target.id === 'admAlumnoParentNombre') {
+      const selC = document.getElementById('admAlumnoParentCelular');
+      if (selC) selC.value = e.target.value;
+    }
+    if (e.target.id === 'admAlumnoParentCelular') {
+      const selN = document.getElementById('admAlumnoParentNombre');
+      if (selN) selN.value = e.target.value;
+    }
+  });
+
+  // Refrescar cada vez que entran a la tab Alumnos
+  document.querySelectorAll('#tal-panel-admin [data-admtab="alumnos"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(fillParentDropdownsAlumno, 80));
+  });
+
+  // Refrescar cuando se re-renderiza la lista de padres
+  const _origPadres = window.renderAdminPadres;
+  if (typeof _origPadres === 'function') {
+    window.renderAdminPadres = function () {
+      _origPadres.apply(this, arguments);
+      try { fillParentDropdownsAlumno(); } catch (e) {}
+    };
+  }
+
+  // Cargar al iniciar la app
+  setTimeout(fillParentDropdownsAlumno, 1200);
+
+  console.log('✅ Dropdowns de padres (nombre + celular) cargados.');
 })();
 </script>
 </body>
