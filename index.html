@@ -1782,6 +1782,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
   <button class="subportal-tab activo" data-cont-subtab="pago">💰 Gestor de pago docente</button>
   <button class="subportal-tab" data-cont-subtab="firma">✍️ Firma Digital</button>
   <button class="subportal-tab" data-cont-subtab="planilla">👥 Planilla de Trabajadores</button>
+  <button class="subportal-tab" data-cont-subtab="cobro">💵 Cobro</button>
 </div>
           <div class="subpanel activo" id="cont-subpanel-pago">
             <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">💰 Gestor de Pago Docente</h4>
@@ -1960,22 +1961,40 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
               <div class="mensaje-exito" id="planillaMsg">✅ Trabajador guardado correctamente.</div>
             </div>
           </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">✍️ Firma Digital · Contabilidad y Finanzas</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Las imágenes aquí cargadas se usarán en la <strong>Boleta Preliminar de Pago Docente</strong>.</p>
-            <div class="oficina-section">
-              <h4>🏢 Sello de oficina</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contSelloFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContSello">Guardar Sello</button></div>
-              <div class="firma-preview-box" id="contSelloPreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido sello aún.</p></div>
-            </div>
-            <div class="oficina-section">
-              <h4>📄 Membrete</h4>
-              <div class="campo"><label>Seleccionar imagen (JPG/PNG)</label><input type="file" id="contMembreteFile" accept="image/*"></div>
-              <div class="tform-acciones"><button class="btn btn-slate btn-mini" id="btnSaveContMembrete">Guardar Membrete</button></div>
-              <div class="letterhead-preview-box" id="contMembretePreview"><p style="color:var(--gris);font-size:0.9rem;">No has subido membrete aún.</p></div>
+              <div class="mensaje-exito" id="planillaMsg">✅ Trabajador guardado correctamente.</div>
             </div>
           </div>
-        </div>
+
+          <!-- ============ SUBPANEL COBRO (NUEVO) ============ -->
+          <div class="subpanel" id="cont-subpanel-cobro">
+            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">💵 Cobros, Vouchers y Recibos Sunat</h4>
+            <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">
+              Registra tus cobros, adjunta el voucher y/o recibo SUNAT, marca el estado de pago y consulta el resumen automático de caja.
+            </p>
+
+            <!-- Barra de acciones -->
+            <div class="tform-acciones" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="btn btn-verde btn-mini" id="cobroAddRow">➕ Agregar fila</button>
+              <button type="button" class="btn btn-azul btn-mini" id="cobroAddCol">➕ Agregar columna</button>
+              <button type="button" class="btn btn-slate btn-mini" id="cobroRestaurar">🔄 Restaurar columnas base</button>
+            </div>
+
+            <!-- Tabla editable -->
+            <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;max-width:100%;">
+              <table id="cobroTable" style="width:100%;min-width:780px;border-collapse:collapse;">
+                <thead id="cobroThead"></thead>
+                <tbody id="cobroTbody"></tbody>
+              </table>
+            </div>
+
+            <!-- Panel resumen -->
+            <h4 style="color:var(--slate);margin:22px 0 12px;font-size:1rem;font-weight:800;">📊 Resumen de caja</h4>
+            <div class="resumen-grid" id="cobroResumen"></div>
+            <p style="color:var(--gris);font-size:.8rem;margin-top:10px;">
+              ℹ️ El resumen se calcula con la columna <strong>Monto</strong> y el <strong>Estado</strong> (Pagado / Pendiente).
+            </p>
+          </div>
+          <!-- ============ FIN SUBPANEL COBRO ============ -->
 
         <!-- SUBPORTAL DIRECCIÓN -->
         <div class="panel" id="tal-panel-direccion">
