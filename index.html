@@ -2228,14 +2228,33 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           <button type="button" class="btn-icon" id="btnVerificarCodigo">🔍 Verificar</button>
         </div>
       </div>
-      <div id="inscDatosAlumno" style="display:none; background:#f0fdf4; padding:14px; border-radius:10px; margin:14px 0; border:1px solid #86efac;">
+
+      <!-- Datos del alumno + estado académico -->
+      <div id="inscDatosAlumno" style="display:none; padding:14px; border-radius:10px; margin:14px 0; border:1px solid #86efac; background:#f0fdf4;">
         <p style="font-size:.88rem; margin:4px 0;"><strong>Nombre:</strong> <span id="inscNombreExistente"></span></p>
         <p style="font-size:.88rem; margin:4px 0;"><strong>Último nivel cursado:</strong> <span id="inscNivelExistente"></span></p>
+        <p style="font-size:.88rem; margin:8px 0 4px;"><strong>Estado académico:</strong>
+          <span id="inscEstadoExistente" class="calif-estado pendiente" style="font-size:.82rem; padding:4px 12px;">—</span>
+        </p>
+        <p id="inscEstadoMsg" style="font-size:.82rem; margin:8px 0 0; color:var(--gris);"></p>
       </div>
-      <div class="campo"><label>Subir voucher de pago <span class="req">*</span></label>
-        <input type="file" id="inscVoucherExistente" accept="image/*">
+
+      <!-- Recibo SUNAT (solo si está aprobado) -->
+      <div id="inscReciboBox" style="display:none; margin-top:8px;">
+        <div style="background:#f8fafc; border:1px solid var(--borde); border-radius:12px; padding:16px; margin-bottom:12px;">
+          <h4 style="color:var(--azul); font-size:.95rem; margin-bottom:8px; font-weight:800;">📄 Tu recibo de pago (SUNAT)</h4>
+          <p id="inscReciboInfo" style="font-size:.85rem; color:var(--gris); margin-bottom:12px;">Recibo emitido por la administración por tu pago de matrícula.</p>
+          <div id="inscReciboNoDisponible" style="display:none; background:#fef3c7; color:#b45309; padding:10px 12px; border-radius:8px; font-size:.85rem; font-weight:600; margin-bottom:10px;">
+            ⏳ Aún no hay un recibo SUNAT cargado por administración para tu código. Contacta a la escuela.
+          </div>
+          <label id="inscReciboCheckLabel" style="display:none; align-items:flex-start; gap:10px; cursor:pointer; font-size:.88rem; color:var(--texto); margin-bottom:12px;">
+            <input type="checkbox" id="inscReciboCheck" style="margin-top:3px; width:18px; height:18px; accent-color:var(--azul-medio); flex-shrink:0;">
+            <span>Reconozco que este es mi recibo emitido por el pago de mi matrícula.</span>
+          </label>
+          <button type="button" class="btn btn-azul btn-mini" id="btnDescargarReciboSunat" style="width:100%;" disabled>⬇️ Descargar recibo SUNAT</button>
+        </div>
+        <button type="button" class="btn btn-verde" id="btnMatricularExistente" style="width:100%; display:none;" disabled>Matricularme al curso</button>
       </div>
-      <button type="button" class="btn btn-verde" id="btnTerminarInscExistente" style="width:100%; margin-top:12px;" disabled>Terminar Inscripción</button>
     </div>
 
     <div id="inscPasoNuevo" style="display:none; text-align:left;">
@@ -2850,6 +2869,67 @@ function renderHorariosTable() {
 /* ============================================================
    INSCRIPCIÓN
    ============================================================ */
+let _inscSunatRecibo = null;
+let _inscReciboDescargado = false;
+
+function findStudentSunat(studentCode) {
+  const byGroup = (state.cobros && state.cobros.byGroup) || {};
+  for (const gid of Object.keys(byGroup)) {
+    const rows = (byGroup[gid] && byGroup[gid].rows) || [];
+    for (const row of rows) {
+      if (!row || !row.sunat || !row.sunat.url) continue;
+      const codes = row.studentCodes || [];
+      if (codes.includes(studentCode)) return row.sunat;
+      if (row.id === 'row_student_' + studentCode) return row.sunat;
+    }
+  }
+  return null;
+}
+
+function getInscCourseLabel(courseId) {
+  const group = (state.groups || []).find(g => g.id === courseId);
+  if (group) return group.nombre || group.programa || 'el curso';
+  const course = (state.courses || []).find(c => c.id === courseId);
+  if (course) return course.programa || course.nombre || 'el curso';
+  return 'el curso';
+}
+
+function resetInscExistenteUI() {
+  const datos = document.getElementById("inscDatosAlumno");
+  if (datos) {
+    datos.style.display = "none";
+    datos.style.background = "#f0fdf4";
+    datos.style.borderColor = "#86efac";
+  }
+  const estadoEl = document.getElementById("inscEstadoExistente");
+  if (estadoEl) {
+    estadoEl.textContent = "—";
+    estadoEl.className = "calif-estado pendiente";
+    estadoEl.style.fontSize = ".82rem";
+    estadoEl.style.padding = "4px 12px";
+  }
+  const msg = document.getElementById("inscEstadoMsg");
+  if (msg) msg.textContent = "";
+  const reciboBox = document.getElementById("inscReciboBox");
+  if (reciboBox) reciboBox.style.display = "none";
+  const noDisp = document.getElementById("inscReciboNoDisponible");
+  if (noDisp) noDisp.style.display = "none";
+  const checkLabel = document.getElementById("inscReciboCheckLabel");
+  if (checkLabel) checkLabel.style.display = "none";
+  const check = document.getElementById("inscReciboCheck");
+  if (check) check.checked = false;
+  const btnDl = document.getElementById("btnDescargarReciboSunat");
+  if (btnDl) btnDl.disabled = true;
+  const btnMat = document.getElementById("btnMatricularExistente");
+  if (btnMat) {
+    btnMat.style.display = "none";
+    btnMat.disabled = true;
+    btnMat.textContent = "Matricularme al curso";
+  }
+  _inscSunatRecibo = null;
+  _inscReciboDescargado = false;
+}
+
 function abrirModalInscripcion(course) {
   document.getElementById("inscCourseId").value = course.id;
   document.getElementById("inscPaso1").style.display = "block";
@@ -2857,9 +2937,7 @@ function abrirModalInscripcion(course) {
   document.getElementById("inscPasoNuevo").style.display = "none";
   document.getElementById("inscExito").style.display = "none";
   document.getElementById("inscCodigoAlumno").value = "";
-  document.getElementById("inscDatosAlumno").style.display = "none";
-  document.getElementById("btnTerminarInscExistente").disabled = true;
-  document.getElementById("inscVoucherExistente").value = "";
+  resetInscExistenteUI();
   document.getElementById("inscNombres").value = "";
   document.getElementById("inscApellidos").value = "";
   document.getElementById("inscDni").value = "";
@@ -2870,35 +2948,203 @@ function abrirModalInscripcion(course) {
   _alumnoVerificado = null;
   document.getElementById("modalInscripcion").classList.add("visible");
 }
-document.getElementById("btnCerrarInscripcion").addEventListener("click", () => { document.getElementById("modalInscripcion").classList.remove("visible"); });
-document.getElementById("btnInscAlumnoExistente").addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoExistente").style.display = "block"; });
-document.getElementById("btnInscAlumnoNuevo").addEventListener("click", () => { document.getElementById("inscPaso1").style.display = "none"; document.getElementById("inscPasoNuevo").style.display = "block"; });
+document.getElementById("btnCerrarInscripcion").addEventListener("click", () => {
+  document.getElementById("modalInscripcion").classList.remove("visible");
+});
+document.getElementById("btnInscAlumnoExistente").addEventListener("click", () => {
+  document.getElementById("inscPaso1").style.display = "none";
+  document.getElementById("inscPasoExistente").style.display = "block";
+  resetInscExistenteUI();
+});
+document.getElementById("btnInscAlumnoNuevo").addEventListener("click", () => {
+  document.getElementById("inscPaso1").style.display = "none";
+  document.getElementById("inscPasoNuevo").style.display = "block";
+});
 document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
   const code = document.getElementById("inscCodigoAlumno").value.trim().toUpperCase();
   const student = state.students[code];
-  if (!student) { alert("❌ Código no encontrado."); document.getElementById("inscDatosAlumno").style.display = "none"; document.getElementById("btnTerminarInscExistente").disabled = true; _alumnoVerificado = null; return; }
+  resetInscExistenteUI();
+  if (!student) {
+    alert("❌ Código no encontrado.");
+    _alumnoVerificado = null;
+    return;
+  }
   _alumnoVerificado = code;
   const groups = getStudentGroups(code);
   const ultimoNivel = groups.length ? getNivelInfo(groups[groups.length - 1].nivel).nombre : "Sin nivel previo";
+  const est = typeof estadoCurso === "function" ? estadoCurso(code) : { texto: "Pendiente", clase: "pendiente" };
+  const aprobado = est.clase === "aprobado";
+
   document.getElementById("inscNombreExistente").textContent = student.nombre;
   document.getElementById("inscNivelExistente").textContent = ultimoNivel;
-  document.getElementById("inscDatosAlumno").style.display = "block";
-  document.getElementById("btnTerminarInscExistente").disabled = false;
-});
-document.getElementById("btnTerminarInscExistente").addEventListener("click", async () => {
-  if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
-  const voucherFile = document.getElementById("inscVoucherExistente").files[0];
-  if (!voucherFile) { alert("Sube tu voucher de pago."); return; }
+  const estadoEl = document.getElementById("inscEstadoExistente");
+  estadoEl.textContent = est.texto;
+  estadoEl.className = "calif-estado " + est.clase;
+  estadoEl.style.fontSize = ".82rem";
+  estadoEl.style.padding = "4px 12px";
+
+  const datos = document.getElementById("inscDatosAlumno");
+  const msg = document.getElementById("inscEstadoMsg");
+  datos.style.display = "block";
+
+  if (!aprobado) {
+    datos.style.background = "#fef2f2";
+    datos.style.borderColor = "#fecaca";
+    msg.style.color = "#b91c1c";
+    msg.textContent = est.clase === "desaprobado"
+      ? "No puedes matricularte: tu último ciclo figura como Desaprobado. Contacta a Coordinación Académica."
+      : "Aún no hay un estado de Aprobado registrado. Solo alumnos aprobados pueden continuar con la matrícula.";
+    return;
+  }
+
+  datos.style.background = "#f0fdf4";
+  datos.style.borderColor = "#86efac";
+  msg.style.color = "#15803d";
+  msg.textContent = "✅ Estado Aprobado. Puedes continuar con tu matrícula.";
+
   const courseId = document.getElementById("inscCourseId").value;
-  const course = state.courses.find(c => c.id === courseId);
+  const cursoLabel = getInscCourseLabel(courseId);
+  const btnMat = document.getElementById("btnMatricularExistente");
+  btnMat.textContent = "Matricularme al curso " + cursoLabel;
+
+  _inscSunatRecibo = findStudentSunat(code);
+  const reciboBox = document.getElementById("inscReciboBox");
+  reciboBox.style.display = "block";
+  const noDisp = document.getElementById("inscReciboNoDisponible");
+  const checkLabel = document.getElementById("inscReciboCheckLabel");
+  const btnDl = document.getElementById("btnDescargarReciboSunat");
+
+  if (!_inscSunatRecibo) {
+    noDisp.style.display = "block";
+    checkLabel.style.display = "none";
+    btnDl.disabled = true;
+    btnMat.style.display = "none";
+    return;
+  }
+
+  noDisp.style.display = "none";
+  checkLabel.style.display = "flex";
+  btnDl.disabled = true;
+  const info = document.getElementById("inscReciboInfo");
+  if (info) {
+    info.textContent = "Recibo emitido por la administración" +
+      (_inscSunatRecibo.name ? " · " + _inscSunatRecibo.name : "") +
+      (_inscSunatRecibo.uploadedAt ? " · " + formatearFecha(String(_inscSunatRecibo.uploadedAt).slice(0, 10)) : "") +
+      ".";
+  }
+});
+
+document.getElementById("inscReciboCheck").addEventListener("change", (e) => {
+  const btnDl = document.getElementById("btnDescargarReciboSunat");
+  if (btnDl) btnDl.disabled = !e.target.checked || !_inscSunatRecibo;
+  if (!e.target.checked) {
+    const btnMat = document.getElementById("btnMatricularExistente");
+    if (btnMat) { btnMat.style.display = "none"; btnMat.disabled = true; }
+    _inscReciboDescargado = false;
+  }
+});
+
+document.getElementById("btnDescargarReciboSunat").addEventListener("click", () => {
+  if (!_inscSunatRecibo || !_inscSunatRecibo.url) {
+    alert("No hay recibo disponible para descargar.");
+    return;
+  }
+  const check = document.getElementById("inscReciboCheck");
+  if (!check || !check.checked) {
+    alert("Marca la casilla reconociendo que es tu recibo antes de descargar.");
+    return;
+  }
+  try {
+    const a = document.createElement("a");
+    a.href = _inscSunatRecibo.url;
+    a.download = _inscSunatRecibo.name || ("recibo-sunat-" + (_alumnoVerificado || "alumno") + ".pdf");
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (err) {
+    window.open(_inscSunatRecibo.url, "_blank");
+  }
+  _inscReciboDescargado = true;
+  const btnMat = document.getElementById("btnMatricularExistente");
+  if (btnMat) {
+    btnMat.style.display = "block";
+    btnMat.disabled = false;
+  }
+});
+
+document.getElementById("btnMatricularExistente").addEventListener("click", () => {
+  if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
+  const est = typeof estadoCurso === "function" ? estadoCurso(_alumnoVerificado) : { clase: "pendiente" };
+  if (est.clase !== "aprobado") {
+    alert("Solo alumnos con estado Aprobado pueden matricularse.");
+    return;
+  }
+  if (!_inscSunatRecibo) {
+    alert("No hay recibo SUNAT cargado por administración.");
+    return;
+  }
+  const check = document.getElementById("inscReciboCheck");
+  if (!check || !check.checked) {
+    alert("Debes reconocer que el recibo es tuyo.");
+    return;
+  }
+  if (!_inscReciboDescargado) {
+    alert("Descarga primero tu recibo SUNAT.");
+    return;
+  }
+
+  const courseId = document.getElementById("inscCourseId").value;
   const student = state.students[_alumnoVerificado];
- try {
-  const voucher = await procesarImagen(voucherFile, "vouchers");
-  state.registrations.push({ id: "reg_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: student.nombre, email: student.email, telefono: "—", fecha: new Date().toISOString().slice(0, 10), tipo: "matricula", origen: "web_existente", codigoAlumno: _alumnoVerificado, voucher });
-    saveState();
-    document.getElementById("inscPasoExistente").style.display = "none";
-    document.getElementById("inscExito").style.display = "block";
-  } catch (e) { alert("Error al procesar voucher."); }
+  if (!student) { alert("Alumno no encontrado."); return; }
+
+  // Cargar matrícula al grupo / aula abierta
+  const group = (state.groups || []).find(g => g.id === courseId);
+  if (group) {
+    if (group.cerrado) {
+      alert("Este grupo ya está cerrado. No se puede matricular.");
+      return;
+    }
+    if (!Array.isArray(group.studentCodes)) group.studentCodes = [];
+    if (group.studentCodes.includes(_alumnoVerificado)) {
+      alert("Ya estás matriculado en este grupo.");
+      return;
+    }
+    group.studentCodes.push(_alumnoVerificado);
+  }
+
+  const cursoLabel = getInscCourseLabel(courseId);
+  if (!Array.isArray(state.registrations)) state.registrations = [];
+  state.registrations.push({
+    id: "reg_" + Date.now(),
+    scheduleId: courseId,
+    programa: group ? (group.programa || group.nombre) : cursoLabel,
+    nombre: student.nombre,
+    email: student.email || "—",
+    telefono: student.telefono || "—",
+    fecha: new Date().toISOString().slice(0, 10),
+    tipo: "matricula",
+    origen: "web_existente",
+    codigoAlumno: _alumnoVerificado,
+    voucher: null,
+    sunat: _inscSunatRecibo,
+    groupId: courseId
+  });
+  saveState();
+  if (typeof renderHorariosTable === "function") renderHorariosTable();
+  if (typeof renderAdminMatriculas === "function") renderAdminMatriculas();
+  if (typeof renderAdminGrupos === "function") renderAdminGrupos();
+
+  document.getElementById("inscPasoExistente").style.display = "none";
+  const exito = document.getElementById("inscExito");
+  if (exito) {
+    const p = exito.querySelector("p");
+    if (p) {
+      p.innerHTML = "Tu matrícula al curso <strong>" + cursoLabel + "</strong> fue registrada correctamente.<br>Ya figuras en el aula abierta. La escuela se contactará contigo si es necesario.";
+    }
+    exito.style.display = "block";
+  }
 });
 document.getElementById("btnTerminarPreInsc").addEventListener("click", async () => {
   const nombres = document.getElementById("inscNombres").value.trim();
