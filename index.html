@@ -1632,25 +1632,19 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 
           <!-- CALENDARIZACIÓN -->
 <div class="tform admin-form" style="margin-bottom:18px;">
-  <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); align-items: end;">
+  <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); align-items: end;">
     <div class="campo" style="margin-bottom:0;">
       <label>Mes <span class="req">*</span></label>
       <input type="month" id="calMesSelect">
     </div>
     <div class="campo" style="margin-bottom:0;">
-      <label>Grupo</label>
+      <label>Grupo / Docente</label>
       <select id="calFiltroGrupo">
         <option value="">Todos los grupos</option>
       </select>
     </div>
     <div class="campo" style="margin-bottom:0;">
-      <label>Docente</label>
-      <select id="calFiltroDocente">
-        <option value="">Todos los docentes</option>
-      </select>
-    </div>
-    <div class="campo" style="margin-bottom:0;">
-      <label>&nbsp;</label> <!-- Espacio para alinear el botón con los inputs -->
+      <label>&nbsp;</label>
       <button type="button" class="btn btn-verde" id="btnCalendarizarAhora" style="width:100%; height: 42px;">✨ Calendarizar ahora</button>
     </div>
   </div>
@@ -9768,9 +9762,8 @@ console.log('Planilla lista y visible');
   console.log('✅ Filtros + orden + agrupación por periodo cargados en "Mis grupos".');
 })();
 </script>
-       <!-- ============================================================
-     PATCH: Filtros Mes→Grupo→Docente + Botón "Calendarizar ahora"
-     (nuevo lienzo con eventos antiguos ocultos)
+<!-- ============================================================
+     PATCH OPTIMIZADO: Filtros Mes→Grupo + Botón "Calendarizar ahora"
      ============================================================ -->
 <script>
 (function () {
@@ -9778,24 +9771,6 @@ console.log('Planilla lista y visible');
 
   // Estado del borrador (nuevo lienzo)
   window.calDraftMode = null;   // { groupId, month, startedAt }
-
-  // ─── Rellenar select de Docente ────────────────────────────────────
-  function fillCalDocenteSelect() {
-    const sel = document.getElementById('calFiltroDocente');
-    if (!sel) return;
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">Todos los docentes</option>';
-    Object.keys(state.teachers || {}).sort((a, b) =>
-      (state.teachers[a].nombre || '').localeCompare(state.teachers[b].nombre || '')
-    ).forEach(code => {
-      const t = state.teachers[code];
-      const o = document.createElement('option');
-      o.value = code;
-      o.textContent = t.nombre || code;
-      sel.appendChild(o);
-    });
-    if (cur && state.teachers[cur]) sel.value = cur;
-  }
 
   // ─── Construir celdas con días del mes vecino ──────────────────────
   function buildCells(yy, mm) {
@@ -9819,19 +9794,13 @@ console.log('Planilla lista y visible');
     return cells;
   }
 
-  // ─── Override: getEventosFiltrados (grupo + docente + draft) ───────
+  // ─── Override: getEventosFiltrados (solo grupo + draft) ────────────
   window.getEventosFiltrados = function (fecha) {
     let events = (state.calendarEvents && state.calendarEvents[fecha]) || [];
     const gid = document.getElementById('calFiltroGrupo')?.value || '';
-    const tid = document.getElementById('calFiltroDocente')?.value || '';
 
     if (gid) {
       events = events.filter(ev => ev.grupoId === gid);
-    } else if (tid) {
-      const teacherGroupIds = new Set(
-        (state.groups || []).filter(g => g.teacherCode === tid).map(g => g.id)
-      );
-      events = events.filter(ev => !ev.grupoId || teacherGroupIds.has(ev.grupoId));
     }
 
     if (window.calDraftMode && window.calDraftMode.startedAt) {
@@ -9871,7 +9840,7 @@ console.log('Planilla lista y visible');
     }));
   };
 
-  // ─── Override: renderCalendarizacion (usa filtros correctamente) ───
+  // ─── Override: renderCalendarizacion ───────────────────────────────
   window.renderCalendarizacion = function () {
     const mesInp = document.getElementById('calMesSelect');
     const grid = document.getElementById('calGrid');
@@ -9883,7 +9852,6 @@ console.log('Planilla lista y visible');
     }
     if (!state.calendarEvents) state.calendarEvents = {};
 
-    fillCalDocenteSelect();
     if (typeof fillCalGrupoSelectFiltro === 'function') fillCalGrupoSelectFiltro();
     if (typeof renderCalDocenteInfo === 'function') renderCalDocenteInfo();
     if (typeof renderCalLegend === 'function') renderCalLegend();
@@ -9905,6 +9873,7 @@ console.log('Planilla lista y visible');
       const opac = cell.outside ? 'opacity:.55;' : '';
       const bg = cell.outside ? '#fafafa' : (evs.length ? '#f0f7ff' : '#fff');
       const numColor = cell.outside ? '#94a3b8' : (isToday ? 'var(--azul-medio)' : 'var(--texto)');
+      
       html += '<div data-cal-day="' + cell.iso + '" role="button" tabindex="0"'
         + ' style="border:1px solid ' + (isToday ? 'var(--azul-medio)' : 'var(--borde)') + ';border-radius:10px;min-height:78px;padding:8px;cursor:pointer;' + opac + 'background:' + bg + ';outline:' + (isSel ? '2px solid var(--azul-medio)' : 'none') + ';box-shadow:' + (isSel ? '0 0 0 3px rgba(0,102,204,.18)' : 'none') + ';">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:800;font-size:.95rem;color:' + numColor + ';">' + cell.day + '</span>'
@@ -9955,8 +9924,8 @@ console.log('Planilla lista y visible');
     if (!window.calDraftMode) {
       banner.style.display = 'none';
       banner.innerHTML = '';
-      if (selG) selG.disabled = false;
-      if (inpM) inpM.disabled = false;
+      if (selG) { selG.style.pointerEvents = ''; selG.style.opacity = ''; selG.style.backgroundColor = ''; }
+      if (inpM) { inpM.style.pointerEvents = ''; inpM.style.opacity = ''; inpM.style.backgroundColor = ''; }
       return;
     }
 
@@ -9967,8 +9936,8 @@ console.log('Planilla lista y visible');
     const mesLabel = meses[mm - 1] + ' ' + yy;
     const nuevos = countDraftEvents();
 
-    if (selG) { selG.value = groupId; selG.disabled = true; }
-    if (inpM) { inpM.value = month; inpM.disabled = true; }
+    if (selG) { selG.value = groupId; selG.style.pointerEvents = 'none'; selG.style.opacity = '0.6'; selG.style.backgroundColor = '#f1f5f9'; }
+    if (inpM) { inpM.value = month; inpM.style.pointerEvents = 'none'; inpM.style.opacity = '0.6'; inpM.style.backgroundColor = '#f1f5f9'; }
 
     banner.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#ede9fe;border:2px solid #c4b5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px;color:#6d28d9;font-weight:600;font-size:.9rem;';
     banner.innerHTML = `
@@ -9978,23 +9947,14 @@ console.log('Planilla lista y visible');
       </span>
       <button type="button" class="btn btn-verde btn-mini" id="btnCalDraftSave">💾 Guardar y salir</button>
       <button type="button" class="btn btn-rojo btn-mini" id="btnCalDraftCancel">❌ Cancelar borrador</button>`;
+      
     document.getElementById('btnCalDraftSave').addEventListener('click', () => endCalDraft(true));
     document.getElementById('btnCalDraftCancel').addEventListener('click', () => endCalDraft(false));
   }
 
   // ─── Iniciar / terminar borrador ───────────────────────────────────
-  // ─── Iniciar / terminar borrador ───────────────────────────────────
   function startCalDraft(groupId, month) {
     window.calDraftMode = { groupId, month, startedAt: Date.now() };
-    
-    // Bloquear los inputs para que no cambien de mes/grupo mientras calendarizan
-    const inpM = document.getElementById('calMesSelect');
-    const selG = document.getElementById('calFiltroGrupo');
-    const selD = document.getElementById('calFiltroDocente');
-    if (inpM) inpM.disabled = true;
-    if (selG) selG.disabled = true;
-    if (selD) selD.disabled = true;
-
     renderCalDraftBanner();
     window.renderCalendarizacion();
   }
@@ -10003,16 +9963,7 @@ console.log('Planilla lista y visible');
     if (!window.calDraftMode) return;
     const { startedAt, month } = window.calDraftMode;
 
-    // Desbloquear los inputs al salir del modo borrador
-    const inpM = document.getElementById('calMesSelect');
-    const selG = document.getElementById('calFiltroGrupo');
-    const selD = document.getElementById('calFiltroDocente');
-    if (inpM) inpM.disabled = false;
-    if (selG) selG.disabled = false;
-    if (selD) selD.disabled = false;
-
     if (!commit) {
-      // ... (aquí va tu lógica de borrar eventos cancelados, tal cual estaba) ...
       Object.keys(state.calendarEvents || {}).forEach(fecha => {
         if (!fecha.startsWith(month)) return;
         state.calendarEvents[fecha] = (state.calendarEvents[fecha] || []).filter(ev => {
@@ -10072,24 +10023,19 @@ console.log('Planilla lista y visible');
     startCalDraft(gid, month);
   });
 
-  // ─── Listener del nuevo select de Docente ──────────────────────────
-  document.getElementById('calFiltroDocente')?.addEventListener('change', () => {
-    window.renderCalendarizacion();
-  });
-
   // ─── Reinicializar al abrir la pestaña Calendarización ─────────────
   document.querySelectorAll('#tal-panel-admin [data-admtab="calendarizacion"]').forEach(tab => {
     tab.addEventListener('click', () => setTimeout(() => {
-      try { fillCalDocenteSelect(); window.renderCalendarizacion(); } catch (e) {}
+      try { window.renderCalendarizacion(); } catch (e) {}
     }, 60));
   });
 
   // ─── Al cargar ─────────────────────────────────────────────────────
   setTimeout(() => {
-    try { fillCalDocenteSelect(); renderCalDraftBanner(); } catch (e) {}
+    try { renderCalDraftBanner(); } catch (e) {}
   }, 500);
 
-  console.log('✅ Filtros Mes→Grupo→Docente + "Calendarizar ahora" (lienzo limpio) cargados.');
+  console.log('✅ Filtros Mes→Grupo + "Calendarizar ahora" cargados exitosamente.');
 })();
 </script>
 </body>
