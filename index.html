@@ -10122,5 +10122,200 @@ console.log('Planilla lista y visible');
   console.log('✅ Panel lateral inteligente cargado: Selector de grupo dinámico.');
 })();
 </script>
+ <!-- ============================================================
+     MEJORA PRO: Copiar/Pegar eventos con CLIC DERECHO
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // 1. Inyectar estilos para el menú contextual
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .cal-context-menu {
+      position: absolute;
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      padding: 6px 0;
+      z-index: 10000;
+      min-width: 220px;
+      display: none;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 0.88rem;
+    }
+    .cal-context-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--texto);
+      transition: background 0.15s;
+    }
+    .cal-context-item:hover {
+      background: #f0f7ff;
+      color: var(--azul);
+    }
+    .cal-context-item.disabled {
+      color: #9ca3af;
+      cursor: not-allowed;
+      background: transparent;
+    }
+    .cal-context-sep {
+      height: 1px;
+      background: var(--borde);
+      margin: 4px 0;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 2. Crear el elemento HTML del menú
+  const menu = document.createElement('div');
+  menu.className = 'cal-context-menu';
+  menu.id = 'calContextMenu';
+  document.body.appendChild(menu);
+
+  // Variable para guardar la fecha que copiamos
+  window._calCopiedData = null; 
+
+  // 3. Lógica para mostrar el menú
+  function showContextMenu(e, isoDate) {
+    e.preventDefault(); // Evita el menú del navegador
+
+    const gid = document.getElementById('calFiltroGrupo')?.value || window.calDraftMode?.groupId || '';
+    const esHoyPanel = document.getElementById('calEventPanel')?.dataset.fecha === isoDate;
+
+    // Formatear fecha bonita
+    const [y, m, d] = isoDate.split('-');
+    const fechaBonita = `${d}/${m}/${y}`;
+
+    // Construir opciones
+    let html = '';
+
+    // Opción: Copiar
+    html += `<div class="cal-context-item" id="ctxCopy" data-date="${isoDate}">
+      📋 Copiar eventos del ${fechaBonita}
+    </div>`;
+
+    // Opción: Pegar (solo si hay datos copiados)
+    if (window._calCopiedData) {
+      const [cy, cm, cd] = window._calCopiedData.date.split('-');
+      if (window._calCopiedData.date === isoDate) {
+        html += `<div class="cal-context-item disabled">📥 Pegar aquí (misma fecha)</div>`;
+      } else {
+        html += `<div class="cal-context-item" id="ctxPaste" data-date="${isoDate}">
+          📥 Pegar eventos del ${cd}/${cm}/${cy}
+        </div>`;
+      }
+    } else {
+      html += `<div class="cal-context-item disabled">📥 Pegar eventos aquí (vacío)</div>`;
+    }
+
+    html += `<div class="cal-context-sep"></div>`;
+
+    // Opción: Abrir panel
+    html += `<div class="cal-context-item" id="ctxOpen" data-date="${isoDate}">
+      ✏️ Abrir panel de este día
+    </div>`;
+
+    menu.innerHTML = html;
+
+    // Posicionar el menú
+    menu.style.display = 'block';
+    
+    // Ajustar para que no se salga de la pantalla
+    let x = e.pageX;
+    let y = e.pageY;
+    const menuWidth = 240;
+    const menuHeight = menu.offsetHeight;
+
+    if (x + menuWidth > window.innerWidth + window.scrollX) x -= menuWidth;
+    if (y + menuHeight > window.innerHeight + window.scrollY) y -= menuHeight;
+
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+
+    // 4. Asignar eventos a las opciones
+    document.getElementById('ctxCopy')?.addEventListener('click', () => {
+      window._calCopiedData = { date: isoDate, groupId: gid };
+      menu.style.display = 'none';
+      // Pequeño aviso visual
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:50px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:99999;';
+      toast.textContent = `✅ Eventos del ${fechaBonita} copiados. Haz clic derecho en otro día para pegar.`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    });
+
+    document.getElementById('ctxPaste')?.addEventListener('click', () => {
+      if (!window._calCopiedData) return;
+      const srcDate = window._calCopiedData.date;
+      const targetDate = isoDate;
+      const targetGid = gid; // El grupo actual
+
+      // Filtrar eventos de la fecha origen para el grupo actual
+      const sourceEvents = (state.calendarEvents[srcDate] || []).filter(ev => ev.grupoId === targetGid);
+      
+      if (!sourceEvents.length) {
+        alert('⚠️ No hay eventos para este grupo en la fecha copiada.');
+        menu.style.display = 'none';
+        return;
+      }
+
+      if (!state.calendarEvents[targetDate]) state.calendarEvents[targetDate] = [];
+      let added = 0;
+      const nowISO = new Date().toISOString();
+
+      sourceEvents.forEach(ev => {
+        // Evitar duplicados exactos
+        const exists = state.calendarEvents[targetDate].some(t => t.tipo === ev.tipo && t.grupoId === targetGid);
+        if (!exists) {
+          state.calendarEvents[targetDate].push({
+            ...ev,
+            id: 'cev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            createdAt: nowISO
+          });
+          added++;
+        }
+      });
+
+      saveState();
+      if (window.renderCalendarizacion) window.renderCalendarizacion();
+      if (typeof openCalDay === 'function') openCalDay(targetDate); // Refrescar panel
+      
+      menu.style.display = 'none';
+      alert(`✅ Se pegaron ${added} evento(s) en el ${fechaBonita}.`);
+    });
+
+    document.getElementById('ctxOpen')?.addEventListener('click', () => {
+      menu.style.display = 'none';
+      if (typeof openCalDay === 'function') openCalDay(isoDate);
+    });
+  }
+
+  // 5. Escuchar el clic derecho en las celdas del calendario
+  document.addEventListener('contextmenu', (e) => {
+    const cell = e.target.closest('[data-cal-day]');
+    if (cell) {
+      // Solo actuar si estamos en la pestaña de calendarización
+      const panel = document.getElementById('adm-panel-calendarizacion');
+      if (panel && panel.classList.contains('activo')) {
+        showContextMenu(e, cell.dataset.calDay);
+      }
+    }
+  });
+
+  // 6. Ocultar el menú al hacer clic en cualquier otro lado
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#calContextMenu')) {
+      menu.style.display = 'none';
+    }
+  });
+
+  console.log('✅ Menú contextual (clic derecho) para copiar/pegar eventos cargado.');
+})();
+</script>
 </body>
 </html>
