@@ -2221,42 +2221,41 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
       </div>
     </div>
 
-  <div id="inscPasoExistente" style="display:none; text-align:left;">
-  <div class="campo"><label>Código de alumno <span class="req">*</span></label>
-    <div class="input-with-btn">
-      <input type="text" id="inscCodigoAlumno" placeholder="Ej: JV2026">
-      <button type="button" class="btn-icon" id="btnVerificarCodigo">🔍 Verificar</button>
+    <div id="inscPasoExistente" style="display:none; text-align:left;">
+      <div class="campo"><label>Código de alumno <span class="req">*</span></label>
+        <div class="input-with-btn">
+          <input type="text" id="inscCodigoAlumno" placeholder="Ej: JV2026">
+          <button type="button" class="btn-icon" id="btnVerificarCodigo">🔍 Verificar</button>
+        </div>
+      </div>
+      <div id="inscDatosAlumno" style="display:none; background:#f0fdf4; padding:14px; border-radius:10px; margin:14px 0; border:1px solid #86efac;">
+        <p style="font-size:.88rem; margin:4px 0;"><strong>Nombre:</strong> <span id="inscNombreExistente"></span></p>
+        <p style="font-size:.88rem; margin:4px 0;"><strong>Último nivel cursado:</strong> <span id="inscNivelExistente"></span></p>
+      </div>
+      <div class="campo"><label>Subir voucher de pago <span class="req">*</span></label>
+        <input type="file" id="inscVoucherExistente" accept="image/*">
+      </div>
+      <button type="button" class="btn btn-verde" id="btnTerminarInscExistente" style="width:100%; margin-top:12px;" disabled>Terminar Inscripción</button>
+    </div>
+
+    <div id="inscPasoNuevo" style="display:none; text-align:left;">
+      <div class="campo"><label>Nombres <span class="req">*</span></label><input type="text" id="inscNombres"></div>
+      <div class="campo"><label>Apellidos <span class="req">*</span></label><input type="text" id="inscApellidos"></div>
+      <div class="campo"><label>DNI / Carné de extranjería <span class="req">*</span></label><input type="text" id="inscDni" maxlength="12"></div>
+      <div class="campo"><label>Foto del DNI / Carné <span class="req">*</span></label><input type="file" id="inscDniFile" accept="image/*"></div>
+      <div class="campo"><label>Email</label><input type="email" id="inscEmail"></div>
+      <div class="campo"><label>Teléfono / WhatsApp <span class="req">*</span></label><input type="tel" id="inscTelefono"></div>
+      <div class="campo"><label>Subir voucher de pago <span class="req">*</span></label><input type="file" id="inscVoucherNuevo" accept="image/*"></div>
+      <button type="button" class="btn btn-verde" id="btnTerminarPreInsc" style="width:100%; margin-top:12px;">Terminar pre-inscripción</button>
+    </div>
+
+    <div id="inscExito" style="display:none; padding:20px 0;">
+      <div style="font-size:3.5rem; margin-bottom:14px;">🎉</div>
+      <h3 style="color:var(--verde); margin-bottom:10px;">¡Felicitaciones!</h3>
+      <p style="color:var(--gris); font-size:.95rem;">Hemos recibido tu inscripción correctamente.<br>La escuela se contactará con usted en las próximas horas.</p>
+      <button type="button" class="btn btn-azul" onclick="document.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
     </div>
   </div>
-  
-  <div id="inscDatosAlumno" style="display:none; background:#f8fafc; padding:14px; border-radius:10px; margin:14px 0; border:1px solid var(--borde);">
-    <p style="font-size:.9rem; margin:4px 0;"><strong>Nombre:</strong> <span id="inscNombreExistente"></span></p>
-    <p style="font-size:.9rem; margin:4px 0;"><strong>Estado Académico:</strong> <span id="inscEstadoExistente" style="font-weight:bold;"></span></p>
-  </div>
-
-  <!-- Caja del Recibo (Solo aparece si todo está ok) -->
-  <div id="inscReciboBox" style="display:none; margin-top:14px;">
-    <div class="campo" style="background:#fffbeb; padding:14px; border-radius:10px; border:1px solid #fcd34d;">
-      <p style="font-size:.9rem; margin-top:0; color:#b45309;"><strong>📄 Recibo de pago (SUNAT)</strong></p>
-      <p style="font-size:.85rem; color:var(--gris); margin-bottom:10px;">Por favor, descarga tu recibo y confirma que es el correcto.</p>
-      
-      <label style="display:flex; align-items:center; gap:8px; font-size:.9rem; margin-bottom:10px; cursor:pointer;">
-        <input type="checkbox" id="chkConfirmarReciboExistente" style="width:18px; height:18px;">
-        Confirmo que este es mi recibo emitido por mi pago de matrícula.
-      </label>
-      
-      <button type="button" class="btn btn-azul btn-mini" id="btnDescargarReciboExistente" disabled style="width:100%;">⬇️ Descargar Recibo</button>
-    </div>
-  </div>
-
-  <!-- Caja de error si no hay recibo -->
-  <div id="inscErrorRecibo" style="display:none; margin-top:14px; background:#fef2f2; padding:14px; border-radius:10px; border:1px solid #fecaca;">
-    <p style="font-size:.9rem; margin:0; color:#b91c1c; font-weight:bold;">⚠️ Recibo no encontrado</p>
-    <p style="font-size:.85rem; color:#7f1d1d; margin-top:6px; margin-bottom:0;">Por favor, comunícate con el área administrativa al WhatsApp: <a href="https://wa.me/51915900797" target="_blank" style="font-weight:bold; text-decoration:underline;">+51 915 900 797</a></p>
-  </div>
-
-  <!-- El botón final de matrícula -->
-  <button type="button" class="btn btn-verde" id="btnMatricularCursoExistente" style="width:100%; margin-top:12px; display:none;">Matricularme al curso</button>
 </div>
 
 <!-- VISOR IMAGEN -->
@@ -2885,6 +2884,21 @@ document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
   document.getElementById("inscNivelExistente").textContent = ultimoNivel;
   document.getElementById("inscDatosAlumno").style.display = "block";
   document.getElementById("btnTerminarInscExistente").disabled = false;
+});
+document.getElementById("btnTerminarInscExistente").addEventListener("click", async () => {
+  if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
+  const voucherFile = document.getElementById("inscVoucherExistente").files[0];
+  if (!voucherFile) { alert("Sube tu voucher de pago."); return; }
+  const courseId = document.getElementById("inscCourseId").value;
+  const course = state.courses.find(c => c.id === courseId);
+  const student = state.students[_alumnoVerificado];
+ try {
+  const voucher = await procesarImagen(voucherFile, "vouchers");
+  state.registrations.push({ id: "reg_" + Date.now(), scheduleId: courseId, programa: course ? course.programa : "—", nombre: student.nombre, email: student.email, telefono: "—", fecha: new Date().toISOString().slice(0, 10), tipo: "matricula", origen: "web_existente", codigoAlumno: _alumnoVerificado, voucher });
+    saveState();
+    document.getElementById("inscPasoExistente").style.display = "none";
+    document.getElementById("inscExito").style.display = "block";
+  } catch (e) { alert("Error al procesar voucher."); }
 });
 document.getElementById("btnTerminarPreInsc").addEventListener("click", async () => {
   const nombres = document.getElementById("inscNombres").value.trim();
@@ -10909,143 +10923,5 @@ console.log('Planilla lista y visible');
   console.log('✅ Módulo Cobros V2 (por grupo → padres/alumnos) cargado.');
 })();
 </script> 
-   <script>
-(function() {
-  'use strict';
-  
-  // FUNCIÓN PARA BUSCAR EL RECIBO DEL ALUMNO
-  function buscarReciboAlumno(studentCode) {
-    if (!state.cobros || !state.cobros.byGroup) return null;
-    
-    for (const gid in state.cobros.byGroup) {
-      const groupCobros = state.cobros.byGroup[gid];
-      if (!groupCobros || !groupCobros.rows) continue;
-      
-      const fila = groupCobros.rows.find(r => 
-        (r.tipo === 'student' && r.studentCodes.includes(studentCode)) ||
-        (r.tipo === 'parent' && r.studentCodes.includes(studentCode))
-      );
-      
-      if (fila && fila.sunat && fila.sunat.url) {
-        return fila.sunat.url;
-      }
-    }
-    return null;
-  }
-
-  // 1. VERIFICAR CÓDIGO Y ESTADO
-  document.getElementById('btnVerificarCodigo')?.addEventListener('click', () => {
-    const code = document.getElementById('inscCodigoAlumno').value.trim().toUpperCase();
-    const student = state.students[code];
-    
-    // Ocultar todo por defecto
-    document.getElementById('inscDatosAlumno').style.display = 'none';
-    document.getElementById('inscReciboBox').style.display = 'none';
-    document.getElementById('inscErrorRecibo').style.display = 'none';
-    document.getElementById('btnMatricularCursoExistente').style.display = 'none';
-
-    if (!student) {
-      alert('❌ Código de alumno no encontrado.');
-      return;
-    }
-
-    const est = typeof estadoCurso === 'function' ? estadoCurso(code) : { texto: 'Pendiente', clase: 'pendiente' };
-    
-    // Mostrar nombre y estado
-    document.getElementById('inscNombreExistente').textContent = student.nombre;
-    const estadoEl = document.getElementById('inscEstadoExistente');
-    estadoEl.textContent = est.texto;
-    estadoEl.style.color = est.clase === 'aprobado' ? '#15803d' : (est.clase === 'desaprobado' ? '#b91c1c' : '#b45309');
-    document.getElementById('inscDatosAlumno').style.display = 'block';
-
-    // REGLA 1: Bloquear si NO está aprobado
-    if (est.clase !== 'aprobado') {
-      setTimeout(() => {
-        alert('⚠️ El alumno no cuenta con el estado "Aprobado". Debe solucionar su caso con administración de forma interna.');
-      }, 300);
-      return;
-    }
-
-    // REGLA 2: Buscar recibo
-    const reciboUrl = buscarReciboAlumno(code);
-    
-    if (reciboUrl) {
-      // Encontramos recibo
-      const reciboBox = document.getElementById('inscReciboBox');
-      const btnDescargar = document.getElementById('btnDescargarReciboExistente');
-      const chk = document.getElementById('chkConfirmarReciboExistente');
-      
-      reciboBox.style.display = 'block';
-      btnDescargar.disabled = true;
-      chk.checked = false;
-      btnDescargar.dataset.url = reciboUrl;
-
-      // Checkbox activa botón de descarga
-      chk.onchange = (e) => {
-        btnDescargar.disabled = !e.target.checked;
-      };
-
-      // Descarga activa botón de matrícula
-      btnDescargar.onclick = () => {
-        const url = btnDescargar.dataset.url;
-        if (url) {
-          if (typeof abrirArchivo === 'function') abrirArchivo(url);
-          else window.open(url, '_blank');
-          
-          const btnMatricular = document.getElementById('btnMatricularCursoExistente');
-          const cursoActual = state.groups.find(g => g.id === document.getElementById('inscCourseId').value);
-          btnMatricular.textContent = `Matricularme al curso: ${cursoActual ? cursoActual.nombre : 'seleccionado'}`;
-          btnMatricular.style.display = 'block';
-        }
-      };
-    } else {
-      // No encontramos recibo
-      document.getElementById('inscErrorRecibo').style.display = 'block';
-    }
-  });
-
-  // 2. MATRICULAR AL CURSO
-  document.getElementById('btnMatricularCursoExistente')?.addEventListener('click', () => {
-    const code = document.getElementById('inscCodigoAlumno').value.trim().toUpperCase();
-    const courseId = document.getElementById('inscCourseId').value;
-    
-    if (!code || !courseId) return;
-
-    const group = state.groups.find(g => g.id === courseId);
-    if (group) {
-      if (group.studentCodes.includes(code)) {
-        alert('ℹ️ Ya te encuentras matriculado en este curso.');
-      } else {
-        group.studentCodes.push(code);
-        if (typeof saveState === 'function') saveState();
-      }
-      
-      document.getElementById("inscPasoExistente").style.display = "none";
-      const exitoDiv = document.getElementById("inscExito");
-      exitoDiv.style.display = "block";
-      exitoDiv.innerHTML = `
-        <div style="font-size:3.5rem; margin-bottom:14px;">🎉</div>
-        <h3 style="color:var(--verde); margin-bottom:10px;">¡Matrícula Exitosa!</h3>
-        <p style="color:var(--gris); font-size:.95rem;">Has sido matriculado en el curso <strong>${group.nombre}</strong>.<br>Puedes cerrar esta ventana e ingresar a tu Portal del Alumno.</p>
-        <button type="button" class="btn btn-azul" onclick="document.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
-      `;
-    }
-  });
-
-  // 3. LIMPIAR AL ABRIR EL MODAL
-  const originalAbrirModal = window.abrirModalInscripcion;
-  window.abrirModalInscripcion = function(course) {
-    if (typeof originalAbrirModal === 'function') originalAbrirModal(course);
-    document.getElementById('inscDatosAlumno').style.display = 'none';
-    document.getElementById('inscReciboBox').style.display = 'none';
-    document.getElementById('inscErrorRecibo').style.display = 'none';
-    document.getElementById('btnMatricularCursoExistente').style.display = 'none';
-    document.getElementById('chkConfirmarReciboExistente').checked = false;
-    document.getElementById('btnDescargarReciboExistente').disabled = true;
-  };
-
-  console.log('✅ Flujo de matrícula (Alumno Existente) cargado correctamente.');
-})();
-</script>
 </body>
 </html>
