@@ -10038,5 +10038,89 @@ console.log('Planilla lista y visible');
   console.log('✅ Filtros Mes→Grupo + "Calendarizar ahora" cargados exitosamente.');
 })();
 </script>
+ <!-- ============================================================
+     MEJORA UI: Panel lateral inteligente
+     Oculta el selector de grupo si ya se eligió uno en el filtro superior
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  function syncSidePanelGroup() {
+    const sideSelect = document.getElementById('calGrupoSel');
+    if (!sideSelect) return;
+
+    // El contenedor padre (la caja con el label "Grupo")
+    const wrapper = sideSelect.closest('.campo');
+    if (!wrapper) return;
+
+    // Verificamos si hay un grupo seleccionado en el filtro superior o en modo borrador
+    const topFilterGid = document.getElementById('calFiltroGrupo')?.value || '';
+    const draftGid = window.calDraftMode?.groupId || '';
+    const gidToUse = draftGid || topFilterGid;
+
+    if (gidToUse) {
+      // 1. Ocultar la caja del select
+      wrapper.style.display = 'none';
+      
+      // 2. Asignar el valor al select oculto (para que el botón "Agregar al día" funcione)
+      sideSelect.value = gidToUse;
+
+      // 3. Mostrar un aviso visual bonito
+      let badge = wrapper.parentNode.querySelector('.grupo-fijo-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'grupo-fijo-badge';
+        badge.style.cssText = 'background:#e0f2fe;color:#0369a1;padding:10px 12px;border-radius:8px;font-size:.85rem;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:6px;border:1px solid #bae6fd;';
+        wrapper.parentNode.insertBefore(badge, wrapper);
+      }
+      
+      const g = state.groups.find(x => x.id === gidToUse);
+      badge.innerHTML = `📌 Asignando evento al grupo: <strong>${g ? g.nombre : gidToUse}</strong>`;
+      badge.style.display = 'flex';
+
+    } else {
+      // Si está en "Todos los grupos", mostrar el select normal
+      wrapper.style.display = '';
+      const badge = wrapper.parentNode.querySelector('.grupo-fijo-badge');
+      if (badge) badge.style.display = 'none';
+    }
+  }
+
+  // 1. Interceptar cuando se abre el panel del día
+  const originalOpenCalDay = window.openCalDay;
+  window.openCalDay = function (key) {
+    if (typeof originalOpenCalDay === 'function') {
+      originalOpenCalDay(key);
+    }
+    // Un mini tiempo de espera para que el DOM del panel se pinte antes de modificarlo
+    setTimeout(syncSidePanelGroup, 20);
+  };
+
+  // 2. Escuchar cuando el usuario cambia el filtro superior
+  document.getElementById('calFiltroGrupo')?.addEventListener('change', () => {
+    syncSidePanelGroup();
+  });
+
+  // 3. Sincronizar si se inicia o cancela el modo "Nuevo lienzo"
+  const origStartDraft = window.startCalDraft;
+  if (typeof origStartDraft === 'function') {
+    window.startCalDraft = function (gid, mes) {
+      origStartDraft(gid, mes);
+      syncSidePanelGroup();
+    };
+  }
+  
+  const origEndDraft = window.endCalDraft;
+  if (typeof origEndDraft === 'function') {
+    window.endCalDraft = function (commit) {
+      origEndDraft(commit);
+      syncSidePanelGroup();
+    };
+  }
+
+  console.log('✅ Panel lateral inteligente cargado: Selector de grupo dinámico.');
+})();
+</script>
 </body>
 </html>
