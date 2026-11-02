@@ -10310,5 +10310,66 @@ console.log('Planilla lista y visible');
   console.log('✅ Menú contextual V3 cargado.');
 })();
 </script>
+ <!-- ============================================================
+     MEJORA: Limpieza automática del panel al cerrar un grupo
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // 1. Interceptar la función de cierre de curso para dar un mensaje al usuario
+  const origEjecutarCierre = window.ejecutarCierreCurso;
+  window.ejecutarCierreCurso = function () {
+    // Llamamos a la función original que hace el cierre
+    if (typeof origEjecutarCierre === 'function') {
+      origEjecutarCierre();
+    }
+
+    // Esperamos un momento a que el sistema procese el cierre
+    setTimeout(() => {
+      // Mostrar Toast de confirmación
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:14px 24px;border-radius:50px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.2);z-index:999999;font-family:sans-serif;font-size:.95rem;text-align:center;';
+      toast.innerHTML = '✅ Grupo cerrado y archivado.<br><small style="font-weight:normal;opacity:0.9;">Tu panel ha sido limpiado y está listo para los nuevos grupos.</small>';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    }, 300);
+  };
+
+  // 2. Sobrescribir el renderizado de Pago Docente para que SÍ muestre los grupos cerrados
+  // (Así el profesor no pierde el registro de lo que trabajó y debe cobrar)
+  const origRenderPago = window.renderTeacherPago;
+  window.renderTeacherPago = function () {
+    if (typeof origRenderPago !== 'function') return;
+    
+    // Truco: temporalmente engañamos al sistema para que incluya los cerrados
+    const origGetTeacherGroups = window.getTeacherGroups;
+    window.getTeacherGroups = function (teacherCode) {
+      return (state.groups || []).filter(g => g.teacherCode === teacherCode); // Todos, sin filtro de cerrado
+    };
+
+    // Ejecutamos la función original (ahora traerá todos)
+    origRenderPago.apply(this, arguments);
+
+    // Restauramos la función original para que el resto de tabs sigan ocultando los cerrados
+    window.getTeacherGroups = origGetTeacherGroups;
+  };
+
+  // 3. Forzar que el calendario del docente no muestre eventos de grupos cerrados
+  // (El calendario usa getTeacherGroups para filtrar, así que ya está cubierto, 
+  // pero por seguridad forzamos una actualización al entrar al tab)
+  document.querySelectorAll('#dashboardDocente [data-dtab="calendario"]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setTimeout(() => {
+        if (typeof window.renderTeacherCalendario === 'function') {
+          window.renderTeacherCalendario();
+        }
+      }, 100);
+    });
+  });
+
+  console.log('✅ Sistema de "Panel Limpio" al cerrar grupos cargado.');
+})();
+</script>
 </body>
 </html>
