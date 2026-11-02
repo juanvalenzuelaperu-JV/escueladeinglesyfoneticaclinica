@@ -5043,7 +5043,9 @@ function refreshAdminView() {
   try { renderAdmAccesoAlumnoSelect(); } catch(e) {}
   try { renderAdminEstadosGrupos(); } catch(e) {}
   renderAdminAlumnos(); renderAdminDocentes(); renderAdminGrupos(); renderAdminMatriculas();
-  renderAdminCourses(); renderAdminExams(); renderAdminResumen();
+  try { renderAdminCourses(); } catch (e) { console.warn('renderAdminCourses:', e); }
+  try { renderAdminExams(); } catch (e) {}
+  try { renderAdminResumen(); } catch (e) {}
   refreshAdminTeacherSelects(); refreshAdminExamGroups(); renderAdminLetterhead(); renderAdminFounder();
   renderMarketingGallery(); renderFavicon();
   renderOficinaImagenes("marketing"); renderOficinaImagenes("contabilidad"); renderOficinaImagenes("direccion");
@@ -5262,6 +5264,67 @@ document.getElementById("admNewExamForm").addEventListener("submit", (e) => {
   if (!state.examResults) state.examResults = {}; state.examResults[examId] = {};
   saveState(); e.target.reset(); document.getElementById("admExamPreguntas").innerHTML = "";
 });
+function renderAdminCourses() {
+  const cont = document.getElementById("admCoursesList");
+  if (!cont) return;
+  if (!Array.isArray(state.courses)) state.courses = [];
+  if (!state.courses.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:18px;">📭 Aún no hay cursos programados.</div>';
+    return;
+  }
+  cont.innerHTML = `<table style="min-width:640px;"><thead><tr>
+    <th>Programa</th><th>Día(s)</th><th>Horario</th><th>Modalidad</th><th>Tipo</th><th>Cupo</th><th>Acciones</th>
+  </tr></thead><tbody>${state.courses.map(c => {
+    const tipoLabel = c.tipo === 'cita' ? 'Cita' : 'Matrícula';
+    return `<tr>
+      <td><strong>${c.programa || '—'}</strong></td>
+      <td>${c.dia || '—'}</td>
+      <td>${c.horario || '—'}</td>
+      <td>${c.modalidad || '—'}</td>
+      <td>${tipoLabel}</td>
+      <td>${c.tipo === 'cita' ? '—' : (c.max != null ? c.max : '—')}</td>
+      <td><button type="button" class="btn btn-mini btn-rojo" data-del-course="${c.id}">🗑️</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+  cont.querySelectorAll('[data-del-course]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('¿Eliminar este curso de la programación?')) return;
+      state.courses = state.courses.filter(c => c.id !== btn.dataset.delCourse);
+      saveState();
+      renderAdminCourses();
+      if (typeof renderHorariosTable === 'function') renderHorariosTable();
+    });
+  });
+}
+
+document.getElementById('admNewCourseForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const programa = (document.getElementById('admCoursePrograma')?.value || '').trim();
+  if (!programa) { alert('Ingresa el nombre del programa.'); return; }
+  const dia = (document.getElementById('admCourseDia')?.value || '').trim();
+  const horario = (document.getElementById('admCourseHorario')?.value || '').trim();
+  const modalidad = document.getElementById('admCourseModalidad')?.value || 'Online';
+  const tipo = document.getElementById('admCourseTipo')?.value || 'matricula';
+  const max = parseInt(document.getElementById('admCourseMax')?.value, 10) || 12;
+  if (!Array.isArray(state.courses)) state.courses = [];
+  state.courses.push({
+    id: 'sch_' + Date.now(),
+    programa,
+    dia: dia || '—',
+    horario: horario || '—',
+    modalidad,
+    tipo,
+    max: tipo === 'cita' ? null : max
+  });
+  saveState();
+  renderAdminCourses();
+  if (typeof renderHorariosTable === 'function') renderHorariosTable();
+  e.target.reset();
+  const maxInp = document.getElementById('admCourseMax');
+  if (maxInp) maxInp.value = '12';
+  alert('✅ Curso creado en la programación.');
+});
+
 function renderAdminExams() { const cont = document.getElementById("admExamsLista"); if (!cont) return; cont.innerHTML = `<div class="empty-state">${(state.exams || []).length ? state.exams.length + " exámenes publicados." : "Sin exámenes."}</div>`; }
 function renderAdminResumen() {
   document.getElementById("admStatAlumnos").textContent = Object.keys(state.students).length;
@@ -11030,8 +11093,8 @@ console.log('Planilla lista y visible');
             const row = gc.rows.find(r => r.id === rowId);
             if (!row) return;
             row[tipo] = { url, name: file.name, uploadedAt: new Date().toISOString() };
-            saveState();
-            renderCobro();
+            try { saveState(); } catch (se) { console.warn('saveState tras cobro:', se); }
+            try { renderCobro(); } catch (re) { console.warn('renderCobro:', re); }
           } catch (e) { alert('Error al subir: ' + e.message); }
         };
         input.click();
