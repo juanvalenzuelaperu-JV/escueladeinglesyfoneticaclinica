@@ -7160,16 +7160,194 @@ function renderAdminPadres() {
   const cont = document.getElementById('admPadresLista');
   if (!cont) return;
   const keys = Object.keys(state.padres || {});
-  if (!keys.length) { cont.innerHTML = '<div class="empty-state">Sin padres registrados.</div>'; return; }
-  let html = '<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table class="admin-table" style="min-width:800px;"><thead><tr><th>Usuario</th><th>Nombre</th><th>Celular</th><th>Hijos</th><th>DNI</th></tr></thead><tbody>';
+  if (!keys.length) {
+    cont.innerHTML = '<div class="empty-state">Sin padres registrados.</div>';
+    return;
+  }
+  let html = '<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table class="admin-table" style="min-width:1000px;"><thead><tr><th>Usuario</th><th>Nombre</th><th>Celular</th><th>Hijos</th><th>DNI</th><th>Contraseña</th><th>Acciones</th></tr></thead><tbody>';
   keys.forEach(u => {
     const p = state.padres[u];
-    const hijos = (p.hijos||[]).map(c => state.students[c]?.nombre||c).join(', ');
-    html += `<tr><td><code>${u}</code></td><td>${p.nombre}</td><td>${p.celular||'—'}</td><td>${hijos||'—'}</td><td>${p.dni||'—'}</td></tr>`;
+    const hijos = (p.hijos || []).map(c => state.students[c]?.nombre || c).join(', ');
+    html += `<tr>
+      <td><code>${u}</code></td>
+      <td>${p.nombre}</td>
+      <td>${p.celular || '—'}</td>
+      <td>${hijos || '—'}</td>
+      <td>${p.dni || '—'}</td>
+      <td><div class="pwd-cell"><span class="pwd-hidden" data-pwd-padre="${u}">••••••••</span><button class="eye-btn" data-toggle-pwd-padre="${u}" type="button" title="Ver contraseña">👁️</button></div></td>
+      <td><div class="acciones-cell">
+        <button type="button" class="btn btn-mini btn-azul" data-reset-pwd-padre="${u}" title="Resetear contraseña">🔑</button>
+        <button type="button" class="btn btn-mini btn-morado" data-edit-padre="${u}" title="Editar datos">✏️ Editar</button>
+        <button type="button" class="btn btn-mini btn-rojo" data-del-padre="${u}" title="Eliminar cuenta">🗑️</button>
+      </div></td>
+    </tr>`;
   });
   cont.innerHTML = html + '</tbody></table></div>';
+
+  // Ver/ocultar contraseña
+  cont.querySelectorAll('[data-toggle-pwd-padre]').forEach(btn => btn.addEventListener('click', () => {
+    const u = btn.dataset.togglePwdPadre;
+    const span = cont.querySelector(`[data-pwd-padre="${u}"]`);
+    if (!span || !state.padres[u]) return;
+    if (span.classList.contains('pwd-hidden')) {
+      span.textContent = state.padres[u].password;
+      span.className = 'pwd-visible';
+    } else {
+      span.textContent = '••••••••';
+      span.className = 'pwd-hidden';
+    }
+  }));
+
+  // Resetear contraseña
+  cont.querySelectorAll('[data-reset-pwd-padre]').forEach(btn => btn.addEventListener('click', () => {
+    const u = btn.dataset.resetPwdPadre;
+    if (!state.padres[u]) return;
+    if (!confirm(`¿Resetear contraseña de ${state.padres[u].nombre || u}?`)) return;
+    const nueva = typeof genPassword === 'function' ? genPassword() : Math.random().toString(36).slice(-8);
+    state.padres[u].password = nueva;
+    saveState();
+    alert(`🔑 Nueva contraseña de ${state.padres[u].nombre || u}:\n\n${nueva}`);
+    renderAdminPadres();
+  }));
+
+  // Editar
+  cont.querySelectorAll('[data-edit-padre]').forEach(btn => btn.addEventListener('click', () => {
+    abrirEditarPadre(btn.dataset.editPadre);
+  }));
+
+  // Eliminar
+  cont.querySelectorAll('[data-del-padre]').forEach(btn => btn.addEventListener('click', () => {
+    const u = btn.dataset.delPadre;
+    const p = state.padres[u];
+    if (!p) return;
+    const hijos = (p.hijos || []).map(c => state.students[c]?.nombre || c).join(', ');
+    const msg = `¿Eliminar la cuenta de ${p.nombre || u}?\n\n` +
+      (hijos ? `Hijo(s) vinculado(s): ${hijos}\n\n` : '') +
+      `Los alumnos seguirán en el sistema, pero este padre/madre perderá acceso al Portal Padres de Familia.\n\n⛔ Esta acción no se puede deshacer.`;
+    if (!confirm(msg)) return;
+    delete state.padres[u];
+    saveState();
+    renderAdminPadres();
+    alert('✅ Cuenta de padre/madre eliminada.');
+  }));
+}
+/* ===== Edición de padre/madre ===== */
+let padreEditHijosSel = [];
+
+function abrirEditarPadre(user) {
+  const p = state.padres[user];
+  if (!p) { alert('Padre no encontrado.'); return; }
+  document.getElementById('editPadreUserOrig').value = user;
+  document.getElementById('editPadreNombre').value = p.nombre || '';
+  document.getElementById('editPadreCelular').value = p.celular || '';
+  document.getElementById('editPadreEmail').value = (p.email && p.email !== '—') ? p.email : '';
+  document.getElementById('editPadreNac').value = p.fechaNac || '';
+  document.getElementById('editPadreEdad').value = p.edad || '';
+  document.getElementById('editPadreDni').value = p.dni || '';
+  document.getElementById('editPadreUser').value = user;
+  document.getElementById('editPadrePass').value = '';
+  document.getElementById('editPadreDeFiltro').value = '';
+  document.getElementById('editPadreDeSugerencias').style.display = 'none';
+  padreEditHijosSel = [...(p.hijos || [])];
+  renderEditPadreHijosChips();
+  document.getElementById('modalEditarPadre').classList.add('visible');
 }
 
+function renderEditPadreHijosChips() {
+  const cont = document.getElementById('editPadreHijosChips');
+  if (!cont) return;
+  if (!padreEditHijosSel.length) {
+    cont.innerHTML = '<span style="color:var(--gris);font-size:.82rem;">Sin hijos seleccionados</span>';
+    return;
+  }
+  cont.innerHTML = padreEditHijosSel.map(c =>
+    `<span class="student-chip">${state.students[c]?.nombre || c} <button type="button" data-rm-edit-hijo="${c}">×</button></span>`
+  ).join('');
+  cont.querySelectorAll('[data-rm-edit-hijo]').forEach(b => b.addEventListener('click', () => {
+    padreEditHijosSel = padreEditHijosSel.filter(x => x !== b.dataset.rmEditHijo);
+    renderEditPadreHijosChips();
+  }));
+}
+
+document.getElementById('editPadreDeFiltro')?.addEventListener('input', () => {
+  const q = (document.getElementById('editPadreDeFiltro').value || '').toLowerCase();
+  const box = document.getElementById('editPadreDeSugerencias');
+  if (!box) return;
+  if (!q) { box.style.display = 'none'; return; }
+  const matches = Object.keys(state.students || {})
+    .filter(c => (state.students[c].nombre || '').toLowerCase().includes(q))
+    .slice(0, 12);
+  box.innerHTML = matches.map(c =>
+    `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;" data-hijo-edit="${c}">${state.students[c].nombre} (${c})</div>`
+  ).join('') || '<div style="padding:8px;color:#6b7280;">Sin coincidencias</div>';
+  box.style.display = 'block';
+  box.querySelectorAll('[data-hijo-edit]').forEach(el => el.addEventListener('click', () => {
+    if (!padreEditHijosSel.includes(el.dataset.hijoEdit)) padreEditHijosSel.push(el.dataset.hijoEdit);
+    renderEditPadreHijosChips();
+    document.getElementById('editPadreDeFiltro').value = '';
+    box.style.display = 'none';
+  }));
+});
+
+document.getElementById('editPadreNac')?.addEventListener('change', () => {
+  const v = document.getElementById('editPadreNac').value;
+  if (!v) return;
+  const birth = new Date(v), today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  document.getElementById('editPadreEdad').value = age;
+});
+
+document.getElementById('btnVerDniPadreEdit')?.addEventListener('click', () => {
+  const u = document.getElementById('editPadreUserOrig').value;
+  const p = state.padres[u];
+  if (p && p.dniPhoto) {
+    if (typeof showImageViewer === 'function') showImageViewer(p.dniPhoto);
+    else window.open(p.dniPhoto, '_blank');
+  } else {
+    alert('Este padre/madre no tiene foto de DNI registrada.');
+  }
+});
+
+document.getElementById('btnCerrarEditarPadre')?.addEventListener('click', () => {
+  document.getElementById('modalEditarPadre').classList.remove('visible');
+});
+document.getElementById('btnCancelarEditarPadre')?.addEventListener('click', () => {
+  document.getElementById('modalEditarPadre').classList.remove('visible');
+});
+
+document.getElementById('formEditarPadre')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const u = document.getElementById('editPadreUserOrig').value;
+  const p = state.padres[u];
+  if (!p) { alert('Padre no encontrado.'); return; }
+  const nombre = document.getElementById('editPadreNombre').value.trim();
+  const celular = document.getElementById('editPadreCelular').value.trim();
+  const dni = document.getElementById('editPadreDni').value.trim();
+  if (!nombre || !celular || !dni) {
+    alert('Completa los campos obligatorios (nombre, celular y DNI).');
+    return;
+  }
+  if (!padreEditHijosSel.length) {
+    alert('Indica al menos un hijo.');
+    return;
+  }
+  p.nombre = nombre;
+  p.celular = celular;
+  p.email = (document.getElementById('editPadreEmail').value || '').trim() || '—';
+  p.fechaNac = document.getElementById('editPadreNac').value;
+  p.edad = parseInt(document.getElementById('editPadreEdad').value) || null;
+  p.dni = dni;
+  p.hijos = [...padreEditHijosSel];
+  const nuevaPass = (document.getElementById('editPadrePass').value || '').trim();
+  if (nuevaPass) p.password = nuevaPass;
+
+  saveState();
+  document.getElementById('modalEditarPadre').classList.remove('visible');
+  renderAdminPadres();
+  alert('✅ Padre/madre actualizado correctamente.');
+});
 const CAL_TIPO_META = {
   inicio_curso: { label: 'Inicio de curso', color: '#16a34a', emoji: '🟢' },
   fin_curso: { label: 'Fin de curso', color: '#dc2626', emoji: '🔴' },
@@ -11232,5 +11410,33 @@ console.log('Planilla lista y visible');
   console.log('✅ Módulo Cobros V2 (por grupo → padres/alumnos) cargado.');
 })();
 </script> 
+ <!-- MODAL EDITAR PADRE/MADRE -->
+<div class="modal-overlay" id="modalEditarPadre">
+  <div class="modal-box" style="max-width:560px; text-align:left; padding:32px 28px;">
+    <button class="modal-close" type="button" id="btnCerrarEditarPadre">✕</button>
+    <h3 style="margin-bottom:20px; text-align:center; color:#059669;">✏️ Editar Padre/Madre</h3>
+    <form id="formEditarPadre" style="display:flex; flex-direction:column; gap:12px;">
+      <input type="hidden" id="editPadreUserOrig">
+      <div class="campo"><label>Nombre completo <span class="req">*</span></label><input type="text" id="editPadreNombre" required></div>
+      <div class="campo"><label>Número de celular <span class="req">*</span></label><input type="tel" id="editPadreCelular" required></div>
+      <div class="campo"><label>Correo electrónico</label><input type="email" id="editPadreEmail"></div>
+      <div class="campo"><label>Fecha de nacimiento</label><input type="date" id="editPadreNac"></div>
+      <div class="campo"><label>Edad actual</label><input type="number" id="editPadreEdad" readonly placeholder="Auto"></div>
+      <div class="campo"><label>Número de DNI <span class="req">*</span></label><input type="text" id="editPadreDni" maxlength="8" required></div>
+      <div class="campo"><label>Padre/madre de: <span class="req">*</span></label>
+        <input type="text" id="editPadreDeFiltro" placeholder="Escribe para filtrar alumnos..." autocomplete="off">
+        <div id="editPadreDeSugerencias" style="border:1px solid var(--borde);border-radius:8px;max-height:160px;overflow-y:auto;display:none;background:#fff;margin-top:4px;"></div>
+        <div id="editPadreHijosChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+      </div>
+      <div class="campo"><label>Usuario (no editable)</label><input type="text" id="editPadreUser" disabled style="background:#f1f5f9;"></div>
+      <div class="campo"><label>Nueva contraseña <small style="color:var(--gris); font-weight:400;">(dejar vacío para no cambiar)</small></label><input type="text" id="editPadrePass" placeholder="••••••••"></div>
+      <div class="campo"><label>Foto del DNI</label><button type="button" class="btn btn-azul btn-mini" id="btnVerDniPadreEdit" style="width:100%;">📄 Ver Foto del DNI actual</button></div>
+      <div class="tform-acciones" style="justify-content:flex-end; margin-top:10px;">
+        <button type="button" class="btn btn-slate btn-mini" id="btnCancelarEditarPadre">Cancelar</button>
+        <button type="submit" class="btn btn-verde btn-mini">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>
