@@ -10123,13 +10123,15 @@ console.log('Planilla lista y visible');
 })();
 </script>
 <!-- ============================================================
-     MEJORA PRO: Copiar/Pegar eventos con CLIC DERECHO (V2)
+     MEJORA PRO: Copiar/Pegar eventos con CLIC DERECHO (V3 - A Prueba de Balas)
      ============================================================ -->
 <script>
 (function () {
   'use strict';
 
-  // 1. Inyectar estilos (con z-index altísimo para que no lo tape nada)
+  console.log("🚀 Iniciando script de clic derecho (V3)...");
+
+  // 1. Inyectar estilos
   const style = document.createElement('style');
   style.innerHTML = `
     .cal-context-menu {
@@ -10181,10 +10183,9 @@ console.log('Planilla lista y visible');
 
   // 3. Función para mostrar el menú
   function showContextMenu(e, isoDate) {
+    console.log("✅ ¡Clic derecho detectado en el día:", isoDate, "!");
     e.preventDefault(); 
-    e.stopPropagation(); // Evita que otros scripts interfieran
-
-    console.log("Clic derecho detectado en el día:", isoDate);
+    e.stopPropagation();
 
     const gid = document.getElementById('calFiltroGrupo')?.value || window.calDraftMode?.groupId || '';
     const [y, m, d] = isoDate.split('-');
@@ -10210,13 +10211,11 @@ console.log('Planilla lista y visible');
     menu.innerHTML = html;
     menu.style.display = 'block';
 
-    // Posicionamiento usando clientX/clientY (relativo a la pantalla)
     let x = e.clientX;
     let yPos = e.clientY;
     const menuWidth = 240;
     const menuHeight = menu.offsetHeight;
 
-    // Ajustar si se sale de la pantalla
     if (x + menuWidth > window.innerWidth) x -= menuWidth;
     if (yPos + menuHeight > window.innerHeight) yPos -= menuHeight;
 
@@ -10228,7 +10227,6 @@ console.log('Planilla lista y visible');
       window._calCopiedData = { date: isoDate, groupId: gid };
       menu.style.display = 'none';
       
-      // Notificación Toast
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:12px 24px;border-radius:50px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:999999;font-family:sans-serif;';
       toast.textContent = `✅ Eventos del ${fechaBonita} copiados. Haz clic derecho en otro día para pegar.`;
@@ -10280,18 +10278,27 @@ console.log('Planilla lista y visible');
     });
   }
 
-  // 5. Delegación de eventos en el cuerpo del documento
-  document.body.addEventListener('contextmenu', (e) => {
-    // Busca la celda del calendario más cercana
-    const cell = e.target.closest('[data-cal-day]');
-    if (!cell) return; // Si no es una celda, ignora
-
-    // Verifica que estemos en la pestaña activa de Calendarización
-    const panel = document.getElementById('adm-panel-calendarizacion');
-    if (panel && panel.classList.contains('activo')) {
-      showContextMenu(e, cell.dataset.calDay);
-    }
-  });
+  // 5. EL TRUCO: Escuchar en el contenedor del calendario usando CAPTURA (true)
+  // Esto garantiza que nos adelantamos a cualquier script que quiera bloquearlo.
+  const calGrid = document.getElementById('calGrid');
+  if (calGrid) {
+    calGrid.addEventListener('contextmenu', (e) => {
+      const cell = e.target.closest('[data-cal-day]');
+      if (cell) {
+        showContextMenu(e, cell.dataset.calDay);
+      }
+    }, true); // <-- El 'true' es la fase de captura
+    console.log("✅ Listener conectado exitosamente a #calGrid");
+  } else {
+    // Si aún no existe el grid (porque se genera dinámico), lo escuchamos en el body
+    document.body.addEventListener('contextmenu', (e) => {
+      const cell = e.target.closest('[data-cal-day]');
+      if (cell) {
+        showContextMenu(e, cell.dataset.calDay);
+      }
+    }, true);
+    console.log("✅ Listener conectado al body (fase de captura)");
+  }
 
   // 6. Ocultar menú al hacer clic en otro lado
   document.addEventListener('click', (e) => {
@@ -10300,7 +10307,7 @@ console.log('Planilla lista y visible');
     }
   });
 
-  console.log('✅ Menú contextual (clic derecho V2) cargado y escuchando eventos.');
+  console.log('✅ Menú contextual V3 cargado.');
 })();
 </script>
 </body>
