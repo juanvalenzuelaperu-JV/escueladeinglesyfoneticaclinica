@@ -10431,5 +10431,462 @@ console.log('Planilla lista y visible');
   console.log('✅ Cálculo de Promedio General corregido (ahora respeta los criterios).');
 })();
 </script>
+ <!-- ============================================================
+     MÓDULO COBROS (Contabilidad y Finanzas) — Paso 3
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🚀 Iniciando módulo Cobros...');
+
+  // ══════════════════════════════════════════════════════════
+  // 1. COLUMNAS BASE
+  // ══════════════════════════════════════════════════════════
+  const COBRO_BASE_COLS = [
+    { id: 'c_concepto',    key: 'concepto',    name: 'Concepto',    type: 'text',   fixed: true, width: '220px' },
+    { id: 'c_monto',       key: 'monto',       name: 'Monto (S/)',  type: 'number', fixed: true, width: '120px' },
+    { id: 'c_comprobante', key: 'comprobante', name: 'Comprobante', type: 'file',   fixed: true, width: '200px' },
+    { id: 'c_estado',      key: 'estado',      name: 'Estado',      type: 'status', fixed: true, width: '150px' }
+  ];
+
+  // ══════════════════════════════════════════════════════════
+  // 2. GARANTIZAR ESTRUCTURA EN state.cobros
+  // ══════════════════════════════════════════════════════════
+  function ensureCobros() {
+    if (typeof state === 'undefined' || !state) return null;
+    if (!state.cobros || !Array.isArray(state.cobros.columns) || !Array.isArray(state.cobros.rows)) {
+      state.cobros = {
+        columns: JSON.parse(JSON.stringify(COBRO_BASE_COLS)),
+        rows: []
+      };
+    }
+    return state.cobros;
+  }
+
+  function nuevaFila(cobros) {
+    const cells = {};
+    cobros.columns.forEach(c => {
+      if (c.type === 'text') cells[c.key] = '';
+      else if (c.type === 'number') cells[c.key] = 0;
+      else if (c.type === 'status') cells[c.key] = 'pendiente';
+      else if (c.type === 'file') cells[c.key] = {};
+    });
+    return {
+      id: 'cobro_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      cells
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 3. RENDER TABLA
+  // ══════════════════════════════════════════════════════════
+  function renderCobroTable() {
+    const cobros = ensureCobros();
+    if (!cobros) { console.warn('state no disponible'); return; }
+    const thead = document.getElementById('cobroThead');
+    const tbody = document.getElementById('cobroTbody');
+    if (!thead || !tbody) {
+      console.warn('❌ No se encontraron #cobroThead o #cobroTbody');
+      return;
+    }
+
+    // HEADER
+    let th = '<tr>';
+    cobros.columns.forEach(col => {
+      th += `<th style="background:var(--azul);color:#fff;padding:10px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;min-width:${col.width || '120px'};text-align:left;">
+        ${col.name}
+        ${!col.fixed ? `<button type="button" class="cobro-del-col" data-col-id="${col.id}" title="Eliminar columna" style="background:transparent;border:none;color:#fca5a5;cursor:pointer;font-size:.95rem;margin-left:6px;float:right;">✕</button>` : ''}
+      </th>`;
+    });
+    th += '<th style="background:var(--azul);color:#fff;padding:10px;text-align:center;font-size:.78rem;width:70px;">Acción</th></tr>';
+    thead.innerHTML = th;
+
+    // BODY
+    if (!cobros.rows.length) {
+      tbody.innerHTML = `<tr><td colspan="${cobros.columns.length + 1}" style="text-align:center;color:var(--gris);padding:30px;background:#f9fafb;">
+        📋 No hay filas todavía. Haz clic en <strong>➕ Agregar fila</strong> para empezar.
+      </td></tr>`;
+    } else {
+      let body = '';
+      cobros.rows.forEach(row => {
+        body += '<tr style="border-bottom:1px solid var(--borde);">';
+        cobros.columns.forEach(col => {
+          body += `<td style="padding:8px;vertical-align:middle;">${renderCobroCell(row, col)}</td>`;
+        });
+        body += `<td style="text-align:center;padding:8px;">
+          <button type="button" class="btn btn-rojo btn-mini cobro-del-row" data-row-id="${row.id}" title="Eliminar fila">🗑️</button>
+        </td></tr>`;
+      });
+      tbody.innerHTML = body;
+    }
+
+    renderCobroResumen(cobros);
+    attachCobroListeners(cobros);
+    console.log(`✅ Tabla renderizada: ${cobros.rows.length} fila(s), ${cobros.columns.length} columna(s)`);
+  }
+
+  function renderCobroCell(row, col) {
+    const val = row.cells[col.key];
+    const safe = v => (v === null || v === undefined ? '' : String(v).replace(/"/g, '&quot;'));
+    const baseStyle = 'width:100%;padding:7px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.9rem;';
+
+    switch (col.type) {
+      case 'text':
+        return `<input type="text" data-cobro-input data-row-id="${row.id}" data-col-key="${col.key}"
+          value="${safe(val)}" placeholder="Descripción..." style="${baseStyle}">`;
+
+      case 'number':
+        return `<input type="number" data-cobro-input data-row-id="${row.id}" data-col-key="${col.key}"
+          value="${val !== null && val !== undefined ? val : 0}" min="0" step="0.01"
+          style="${baseStyle}text-align:right;font-weight:700;">`;
+
+      case 'status':
+        return `<select data-cobro-input data-row-id="${row.id}" data-col-key="${col.key}" style="${baseStyle}">
+          <option value="pagado"    ${val === 'pagado' ? 'selected' : ''}>✅ Pagado</option>
+          <option value="pendiente" ${val === 'pendiente' || !val ? 'selected' : ''}>⏳ Pendiente</option>
+        </select>`;
+
+      case 'file':
+        return renderCobroFileCell(row, col);
+
+      default:
+        return '';
+    }
+  }
+
+  function renderCobroFileCell(row, col) {
+    const files = row.cells[col.key] || {};
+    const hasV = !!(files.voucher && files.voucher.url);
+    const hasS = !!(files.sunat && files.sunat.url);
+    let html = '<div style="display:flex;flex-direction:column;gap:5px;">';
+
+    // Voucher
+    if (hasV) {
+      html += `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
+        <span style="color:#15803d;font-weight:800;">✓ Voucher</span>
+        <button type="button" class="cobro-view" data-row-id="${row.id}" data-col-key="${col.key}" data-type="voucher"
+          style="background:transparent;border:none;cursor:pointer;font-size:.9rem;" title="Ver voucher">👁️</button>
+        <button type="button" class="cobro-del-file" data-row-id="${row.id}" data-col-key="${col.key}" data-type="voucher"
+          style="background:transparent;border:none;cursor:pointer;color:#b91c1c;font-size:.9rem;" title="Eliminar">✕</button>
+      </div>`;
+    } else {
+      html += `<button type="button" class="cobro-up" data-row-id="${row.id}" data-col-key="${col.key}" data-type="voucher"
+        style="background:var(--azul-medio);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">
+        📤 Subir Voucher
+      </button>`;
+    }
+
+    // Sunat
+    if (hasS) {
+      html += `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
+        <span style="color:#15803d;font-weight:800;">✓ Sunat</span>
+        <button type="button" class="cobro-view" data-row-id="${row.id}" data-col-key="${col.key}" data-type="sunat"
+          style="background:transparent;border:none;cursor:pointer;font-size:.9rem;" title="Ver recibo">👁️</button>
+        <button type="button" class="cobro-del-file" data-row-id="${row.id}" data-col-key="${col.key}" data-type="sunat"
+          style="background:transparent;border:none;cursor:pointer;color:#b91c1c;font-size:.9rem;" title="Eliminar">✕</button>
+      </div>`;
+    } else {
+      html += `<button type="button" class="cobro-up" data-row-id="${row.id}" data-col-key="${col.key}" data-type="sunat"
+        style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">
+        📤 Subir Recibo Sunat
+      </button>`;
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 4. RESUMEN
+  // ══════════════════════════════════════════════════════════
+  function renderCobroResumen(cobros) {
+    const cont = document.getElementById('cobroResumen');
+    if (!cont) return;
+
+    const montoCol = cobros.columns.find(c => c.key === 'monto' && c.type === 'number');
+    const estadoCol = cobros.columns.find(c => c.key === 'estado' && c.type === 'status');
+
+    let pagado = 0, pendiente = 0;
+    let numPagado = 0, numPendiente = 0;
+    cobros.rows.forEach(r => {
+      const m = montoCol ? parseFloat(r.cells[montoCol.key]) || 0 : 0;
+      const e = estadoCol ? (r.cells[estadoCol.key] || 'pendiente') : 'pendiente';
+      if (e === 'pagado') { pagado += m; numPagado++; }
+      else { pendiente += m; numPendiente++; }
+    });
+    const total = pagado + pendiente;
+
+    cont.innerHTML = `
+      <div class="resumen-card verde">
+        <div class="et">💰 Total cobrado</div>
+        <div class="val">S/ ${pagado.toFixed(2)}</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">${numPagado} registro(s) pagados</div>
+      </div>
+      <div class="resumen-card amarillo">
+        <div class="et">⏳ Pagos pendientes</div>
+        <div class="val">S/ ${pendiente.toFixed(2)}</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">${numPendiente} registro(s) pendientes</div>
+      </div>
+      <div class="resumen-card azul">
+        <div class="et">📊 Total esperado</div>
+        <div class="val">S/ ${total.toFixed(2)}</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">${cobros.rows.length} fila(s) en total</div>
+      </div>
+      <div class="resumen-card morado">
+        <div class="et">📈 % Cobrado</div>
+        <div class="val">${total > 0 ? Math.round((pagado / total) * 100) : 0}%</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">sobre el total esperado</div>
+      </div>`;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 5. LISTENERS (delegados — funcionan aunque el DOM cambie)
+  // ══════════════════════════════════════════════════════════
+  function attachCobroListeners(cobros) {
+    // Inputs editables
+    document.querySelectorAll('#cobroTbody [data-cobro-input]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const row = cobros.rows.find(r => r.id === inp.dataset.rowId);
+        if (!row) return;
+        const key = inp.dataset.colKey;
+        let v = inp.value;
+        if (inp.type === 'number') v = parseFloat(v) || 0;
+        row.cells[key] = v;
+        saveState();
+        renderCobroResumen(cobros);
+      });
+    });
+
+    // Eliminar fila
+    document.querySelectorAll('#cobroTbody .cobro-del-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('¿Eliminar esta fila?')) return;
+        cobros.rows = cobros.rows.filter(r => r.id !== btn.dataset.rowId);
+        saveState();
+        renderCobroTable();
+      });
+    });
+
+    // Eliminar columna
+    document.querySelectorAll('#cobroThead .cobro-del-col').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('¿Eliminar esta columna y todos sus datos?')) return;
+        const id = btn.dataset.colId;
+        const col = cobros.columns.find(c => c.id === id);
+        cobros.columns = cobros.columns.filter(c => c.id !== id);
+        if (col) cobros.rows.forEach(r => { delete r.cells[col.key]; });
+        saveState();
+        renderCobroTable();
+      });
+    });
+
+    // Subir archivo
+    document.querySelectorAll('#cobroTbody .cobro-up').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rowId = btn.dataset.rowId;
+        const key = btn.dataset.colKey;
+        const tipo = btn.dataset.type;
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,.pdf';
+        input.onchange = async () => {
+          const file = input.files[0];
+          if (!file) return;
+          if (file.size > 5 * 1024 * 1024) { alert('Máximo 5 MB.'); return; }
+          try {
+            let url;
+            if (typeof procesarArchivo === 'function') {
+              url = await procesarArchivo(file, 'cobros-' + tipo);
+            } else if (typeof procesarImagen === 'function' && file.type.startsWith('image/')) {
+              url = await procesarImagen(file, 'cobros-' + tipo);
+            } else {
+              url = await fileToBase64(file);
+            }
+            const row = cobros.rows.find(r => r.id === rowId);
+            if (!row) return;
+            if (!row.cells[key]) row.cells[key] = {};
+            row.cells[key][tipo] = { url, name: file.name, uploadedAt: new Date().toISOString() };
+            saveState();
+            renderCobroTable();
+          } catch (e) { alert('Error al subir: ' + e.message); }
+        };
+        input.click();
+      });
+    });
+
+    // Ver archivo
+    document.querySelectorAll('#cobroTbody .cobro-view').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const row = cobros.rows.find(r => r.id === btn.dataset.rowId);
+        const key = btn.dataset.colKey;
+        const tipo = btn.dataset.type;
+        if (!row || !row.cells[key] || !row.cells[key][tipo]) return;
+        abrirArchivoCobro(row.cells[key][tipo].url);
+      });
+    });
+
+    // Eliminar archivo
+    document.querySelectorAll('#cobroTbody .cobro-del-file').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('¿Eliminar este archivo?')) return;
+        const row = cobros.rows.find(r => r.id === btn.dataset.rowId);
+        const key = btn.dataset.colKey;
+        const tipo = btn.dataset.type;
+        if (row && row.cells[key]) {
+          delete row.cells[key][tipo];
+          saveState();
+          renderCobroTable();
+        }
+      });
+    });
+  }
+
+  function abrirArchivoCobro(url) {
+    if (!url) return;
+    const esPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|#|$)/i.test(url);
+    if (esPdf) {
+      if (url.startsWith('data:')) {
+        try {
+          const parts = url.split(',');
+          const mime = parts[0].match(/:(.*?);/)[1];
+          const bstr = atob(parts[1]);
+          let n = bstr.length;
+          const u8 = new Uint8Array(n);
+          while (n--) u8[n] = bstr.charCodeAt(n);
+          const blob = new Blob([u8], { type: mime });
+          window.open(URL.createObjectURL(blob), '_blank');
+          return;
+        } catch (e) {}
+      }
+      window.open(url, '_blank');
+    } else {
+      if (typeof showImageViewer === 'function') showImageViewer(url);
+      else window.open(url, '_blank');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 6. BOTONES GLOBALES (Agregar fila / columna / restaurar)
+  // ══════════════════════════════════════════════════════════
+  document.getElementById('cobroAddRow')?.addEventListener('click', () => {
+    console.log('➕ Agregar fila clickeado');
+    const cobros = ensureCobros();
+    if (!cobros) { alert('Error: state no está listo. Recarga la página.'); return; }
+    cobros.rows.push(nuevaFila(cobros));
+    saveState();
+    renderCobroTable();
+  });
+
+  document.getElementById('cobroAddCol')?.addEventListener('click', () => {
+    console.log('➕ Agregar columna clickeado');
+    const opt = prompt(
+      'Tipo de columna:\n\n' +
+      '1 = Texto\n' +
+      '2 = Número\n' +
+      '3 = Archivo (Voucher / Sunat)\n' +
+      '4 = Estado (Pagado / Pendiente)\n\n' +
+      'Ingresa el número:'
+    );
+    if (!opt) return;
+    const map = { '1': 'text', '2': 'number', '3': 'file', '4': 'status' };
+    const type = map[opt.trim()];
+    if (!type) { alert('Tipo inválido.'); return; }
+
+    const nombre = prompt('Nombre de la nueva columna:');
+    if (!nombre || !nombre.trim()) return;
+
+    const cobros = ensureCobros();
+    if (!cobros) return;
+    const key = 'custom_' + Date.now();
+    cobros.columns.push({
+      id: 'c_' + key, key, name: nombre.trim(), type, fixed: false, width: '140px'
+    });
+    cobros.rows.forEach(r => {
+      if (type === 'text') r.cells[key] = '';
+      else if (type === 'number') r.cells[key] = 0;
+      else if (type === 'status') r.cells[key] = 'pendiente';
+      else if (type === 'file') r.cells[key] = {};
+    });
+    saveState();
+    renderCobroTable();
+  });
+
+  document.getElementById('cobroRestaurar')?.addEventListener('click', () => {
+    if (!confirm('¿Restaurar las columnas base? Las columnas personalizadas se eliminarán.')) return;
+    const cobros = ensureCobros();
+    if (!cobros) return;
+    const baseKeys = COBRO_BASE_COLS.map(c => c.key);
+    cobros.columns = JSON.parse(JSON.stringify(COBRO_BASE_COLS));
+    cobros.rows.forEach(r => {
+      Object.keys(r.cells).forEach(k => { if (!baseKeys.includes(k)) delete r.cells[k]; });
+      // Asegurar que existan todas las llaves base
+      cobros.columns.forEach(c => {
+        if (!(c.key in r.cells)) {
+          if (c.type === 'text') r.cells[c.key] = '';
+          else if (c.type === 'number') r.cells[c.key] = 0;
+          else if (c.type === 'status') r.cells[c.key] = 'pendiente';
+          else if (c.type === 'file') r.cells[c.key] = {};
+        }
+      });
+    });
+    saveState();
+    renderCobroTable();
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // 7. AUTO-RENDER AL ABRIR EL TAB
+  // ══════════════════════════════════════════════════════════
+  document.querySelectorAll('[data-cont-subtab="cobro"]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setTimeout(() => { try { renderCobroTable(); } catch (e) { console.warn(e); } }, 80);
+    });
+  });
+
+  // Si el tab ya está abierto al cargar
+  setTimeout(() => {
+    try {
+      const panel = document.getElementById('cont-subpanel-cobro');
+      if (panel && panel.classList.contains('activo')) renderCobroTable();
+    } catch (e) {}
+  }, 700);
+
+  // ══════════════════════════════════════════════════════════
+  // 8. BACKFILL: garantizar que state.cobros persista
+  // ══════════════════════════════════════════════════════════
+  // Sobrescribimos backfillState para incluir cobros
+  if (typeof window.backfillState === 'function') {
+    const _origBackfill = window.backfillState;
+    window.backfillState = function (parsed) {
+      parsed = _origBackfill(parsed);
+      if (!parsed.cobros || !Array.isArray(parsed.cobros.columns)) {
+        parsed.cobros = {
+          columns: JSON.parse(JSON.stringify(COBRO_BASE_COLS)),
+          rows: []
+        };
+      }
+      return parsed;
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 9. DIAGNÓSTICO (opcional — útil para debug)
+  // ══════════════════════════════════════════════════════════
+  window.cobrosDiagnostico = function () {
+    console.log('=== DIAGNÓSTICO COBROS ===');
+    console.log('Botón Agregar fila:', document.getElementById('cobroAddRow') ? '✅ existe' : '❌ FALTA');
+    console.log('Botón Agregar columna:', document.getElementById('cobroAddCol') ? '✅ existe' : '❌ FALTA');
+    console.log('thead:', document.getElementById('cobroThead') ? '✅' : '❌');
+    console.log('tbody:', document.getElementById('cobroTbody') ? '✅' : '❌');
+    console.log('Panel:', document.getElementById('cont-subpanel-cobro') ? '✅' : '❌');
+    console.log('state.cobros:', ensureCobros());
+    console.log('=== FIN DIAGNÓSTICO ===');
+  };
+
+  // Render inicial (por si el panel está activo)
+  setTimeout(() => { try { renderCobroTable(); } catch (e) {} }, 1000);
+
+  console.log('✅ Módulo Cobros cargado. Para diagnosticar: escribe "cobrosDiagnostico()" en la consola.');
+})();
+</script>
 </body>
 </html>
