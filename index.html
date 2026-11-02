@@ -10371,5 +10371,46 @@ console.log('Planilla lista y visible');
   console.log('✅ Sistema de "Panel Limpio" al cerrar grupos cargado.');
 })();
 </script>
+ <!-- ============================================================
+     CORRECCIÓN: Unificar el cálculo de "Promedio General"
+     Para que use la misma fórmula justa del Report Card
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // Sobrescribimos la función original
+  window.promedioGeneral = function (code) {
+    if (!state.grades || !state.grades[code]) return null;
+    
+    let sum = 0;
+    let cnt = 0;
+    const criteriosAUsar = window.CRITERIOS || (typeof CRITERIOS !== 'undefined' ? CRITERIOS : []);
+
+    // 1. Recorremos cada criterio (Class Part., Writing, Speaking, etc.)
+    criteriosAUsar.forEach(c => {
+      // 2. Calculamos el promedio de ese criterio específico
+      const promC = typeof promedioCriterio === 'function' ? promedioCriterio(code, c.id) : null;
+      
+      // 3. Si el alumno tiene notas en este criterio, lo sumamos
+      if (promC !== null) {
+        sum += promC;
+        cnt++;
+      }
+    });
+
+    // 4. El promedio general es la suma de los promedios de los criterios, dividido entre los criterios evaluados
+    if (cnt === 0) return null;
+    return +(sum / cnt).toFixed(2);
+  };
+
+  // Forzar a que la interfaz se vuelva a dibujar si hay un alumno logueado
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    if (typeof refreshStudentView === 'function') refreshStudentView();
+  }
+
+  console.log('✅ Cálculo de Promedio General corregido (ahora respeta los criterios).');
+})();
+</script>
 </body>
 </html>
