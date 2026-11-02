@@ -1634,17 +1634,23 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           <div class="panel" id="adm-panel-calendarizacion">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Selecciona el mes y haz clic en cualquier día del calendario. En el panel lateral podrás asignar grupos, tipos de evaluación, inicio/fin de curso u otros eventos.</p>
-            <div class="tform admin-form" style="margin-bottom:18px;">
-  <div class="tform-grid">
-    <div class="campo">
-      <label>Grupo <span class="req">*</span></label>
-      <select id="calFiltroGrupo">
-        <option value="">Selecciona un grupo...</option>
-      </select>
-    </div>
+           <div class="tform admin-form" style="margin-bottom:18px;">
+  <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
     <div class="campo">
       <label>Mes <span class="req">*</span></label>
       <input type="month" id="calMesSelect">
+    </div>
+    <div class="campo">
+      <label>Grupo</label>
+      <select id="calFiltroGrupo">
+        <option value="">Todos los grupos</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Docente</label>
+      <select id="calFiltroDocente">
+        <option value="">Todos los docentes</option>
+      </select>
     </div>
   </div>
   <div id="calDocenteInfo" style="margin-top:10px;"></div>
@@ -1653,8 +1659,10 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
   <button type="button" class="btn btn-slate btn-mini" id="btnCalHoy">Hoy</button>
   <button type="button" class="btn btn-azul btn-mini" id="btnCalResumen">📋 Ver resumen del mes</button>
+  <button type="button" class="btn btn-verde btn-mini" id="btnCalendarizarAhora">✨ Calendarizar ahora</button>
   <button type="button" class="btn btn-rojo btn-mini" id="btnLimpiarCiclo">🧹 Limpiar ciclo</button>
 </div>
+<div id="calDraftBanner" style="display:none;"></div>
             <div id="calLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:.78rem;"></div>
             <div style="display:grid;grid-template-columns:1fr minmax(280px,360px);gap:20px;align-items:start;">
               <div>
@@ -9758,6 +9766,313 @@ console.log('Planilla lista y visible');
   };
 
   console.log('✅ Filtros + orden + agrupación por periodo cargados en "Mis grupos".');
+})();
+</script>
+       <!-- ============================================================
+     PATCH: Filtros Mes→Grupo→Docente + Botón "Calendarizar ahora"
+     (nuevo lienzo con eventos antiguos ocultos)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // Estado del borrador (nuevo lienzo)
+  window.calDraftMode = null;   // { groupId, month, startedAt }
+
+  // ─── Rellenar select de Docente ────────────────────────────────────
+  function fillCalDocenteSelect() {
+    const sel = document.getElementById('calFiltroDocente');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Todos los docentes</option>';
+    Object.keys(state.teachers || {}).sort((a, b) =>
+      (state.teachers[a].nombre || '').localeCompare(state.teachers[b].nombre || '')
+    ).forEach(code => {
+      const t = state.teachers[code];
+      const o = document.createElement('option');
+      o.value = code;
+      o.textContent = t.nombre || code;
+      sel.appendChild(o);
+    });
+    if (cur && state.teachers[cur]) sel.value = cur;
+  }
+
+  // ─── Construir celdas con días del mes vecino ──────────────────────
+  function buildCells(yy, mm) {
+    const first = new Date(yy, mm - 1, 1);
+    const last = new Date(yy, mm, 0);
+    const startDay = first.getDay();
+    const lastDate = last.getDate();
+    const total = Math.ceil((startDay + lastDate) / 7) * 7;
+    const cells = [];
+    for (let i = startDay - 1; i >= 0; i--) {
+      const d = new Date(yy, mm - 1, -i);
+      cells.push({ iso: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), day: d.getDate(), outside: true });
+    }
+    for (let day = 1; day <= lastDate; day++) {
+      cells.push({ iso: yy + '-' + String(mm).padStart(2, '0') + '-' + String(day).padStart(2, '0'), day, outside: false });
+    }
+    for (let i = 1; i <= total - cells.length; i++) {
+      const d = new Date(yy, mm, i);
+      cells.push({ iso: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), day: d.getDate(), outside: true });
+    }
+    return cells;
+  }
+
+  // ─── Override: getEventosFiltrados (grupo + docente + draft) ───────
+  window.getEventosFiltrados = function (fecha) {
+    let events = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const tid = document.getElementById('calFiltroDocente')?.value || '';
+
+    if (gid) {
+      events = events.filter(ev => ev.grupoId === gid);
+    } else if (tid) {
+      const teacherGroupIds = new Set(
+        (state.groups || []).filter(g => g.teacherCode === tid).map(g => g.id)
+      );
+      events = events.filter(ev => !ev.grupoId || teacherGroupIds.has(ev.grupoId));
+    }
+
+    if (window.calDraftMode && window.calDraftMode.startedAt) {
+      const ts = window.calDraftMode.startedAt;
+      events = events.filter(ev => ev.createdAt && new Date(ev.createdAt).getTime() >= ts);
+    }
+    return events;
+  };
+
+  // ─── Override: renderCalEventosDelDia (panel lateral) ──────────────
+  window.renderCalEventosDelDia = function (fecha) {
+    const cont = document.getElementById('calEventosDelDia');
+    if (!cont) return;
+    const evs = window.getEventosFiltrados(fecha);
+    if (!evs.length) {
+      cont.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin eventos este día. Agrégalos con el formulario de arriba.</div>';
+      return;
+    }
+    cont.innerHTML = evs.map(ev => {
+      const g = (state.groups || []).find(x => x.id === ev.grupoId);
+      return `<div class="libro-card" style="border-left:4px solid ${calTipoColor(ev.tipo)};">
+        <div class="libro-info">
+          <strong>${calTipoEmoji(ev.tipo)} ${calTipoLabel(ev.tipo, ev.nombre)}</strong>
+          <small style="display:block;color:var(--gris);margin-top:2px;">${g ? g.nombre : 'General'}${ev.nota ? ' · ' + ev.nota : ''}</small>
+        </div>
+        <button type="button" class="btn btn-mini btn-rojo" data-del-cev="${ev.id}" data-fecha="${fecha}" title="Eliminar">🗑️</button>
+      </div>`;
+    }).join('');
+    cont.querySelectorAll('[data-del-cev]').forEach(b => b.addEventListener('click', () => {
+      if (!confirm('¿Eliminar este evento?')) return;
+      const f = b.dataset.fecha;
+      state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== b.dataset.delCev);
+      if (!state.calendarEvents[f].length) delete state.calendarEvents[f];
+      saveState();
+      window.renderCalEventosDelDia(f);
+      window.renderCalendarizacion();
+    }));
+  };
+
+  // ─── Override: renderCalendarizacion (usa filtros correctamente) ───
+  window.renderCalendarizacion = function () {
+    const mesInp = document.getElementById('calMesSelect');
+    const grid = document.getElementById('calGrid');
+    if (!mesInp || !grid) return;
+
+    if (!mesInp.value) {
+      const d = new Date();
+      mesInp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+    if (!state.calendarEvents) state.calendarEvents = {};
+
+    fillCalDocenteSelect();
+    if (typeof fillCalGrupoSelectFiltro === 'function') fillCalGrupoSelectFiltro();
+    if (typeof renderCalDocenteInfo === 'function') renderCalDocenteInfo();
+    if (typeof renderCalLegend === 'function') renderCalLegend();
+    if (typeof fillCalTipoSelect === 'function') fillCalTipoSelect();
+
+    const [yy, mm] = mesInp.value.split('-').map(Number);
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let html = dias.map(d => '<div style="text-align:center;font-weight:700;font-size:.78rem;color:var(--gris);padding:8px 4px;">' + d + '</div>').join('');
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    buildCells(yy, mm).forEach(cell => {
+      const evs = window.getEventosFiltrados(cell.iso);
+      const isToday = cell.iso === todayIso;
+      const isSel = cell.iso === calSelectedDate;
+      const dots = evs.slice(0, 4).map(ev =>
+        '<span style="width:7px;height:7px;border-radius:50%;background:' + calTipoColor(ev.tipo) + ';display:inline-block;" title="' + calTipoLabel(ev.tipo, ev.nombre) + '"></span>'
+      ).join('');
+      const more = evs.length > 4 ? '<span style="font-size:.65rem;color:var(--gris);">+' + (evs.length - 4) + '</span>' : '';
+      const opac = cell.outside ? 'opacity:.55;' : '';
+      const bg = cell.outside ? '#fafafa' : (evs.length ? '#f0f7ff' : '#fff');
+      const numColor = cell.outside ? '#94a3b8' : (isToday ? 'var(--azul-medio)' : 'var(--texto)');
+      html += '<div data-cal-day="' + cell.iso + '" role="button" tabindex="0"'
+        + ' style="border:1px solid ' + (isToday ? 'var(--azul-medio)' : 'var(--borde)') + ';border-radius:10px;min-height:78px;padding:8px;cursor:pointer;' + opac + 'background:' + bg + ';outline:' + (isSel ? '2px solid var(--azul-medio)' : 'none') + ';box-shadow:' + (isSel ? '0 0 0 3px rgba(0,102,204,.18)' : 'none') + ';">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:800;font-size:.95rem;color:' + numColor + ';">' + cell.day + '</span>'
+        + (isToday ? '<span style="font-size:.65rem;font-weight:700;color:var(--azul-medio);">HOY</span>' : '') + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;align-items:center;">' + dots + more + '</div>'
+        + (evs.length ? '<div style="font-size:.68rem;color:' + (cell.outside ? '#94a3b8' : 'var(--azul)') + ';margin-top:4px;font-weight:600;">' + evs.length + ' evento' + (evs.length > 1 ? 's' : '') + '</div>' : '')
+        + '</div>';
+    });
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('[data-cal-day]').forEach(el => {
+      el.addEventListener('click', () => {
+        const clickedMonth = el.dataset.calDay.slice(0, 7);
+        if (clickedMonth !== mesInp.value) {
+          mesInp.value = clickedMonth;
+          window.renderCalendarizacion();
+        }
+        openCalDay(el.dataset.calDay);
+      });
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+      });
+    });
+
+    if (calSelectedDate && calSelectedDate.startsWith(mesInp.value)) openCalDay(calSelectedDate);
+    else { const p = document.getElementById('calEventPanel'); if (p) p.style.display = 'none'; }
+
+    if (typeof renderCalMesResumen === 'function') renderCalMesResumen();
+  };
+
+  // ─── Banner del draft (nuevo lienzo) ───────────────────────────────
+  function countDraftEvents() {
+    if (!window.calDraftMode) return 0;
+    const ts = window.calDraftMode.startedAt;
+    let n = 0;
+    Object.values(state.calendarEvents || {}).forEach(arr => (arr || []).forEach(ev => {
+      if (ev.createdAt && new Date(ev.createdAt).getTime() >= ts) n++;
+    }));
+    return n;
+  }
+
+  function renderCalDraftBanner() {
+    const banner = document.getElementById('calDraftBanner');
+    if (!banner) return;
+    const selG = document.getElementById('calFiltroGrupo');
+    const inpM = document.getElementById('calMesSelect');
+
+    if (!window.calDraftMode) {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+      if (selG) selG.disabled = false;
+      if (inpM) inpM.disabled = false;
+      return;
+    }
+
+    const { groupId, month } = window.calDraftMode;
+    const grupo = state.groups.find(g => g.id === groupId);
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const [yy, mm] = month.split('-').map(Number);
+    const mesLabel = meses[mm - 1] + ' ' + yy;
+    const nuevos = countDraftEvents();
+
+    if (selG) { selG.value = groupId; selG.disabled = true; }
+    if (inpM) { inpM.value = month; inpM.disabled = true; }
+
+    banner.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#ede9fe;border:2px solid #c4b5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px;color:#6d28d9;font-weight:600;font-size:.9rem;';
+    banner.innerHTML = `
+      <span style="flex:1;min-width:240px;">
+        📝 <strong>Modo "Nuevo lienzo" activo</strong><br>
+        <small style="font-weight:500;">${grupo ? grupo.nombre : 'Grupo'} · ${mesLabel} · ${nuevos} evento(s) creado(s)</small>
+      </span>
+      <button type="button" class="btn btn-verde btn-mini" id="btnCalDraftSave">💾 Guardar y salir</button>
+      <button type="button" class="btn btn-rojo btn-mini" id="btnCalDraftCancel">❌ Cancelar borrador</button>`;
+    document.getElementById('btnCalDraftSave').addEventListener('click', () => endCalDraft(true));
+    document.getElementById('btnCalDraftCancel').addEventListener('click', () => endCalDraft(false));
+  }
+
+  // ─── Iniciar / terminar borrador ───────────────────────────────────
+  function startCalDraft(groupId, month) {
+    window.calDraftMode = { groupId, month, startedAt: Date.now() };
+    renderCalDraftBanner();
+    window.renderCalendarizacion();
+  }
+
+  function endCalDraft(commit) {
+    if (!window.calDraftMode) return;
+    const { startedAt, month } = window.calDraftMode;
+
+    if (!commit) {
+      // Eliminar eventos creados durante el borrador de ESE mes
+      Object.keys(state.calendarEvents || {}).forEach(fecha => {
+        if (!fecha.startsWith(month)) return;
+        state.calendarEvents[fecha] = (state.calendarEvents[fecha] || []).filter(ev => {
+          if (!ev.createdAt) return true;
+          return new Date(ev.createdAt).getTime() < startedAt;
+        });
+        if (!state.calendarEvents[fecha].length) delete state.calendarEvents[fecha];
+      });
+      // Eliminar asignaciones auto-creadas por Calendarización en ese mes
+      if (Array.isArray(state.assignments)) {
+        state.assignments = state.assignments.filter(a => {
+          if (a.createdBy !== 'calendarizacion') return true;
+          if (!a.fechaInicio || !a.fechaInicio.startsWith(month)) return true;
+          const ts = parseInt((a.id || '').replace('asg_cal_', '').split('_')[0]);
+          return isNaN(ts) || ts < startedAt;
+        });
+      }
+      saveState();
+    }
+    window.calDraftMode = null;
+    renderCalDraftBanner();
+    window.renderCalendarizacion();
+  }
+
+  // ─── Botón "Calendarizar ahora" ────────────────────────────────────
+  document.getElementById('btnCalendarizarAhora')?.addEventListener('click', () => {
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const month = document.getElementById('calMesSelect')?.value || '';
+
+    if (!gid) { alert('⚠️ Primero selecciona un grupo en el filtro de arriba.'); return; }
+    if (!month) { alert('⚠️ Primero selecciona un mes.'); return; }
+
+    if (window.calDraftMode) {
+      if (!confirm('Ya hay un "Nuevo lienzo" activo. ¿Cerrarlo (conservando lo creado) y abrir uno nuevo?')) return;
+      endCalDraft(true);
+    }
+
+    const grupo = state.groups.find(g => g.id === gid);
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const [yy, mm] = month.split('-').map(Number);
+    const mesLabel = meses[mm - 1] + ' ' + yy;
+
+    let nExisting = 0;
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      if (!fecha.startsWith(month)) return;
+      nExisting += (state.calendarEvents[fecha] || []).filter(ev => ev.grupoId === gid).length;
+    });
+
+    const msg =
+      `✨ ¿Iniciar "Nuevo lienzo" para "${grupo?.nombre || gid}" en ${mesLabel}?\n\n` +
+      `• Los ${nExisting} evento(s) existentes se ocultarán visualmente.\n` +
+      `• Podrás agregar nuevos eventos desde cero.\n` +
+      `• Los eventos anteriores NO se borran (siguen guardados).\n\n` +
+      `Al terminar, usa "Guardar y salir" para conservar lo nuevo, ` +
+      `o "Cancelar borrador" para descartarlo.`;
+
+    if (!confirm(msg)) return;
+    startCalDraft(gid, month);
+  });
+
+  // ─── Listener del nuevo select de Docente ──────────────────────────
+  document.getElementById('calFiltroDocente')?.addEventListener('change', () => {
+    window.renderCalendarizacion();
+  });
+
+  // ─── Reinicializar al abrir la pestaña Calendarización ─────────────
+  document.querySelectorAll('#tal-panel-admin [data-admtab="calendarizacion"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(() => {
+      try { fillCalDocenteSelect(); window.renderCalendarizacion(); } catch (e) {}
+    }, 60));
+  });
+
+  // ─── Al cargar ─────────────────────────────────────────────────────
+  setTimeout(() => {
+    try { fillCalDocenteSelect(); renderCalDraftBanner(); } catch (e) {}
+  }, 500);
+
+  console.log('✅ Filtros Mes→Grupo→Docente + "Calendarizar ahora" (lienzo limpio) cargados.');
 })();
 </script>
 </body>
