@@ -1965,20 +1965,39 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             </div>
           </div>
 
-          <!-- ============ SUBPANEL COBRO (NUEVO) ============ -->
-          <div class="subpanel" id="cont-subpanel-cobro">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">💵 Cobros, Vouchers y Recibos Sunat</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">
-              Registra tus cobros, adjunta el voucher y/o recibo SUNAT, marca el estado de pago y consulta el resumen automático de caja.
-            </p>
+ <!-- ============ SUBPANEL COBRO (V2 — por grupo/padres) ============ -->
+<div class="subpanel" id="cont-subpanel-cobro">
+  <h4 style="color:var(--slate);margin-bottom:8px;font-size:1rem;font-weight:800;">💵 Cobros por Grupo · Padres de Familia y Alumnos</h4>
+  <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">
+    Selecciona un grupo para cargar <strong>automáticamente</strong> a los padres de familia (con sus hijos) o a los alumnos que no tengan padre registrado. Registra el monto, sube el voucher y/o recibo SUNAT, y marca el estado de pago.
+  </p>
 
-            <!-- Barra de acciones -->
-            <div class="tform-acciones" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-              <button type="button" class="btn btn-verde btn-mini" id="cobroAddRow">➕ Agregar fila</button>
-              <button type="button" class="btn btn-azul btn-mini" id="cobroAddCol">➕ Agregar columna</button>
-              <button type="button" class="btn btn-slate btn-mini" id="cobroRestaurar">🔄 Restaurar columnas base</button>
-            </div>
+  <div class="tform admin-form" style="margin-bottom:14px;">
+    <div class="tform-grid" style="grid-template-columns:2fr auto auto;gap:10px;align-items:end;">
+      <div class="campo" style="margin:0;">
+        <label>Grupo <span class="req">*</span></label>
+        <select id="cobroGroupSelect">
+          <option value="">— Selecciona un grupo —</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-azul" id="cobroRefresh" style="height:44px;">🔄 Actualizar</button>
+      <button type="button" class="btn btn-verde" id="cobroAddManualRow" style="height:44px;">➕ Añadir cargo manual</button>
+    </div>
+  </div>
 
+  <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;max-width:100%;">
+    <table id="cobroTable" style="width:100%;min-width:900px;border-collapse:collapse;">
+      <thead id="cobroThead">
+        <tr><th style="background:var(--azul);color:#fff;padding:12px;text-align:center;font-size:.85rem;">👆 Selecciona un grupo arriba para cargar los cobrables</th></tr>
+      </thead>
+      <tbody id="cobroTbody"></tbody>
+    </table>
+  </div>
+
+  <h4 style="color:var(--slate);margin:22px 0 12px;font-size:1rem;font-weight:800;">📊 Resumen de caja</h4>
+  <div class="resumen-grid" id="cobroResumen"></div>
+</div>
+<!-- ============ FIN SUBPANEL COBRO ============ -->
             <!-- Tabla editable -->
             <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;max-width:100%;">
               <table id="cobroTable" style="width:100%;min-width:780px;border-collapse:collapse;">
@@ -10431,187 +10450,255 @@ console.log('Planilla lista y visible');
   console.log('✅ Cálculo de Promedio General corregido (ahora respeta los criterios).');
 })();
 </script>
- <!-- ============================================================
-     MÓDULO COBROS (Contabilidad y Finanzas) — Paso 3
+<!-- ============================================================
+     MÓDULO COBROS V2 — por grupo → padres/alumnos
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log('🚀 Iniciando módulo Cobros...');
+  console.log('🚀 Cobros V2 iniciando…');
 
   // ══════════════════════════════════════════════════════════
-  // 1. COLUMNAS BASE
-  // ══════════════════════════════════════════════════════════
-  const COBRO_BASE_COLS = [
-    { id: 'c_concepto',    key: 'concepto',    name: 'Concepto',    type: 'text',   fixed: true, width: '220px' },
-    { id: 'c_monto',       key: 'monto',       name: 'Monto (S/)',  type: 'number', fixed: true, width: '120px' },
-    { id: 'c_comprobante', key: 'comprobante', name: 'Comprobante', type: 'file',   fixed: true, width: '200px' },
-    { id: 'c_estado',      key: 'estado',      name: 'Estado',      type: 'status', fixed: true, width: '150px' }
-  ];
-
-  // ══════════════════════════════════════════════════════════
-  // 2. GARANTIZAR ESTRUCTURA EN state.cobros
+  // ESTRUCTURA EN state.cobros.byGroup[groupId]
   // ══════════════════════════════════════════════════════════
   function ensureCobros() {
     if (typeof state === 'undefined' || !state) return null;
-    if (!state.cobros || !Array.isArray(state.cobros.columns) || !Array.isArray(state.cobros.rows)) {
-      state.cobros = {
-        columns: JSON.parse(JSON.stringify(COBRO_BASE_COLS)),
-        rows: []
-      };
-    }
-    return state.cobros;
+    if (!state.cobros) state.cobros = {};
+    if (!state.cobros.byGroup) state.cobros.byGroup = {};
+    return state.cobros.byGroup;
   }
 
-  function nuevaFila(cobros) {
-    const cells = {};
-    cobros.columns.forEach(c => {
-      if (c.type === 'text') cells[c.key] = '';
-      else if (c.type === 'number') cells[c.key] = 0;
-      else if (c.type === 'status') cells[c.key] = 'pendiente';
-      else if (c.type === 'file') cells[c.key] = {};
+  function getGroupCobros(groupId) {
+    const bg = ensureCobros();
+    if (!bg) return { rows: [] };
+    if (!bg[groupId]) bg[groupId] = { rows: [], mes: getMesActual() };
+    return bg[groupId];
+  }
+
+  function getMesActual() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // GENERAR COBRABLES DESDE EL GRUPO
+  //   - Un padre con varios hijos en el grupo → 1 fila
+  //   - Alumno sin padre → 1 fila con su nombre
+  // ══════════════════════════════════════════════════════════
+  function generateCobrables(groupId) {
+    const group = (state.groups || []).find(g => g.id === groupId);
+    if (!group) return [];
+    const rows = [];
+    const parentMap = new Map();
+
+    (group.studentCodes || []).forEach(code => {
+      const student = state.students[code];
+      if (!student) return;
+
+      const parentEntry = Object.entries(state.padres || {}).find(
+        ([, p]) => Array.isArray(p.hijos) && p.hijos.includes(code)
+      );
+
+      if (parentEntry) {
+        const [parentUser, parent] = parentEntry;
+        if (parentMap.has(parentUser)) {
+          parentMap.get(parentUser).studentCodes.push(code);
+        } else {
+          const row = {
+            id: 'row_parent_' + parentUser,
+            tipo: 'parent',
+            parentUser,
+            displayName: parent.nombre || parentUser,
+            studentCodes: [code],
+            concepto: 'Mensualidad ' + (student.programa || ''),
+            monto: 0,
+            estado: 'pendiente',
+            voucher: null,
+            sunat: null
+          };
+          parentMap.set(parentUser, row);
+          rows.push(row);
+        }
+      } else {
+        rows.push({
+          id: 'row_student_' + code,
+          tipo: 'student',
+          parentUser: null,
+          displayName: student.nombre,
+          studentCodes: [code],
+          concepto: 'Mensualidad ' + (student.programa || ''),
+          monto: 0,
+          estado: 'pendiente',
+          voucher: null,
+          sunat: null
+        });
+      }
     });
-    return {
-      id: 'cobro_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      cells
-    };
+
+    return rows;
+  }
+
+  // Fusiona autogeneradas con guardadas (conserva pagos previos)
+  function mergeRows(autoRows, savedRows) {
+    const result = [];
+    const usedIds = new Set();
+
+    autoRows.forEach(auto => {
+      const saved = savedRows.find(s => s.id === auto.id);
+      if (saved) {
+        result.push({
+          ...saved,
+          // Refrescar campos descriptivos por si cambió el grupo/alumnos
+          displayName: auto.displayName,
+          studentCodes: auto.studentCodes,
+          tipo: auto.tipo,
+          parentUser: auto.parentUser
+        });
+      } else {
+        result.push(auto);
+      }
+      usedIds.add(auto.id);
+    });
+
+    // Conservar filas manuales creadas por el usuario
+    savedRows.forEach(s => {
+      if (!usedIds.has(s.id) && s.tipo === 'manual') result.push(s);
+    });
+
+    return result;
   }
 
   // ══════════════════════════════════════════════════════════
-  // 3. RENDER TABLA
+  // RENDER PRINCIPAL
   // ══════════════════════════════════════════════════════════
-  function renderCobroTable() {
-    const cobros = ensureCobros();
-    if (!cobros) { console.warn('state no disponible'); return; }
+  function renderCobro() {
+    const sel = document.getElementById('cobroGroupSelect');
+    const groupId = sel ? sel.value : '';
+
     const thead = document.getElementById('cobroThead');
     const tbody = document.getElementById('cobroTbody');
-    if (!thead || !tbody) {
-      console.warn('❌ No se encontraron #cobroThead o #cobroTbody');
+    const resumen = document.getElementById('cobroResumen');
+    if (!thead || !tbody) return;
+
+    if (!groupId) {
+      thead.innerHTML = '<tr><th style="background:var(--azul);color:#fff;padding:12px;text-align:center;">👆 Selecciona un grupo arriba para cargar los cobrables</th></tr>';
+      tbody.innerHTML = '';
+      if (resumen) resumen.innerHTML = '';
       return;
     }
 
+    const groupCobros = getGroupCobros(groupId);
+    const auto = generateCobrables(groupId);
+    const merged = mergeRows(auto, groupCobros.rows || []);
+    groupCobros.rows = merged;
+
     // HEADER
-    let th = '<tr>';
-    cobros.columns.forEach(col => {
-      th += `<th style="background:var(--azul);color:#fff;padding:10px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;min-width:${col.width || '120px'};text-align:left;">
-        ${col.name}
-        ${!col.fixed ? `<button type="button" class="cobro-del-col" data-col-id="${col.id}" title="Eliminar columna" style="background:transparent;border:none;color:#fca5a5;cursor:pointer;font-size:.95rem;margin-left:6px;float:right;">✕</button>` : ''}
-      </th>`;
-    });
-    th += '<th style="background:var(--azul);color:#fff;padding:10px;text-align:center;font-size:.78rem;width:70px;">Acción</th></tr>';
-    thead.innerHTML = th;
+    thead.innerHTML = `<tr>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;min-width:230px;">Cobrable</th>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;min-width:150px;">Concepto</th>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:right;min-width:110px;">Monto (S/)</th>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;min-width:190px;">Comprobantes</th>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;min-width:140px;">Estado</th>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:center;width:70px;">Acción</th>
+    </tr>`;
 
     // BODY
-    if (!cobros.rows.length) {
-      tbody.innerHTML = `<tr><td colspan="${cobros.columns.length + 1}" style="text-align:center;color:var(--gris);padding:30px;background:#f9fafb;">
-        📋 No hay filas todavía. Haz clic en <strong>➕ Agregar fila</strong> para empezar.
+    if (!merged.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--gris);padding:30px;background:#f9fafb;">
+        📋 Este grupo no tiene alumnos con padre/madre registrado, ni alumnos sin padre asignado.<br>
+        <small style="display:block;margin-top:6px;">Verifica en <strong>Coordinación Académica → Grupos</strong> que haya alumnos y en <strong>Padres de familia</strong> que estén vinculados.</small>
       </td></tr>`;
     } else {
-      let body = '';
-      cobros.rows.forEach(row => {
-        body += '<tr style="border-bottom:1px solid var(--borde);">';
-        cobros.columns.forEach(col => {
-          body += `<td style="padding:8px;vertical-align:middle;">${renderCobroCell(row, col)}</td>`;
-        });
-        body += `<td style="text-align:center;padding:8px;">
-          <button type="button" class="btn btn-rojo btn-mini cobro-del-row" data-row-id="${row.id}" title="Eliminar fila">🗑️</button>
-        </td></tr>`;
-      });
-      tbody.innerHTML = body;
+      let html = '';
+      merged.forEach(row => { html += renderRow(row); });
+      tbody.innerHTML = html;
     }
 
-    renderCobroResumen(cobros);
-    attachCobroListeners(cobros);
-    console.log(`✅ Tabla renderizada: ${cobros.rows.length} fila(s), ${cobros.columns.length} columna(s)`);
+    renderResumen(merged);
+    attachListeners(groupId, merged);
   }
 
-  function renderCobroCell(row, col) {
-    const val = row.cells[col.key];
+  function renderRow(row) {
     const safe = v => (v === null || v === undefined ? '' : String(v).replace(/"/g, '&quot;'));
     const baseStyle = 'width:100%;padding:7px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.9rem;';
 
-    switch (col.type) {
-      case 'text':
-        return `<input type="text" data-cobro-input data-row-id="${row.id}" data-col-key="${col.key}"
-          value="${safe(val)}" placeholder="Descripción..." style="${baseStyle}">`;
-
-      case 'number':
-        return `<input type="number" data-cobro-input data-row-id="${row.id}" data-col-key="${col.key}"
-          value="${val !== null && val !== undefined ? val : 0}" min="0" step="0.01"
-          style="${baseStyle}text-align:right;font-weight:700;">`;
-
-      case 'status':
-        return `<select data-cobro-input data-row-id="${row.id}" data-col-key="${col.key}" style="${baseStyle}">
-          <option value="pagado"    ${val === 'pagado' ? 'selected' : ''}>✅ Pagado</option>
-          <option value="pendiente" ${val === 'pendiente' || !val ? 'selected' : ''}>⏳ Pendiente</option>
-        </select>`;
-
-      case 'file':
-        return renderCobroFileCell(row, col);
-
-      default:
-        return '';
+    // ─ Nombre tipo
+    let nameHtml;
+    if (row.tipo === 'parent') {
+      const hijos = (row.studentCodes || []).map(c => state.students[c]?.nombre || c).join(', ');
+      nameHtml = `<div>
+        <strong style="color:var(--azul);">👨‍👩‍👧 ${safe(row.displayName)}</strong>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Hijo(s): ${safe(hijos)}</div>
+        <div style="font-size:.72rem;color:var(--morado);margin-top:1px;">Usuario: ${safe(row.parentUser)}</div>
+      </div>`;
+    } else if (row.tipo === 'manual') {
+      nameHtml = `<div>
+        <strong style="color:var(--morado);">✏️ ${safe(row.displayName)}</strong>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Cargo manual</div>
+      </div>`;
+    } else {
+      nameHtml = `<div>
+        <strong style="color:var(--verde);">🎓 ${safe(row.displayName)}</strong>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Sin padre/madre registrado</div>
+        <div style="font-size:.72rem;color:var(--slate-medio);margin-top:1px;">${(row.studentCodes || []).join(', ')}</div>
+      </div>`;
     }
-  }
 
-  function renderCobroFileCell(row, col) {
-    const files = row.cells[col.key] || {};
-    const hasV = !!(files.voucher && files.voucher.url);
-    const hasS = !!(files.sunat && files.sunat.url);
-    let html = '<div style="display:flex;flex-direction:column;gap:5px;">';
-
-    // Voucher
-    if (hasV) {
-      html += `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
+    // ─ Voucher
+    let voucherHtml;
+    if (row.voucher && row.voucher.url) {
+      voucherHtml = `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
         <span style="color:#15803d;font-weight:800;">✓ Voucher</span>
-        <button type="button" class="cobro-view" data-row-id="${row.id}" data-col-key="${col.key}" data-type="voucher"
-          style="background:transparent;border:none;cursor:pointer;font-size:.9rem;" title="Ver voucher">👁️</button>
-        <button type="button" class="cobro-del-file" data-row-id="${row.id}" data-col-key="${col.key}" data-type="voucher"
-          style="background:transparent;border:none;cursor:pointer;color:#b91c1c;font-size:.9rem;" title="Eliminar">✕</button>
+        <button type="button" class="cobro-view" data-row-id="${row.id}" data-type="voucher" style="background:transparent;border:none;cursor:pointer;font-size:1rem;" title="Ver">👁️</button>
+        <button type="button" class="cobro-del-file" data-row-id="${row.id}" data-type="voucher" style="background:transparent;border:none;cursor:pointer;color:#b91c1c;font-size:.95rem;" title="Eliminar">✕</button>
       </div>`;
     } else {
-      html += `<button type="button" class="cobro-up" data-row-id="${row.id}" data-col-key="${col.key}" data-type="voucher"
-        style="background:var(--azul-medio);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">
-        📤 Subir Voucher
-      </button>`;
+      voucherHtml = `<button type="button" class="cobro-up" data-row-id="${row.id}" data-type="voucher" style="background:var(--azul-medio);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;width:100%;">📤 Voucher</button>`;
     }
 
-    // Sunat
-    if (hasS) {
-      html += `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
+    // ─ Sunat
+    let sunatHtml;
+    if (row.sunat && row.sunat.url) {
+      sunatHtml = `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
         <span style="color:#15803d;font-weight:800;">✓ Sunat</span>
-        <button type="button" class="cobro-view" data-row-id="${row.id}" data-col-key="${col.key}" data-type="sunat"
-          style="background:transparent;border:none;cursor:pointer;font-size:.9rem;" title="Ver recibo">👁️</button>
-        <button type="button" class="cobro-del-file" data-row-id="${row.id}" data-col-key="${col.key}" data-type="sunat"
-          style="background:transparent;border:none;cursor:pointer;color:#b91c1c;font-size:.9rem;" title="Eliminar">✕</button>
+        <button type="button" class="cobro-view" data-row-id="${row.id}" data-type="sunat" style="background:transparent;border:none;cursor:pointer;font-size:1rem;" title="Ver">👁️</button>
+        <button type="button" class="cobro-del-file" data-row-id="${row.id}" data-type="sunat" style="background:transparent;border:none;cursor:pointer;color:#b91c1c;font-size:.95rem;" title="Eliminar">✕</button>
       </div>`;
     } else {
-      html += `<button type="button" class="cobro-up" data-row-id="${row.id}" data-col-key="${col.key}" data-type="sunat"
-        style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">
-        📤 Subir Recibo Sunat
-      </button>`;
+      sunatHtml = `<button type="button" class="cobro-up" data-row-id="${row.id}" data-type="sunat" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;width:100%;">📤 Sunat</button>`;
     }
 
-    html += '</div>';
-    return html;
+    return `<tr style="border-bottom:1px solid var(--borde);">
+      <td style="padding:10px;vertical-align:middle;">${nameHtml}</td>
+      <td style="padding:10px;vertical-align:middle;">
+        <input type="text" data-cobro-field="concepto" data-row-id="${row.id}" value="${safe(row.concepto)}" placeholder="Concepto..." style="${baseStyle}">
+      </td>
+      <td style="padding:10px;vertical-align:middle;">
+        <input type="number" data-cobro-field="monto" data-row-id="${row.id}" value="${row.monto || 0}" min="0" step="0.01" style="${baseStyle}text-align:right;font-weight:700;">
+      </td>
+      <td style="padding:10px;vertical-align:middle;">
+        <div style="display:flex;flex-direction:column;gap:6px;">${voucherHtml}${sunatHtml}</div>
+      </td>
+      <td style="padding:10px;vertical-align:middle;">
+        <select data-cobro-field="estado" data-row-id="${row.id}" style="${baseStyle}">
+          <option value="pagado" ${row.estado === 'pagado' ? 'selected' : ''}>✅ Pagado</option>
+          <option value="pendiente" ${row.estado === 'pendiente' || !row.estado ? 'selected' : ''}>⏳ Pendiente</option>
+        </select>
+      </td>
+      <td style="text-align:center;padding:10px;vertical-align:middle;">
+        <button type="button" class="btn btn-rojo btn-mini cobro-del-row" data-row-id="${row.id}" title="Eliminar fila">🗑️</button>
+      </td>
+    </tr>`;
   }
 
-  // ══════════════════════════════════════════════════════════
-  // 4. RESUMEN
-  // ══════════════════════════════════════════════════════════
-  function renderCobroResumen(cobros) {
+  function renderResumen(rows) {
     const cont = document.getElementById('cobroResumen');
     if (!cont) return;
 
-    const montoCol = cobros.columns.find(c => c.key === 'monto' && c.type === 'number');
-    const estadoCol = cobros.columns.find(c => c.key === 'estado' && c.type === 'status');
-
-    let pagado = 0, pendiente = 0;
-    let numPagado = 0, numPendiente = 0;
-    cobros.rows.forEach(r => {
-      const m = montoCol ? parseFloat(r.cells[montoCol.key]) || 0 : 0;
-      const e = estadoCol ? (r.cells[estadoCol.key] || 'pendiente') : 'pendiente';
-      if (e === 'pagado') { pagado += m; numPagado++; }
+    let pagado = 0, pendiente = 0, numPagado = 0, numPendiente = 0;
+    rows.forEach(r => {
+      const m = parseFloat(r.monto) || 0;
+      if (r.estado === 'pagado') { pagado += m; numPagado++; }
       else { pendiente += m; numPendiente++; }
     });
     const total = pagado + pendiente;
@@ -10630,53 +10717,48 @@ console.log('Planilla lista y visible');
       <div class="resumen-card azul">
         <div class="et">📊 Total esperado</div>
         <div class="val">S/ ${total.toFixed(2)}</div>
-        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">${cobros.rows.length} fila(s) en total</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">${rows.length} registro(s)</div>
       </div>
       <div class="resumen-card morado">
         <div class="et">📈 % Cobrado</div>
         <div class="val">${total > 0 ? Math.round((pagado / total) * 100) : 0}%</div>
-        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">sobre el total esperado</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">sobre el total</div>
       </div>`;
   }
 
   // ══════════════════════════════════════════════════════════
-  // 5. LISTENERS (delegados — funcionan aunque el DOM cambie)
+  // LISTENERS
   // ══════════════════════════════════════════════════════════
-  function attachCobroListeners(cobros) {
-    // Inputs editables
-    document.querySelectorAll('#cobroTbody [data-cobro-input]').forEach(inp => {
+  function attachListeners(groupId, rows) {
+    const gc = getGroupCobros(groupId);
+
+    // Campos editables
+    document.querySelectorAll('#cobroTbody [data-cobro-field]').forEach(inp => {
       inp.addEventListener('change', () => {
-        const row = cobros.rows.find(r => r.id === inp.dataset.rowId);
+        const row = gc.rows.find(r => r.id === inp.dataset.rowId);
         if (!row) return;
-        const key = inp.dataset.colKey;
+        const f = inp.dataset.cobroField;
         let v = inp.value;
         if (inp.type === 'number') v = parseFloat(v) || 0;
-        row.cells[key] = v;
+        row[f] = v;
         saveState();
-        renderCobroResumen(cobros);
+        renderResumen(gc.rows);
       });
     });
 
     // Eliminar fila
     document.querySelectorAll('#cobroTbody .cobro-del-row').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (!confirm('¿Eliminar esta fila?')) return;
-        cobros.rows = cobros.rows.filter(r => r.id !== btn.dataset.rowId);
+        const row = gc.rows.find(r => r.id === btn.dataset.rowId);
+        if (!row) return;
+        if (row.tipo !== 'manual') {
+          if (!confirm(`¿Eliminar esta fila?\n\n(Si vuelves a actualizar, volverá a aparecer porque es un ${row.tipo === 'parent' ? 'padre del grupo' : 'alumno del grupo'}).`)) return;
+        } else {
+          if (!confirm('¿Eliminar este cargo manual?')) return;
+        }
+        gc.rows = gc.rows.filter(r => r.id !== btn.dataset.rowId);
         saveState();
-        renderCobroTable();
-      });
-    });
-
-    // Eliminar columna
-    document.querySelectorAll('#cobroThead .cobro-del-col').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('¿Eliminar esta columna y todos sus datos?')) return;
-        const id = btn.dataset.colId;
-        const col = cobros.columns.find(c => c.id === id);
-        cobros.columns = cobros.columns.filter(c => c.id !== id);
-        if (col) cobros.rows.forEach(r => { delete r.cells[col.key]; });
-        saveState();
-        renderCobroTable();
+        renderCobro();
       });
     });
 
@@ -10684,7 +10766,6 @@ console.log('Planilla lista y visible');
     document.querySelectorAll('#cobroTbody .cobro-up').forEach(btn => {
       btn.addEventListener('click', () => {
         const rowId = btn.dataset.rowId;
-        const key = btn.dataset.colKey;
         const tipo = btn.dataset.type;
         const input = document.createElement('input');
         input.type = 'file';
@@ -10695,33 +10776,29 @@ console.log('Planilla lista y visible');
           if (file.size > 5 * 1024 * 1024) { alert('Máximo 5 MB.'); return; }
           try {
             let url;
-            if (typeof procesarArchivo === 'function') {
-              url = await procesarArchivo(file, 'cobros-' + tipo);
-            } else if (typeof procesarImagen === 'function' && file.type.startsWith('image/')) {
-              url = await procesarImagen(file, 'cobros-' + tipo);
-            } else {
-              url = await fileToBase64(file);
-            }
-            const row = cobros.rows.find(r => r.id === rowId);
+            if (typeof procesarArchivo === 'function') url = await procesarArchivo(file, 'cobros-' + tipo);
+            else if (typeof procesarImagen === 'function' && file.type.startsWith('image/')) url = await procesarImagen(file, 'cobros-' + tipo);
+            else if (typeof fileToBase64 === 'function') url = await fileToBase64(file);
+            else throw new Error('No hay función para procesar archivos.');
+
+            const row = gc.rows.find(r => r.id === rowId);
             if (!row) return;
-            if (!row.cells[key]) row.cells[key] = {};
-            row.cells[key][tipo] = { url, name: file.name, uploadedAt: new Date().toISOString() };
+            row[tipo] = { url, name: file.name, uploadedAt: new Date().toISOString() };
             saveState();
-            renderCobroTable();
+            renderCobro();
           } catch (e) { alert('Error al subir: ' + e.message); }
         };
         input.click();
       });
     });
 
-    // Ver archivo
+    // Ver
     document.querySelectorAll('#cobroTbody .cobro-view').forEach(btn => {
       btn.addEventListener('click', () => {
-        const row = cobros.rows.find(r => r.id === btn.dataset.rowId);
-        const key = btn.dataset.colKey;
-        const tipo = btn.dataset.type;
-        if (!row || !row.cells[key] || !row.cells[key][tipo]) return;
-        abrirArchivoCobro(row.cells[key][tipo].url);
+        const row = gc.rows.find(r => r.id === btn.dataset.rowId);
+        const t = btn.dataset.type;
+        if (!row || !row[t] || !row[t].url) return;
+        abrirArchivo(row[t].url);
       });
     });
 
@@ -10729,19 +10806,14 @@ console.log('Planilla lista y visible');
     document.querySelectorAll('#cobroTbody .cobro-del-file').forEach(btn => {
       btn.addEventListener('click', () => {
         if (!confirm('¿Eliminar este archivo?')) return;
-        const row = cobros.rows.find(r => r.id === btn.dataset.rowId);
-        const key = btn.dataset.colKey;
-        const tipo = btn.dataset.type;
-        if (row && row.cells[key]) {
-          delete row.cells[key][tipo];
-          saveState();
-          renderCobroTable();
-        }
+        const row = gc.rows.find(r => r.id === btn.dataset.rowId);
+        const t = btn.dataset.type;
+        if (row) { row[t] = null; saveState(); renderCobro(); }
       });
     });
   }
 
-  function abrirArchivoCobro(url) {
+  function abrirArchivo(url) {
     if (!url) return;
     const esPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|#|$)/i.test(url);
     if (esPdf) {
@@ -10766,127 +10838,90 @@ console.log('Planilla lista y visible');
   }
 
   // ══════════════════════════════════════════════════════════
-  // 6. BOTONES GLOBALES (Agregar fila / columna / restaurar)
+  // SELECTOR DE GRUPOS
   // ══════════════════════════════════════════════════════════
-  document.getElementById('cobroAddRow')?.addEventListener('click', () => {
-    console.log('➕ Agregar fila clickeado');
-    const cobros = ensureCobros();
-    if (!cobros) { alert('Error: state no está listo. Recarga la página.'); return; }
-    cobros.rows.push(nuevaFila(cobros));
-    saveState();
-    renderCobroTable();
-  });
-
-  document.getElementById('cobroAddCol')?.addEventListener('click', () => {
-    console.log('➕ Agregar columna clickeado');
-    const opt = prompt(
-      'Tipo de columna:\n\n' +
-      '1 = Texto\n' +
-      '2 = Número\n' +
-      '3 = Archivo (Voucher / Sunat)\n' +
-      '4 = Estado (Pagado / Pendiente)\n\n' +
-      'Ingresa el número:'
-    );
-    if (!opt) return;
-    const map = { '1': 'text', '2': 'number', '3': 'file', '4': 'status' };
-    const type = map[opt.trim()];
-    if (!type) { alert('Tipo inválido.'); return; }
-
-    const nombre = prompt('Nombre de la nueva columna:');
-    if (!nombre || !nombre.trim()) return;
-
-    const cobros = ensureCobros();
-    if (!cobros) return;
-    const key = 'custom_' + Date.now();
-    cobros.columns.push({
-      id: 'c_' + key, key, name: nombre.trim(), type, fixed: false, width: '140px'
-    });
-    cobros.rows.forEach(r => {
-      if (type === 'text') r.cells[key] = '';
-      else if (type === 'number') r.cells[key] = 0;
-      else if (type === 'status') r.cells[key] = 'pendiente';
-      else if (type === 'file') r.cells[key] = {};
-    });
-    saveState();
-    renderCobroTable();
-  });
-
-  document.getElementById('cobroRestaurar')?.addEventListener('click', () => {
-    if (!confirm('¿Restaurar las columnas base? Las columnas personalizadas se eliminarán.')) return;
-    const cobros = ensureCobros();
-    if (!cobros) return;
-    const baseKeys = COBRO_BASE_COLS.map(c => c.key);
-    cobros.columns = JSON.parse(JSON.stringify(COBRO_BASE_COLS));
-    cobros.rows.forEach(r => {
-      Object.keys(r.cells).forEach(k => { if (!baseKeys.includes(k)) delete r.cells[k]; });
-      // Asegurar que existan todas las llaves base
-      cobros.columns.forEach(c => {
-        if (!(c.key in r.cells)) {
-          if (c.type === 'text') r.cells[c.key] = '';
-          else if (c.type === 'number') r.cells[c.key] = 0;
-          else if (c.type === 'status') r.cells[c.key] = 'pendiente';
-          else if (c.type === 'file') r.cells[c.key] = {};
-        }
+  function fillGroupSelect() {
+    const sel = document.getElementById('cobroGroupSelect');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Selecciona un grupo —</option>';
+    (state.groups || [])
+      .slice()
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+      .forEach(g => {
+        const t = state.teachers[g.teacherCode];
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        const nAl = (g.studentCodes || []).length;
+        opt.textContent = `${g.nombre || g.id}${t ? ' · ' + t.nombre : ''} · ${nAl} alumno(s)${g.cerrado ? ' 🔒' : ''}`;
+        sel.appendChild(opt);
       });
+    if (cur && (state.groups || []).find(g => g.id === cur)) sel.value = cur;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // BOTONES
+  // ══════════════════════════════════════════════════════════
+  document.getElementById('cobroGroupSelect')?.addEventListener('change', () => renderCobro());
+
+  document.getElementById('cobroRefresh')?.addEventListener('click', () => {
+    const cur = document.getElementById('cobroGroupSelect')?.value;
+    fillGroupSelect();
+    if (cur) document.getElementById('cobroGroupSelect').value = cur;
+    renderCobro();
+  });
+
+  document.getElementById('cobroAddManualRow')?.addEventListener('click', () => {
+    const groupId = document.getElementById('cobroGroupSelect')?.value;
+    if (!groupId) { alert('Selecciona un grupo primero.'); return; }
+    const nombre = prompt('Nombre del cargo manual (ej: "Material didáctico", "Uniforme", "Cobro especial"):');
+    if (!nombre || !nombre.trim()) return;
+    const gc = getGroupCobros(groupId);
+    gc.rows.push({
+      id: 'manual_' + Date.now(),
+      tipo: 'manual',
+      parentUser: null,
+      displayName: nombre.trim(),
+      studentCodes: [],
+      concepto: 'Cargo adicional',
+      monto: 0,
+      estado: 'pendiente',
+      voucher: null,
+      sunat: null
     });
     saveState();
-    renderCobroTable();
+    renderCobro();
   });
 
   // ══════════════════════════════════════════════════════════
-  // 7. AUTO-RENDER AL ABRIR EL TAB
+  // HOOKS
   // ══════════════════════════════════════════════════════════
   document.querySelectorAll('[data-cont-subtab="cobro"]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      setTimeout(() => { try { renderCobroTable(); } catch (e) { console.warn(e); } }, 80);
-    });
+    tab.addEventListener('click', () => setTimeout(() => { fillGroupSelect(); renderCobro(); }, 80));
   });
 
-  // Si el tab ya está abierto al cargar
   setTimeout(() => {
     try {
-      const panel = document.getElementById('cont-subpanel-cobro');
-      if (panel && panel.classList.contains('activo')) renderCobroTable();
+      const p = document.getElementById('cont-subpanel-cobro');
+      if (p && p.classList.contains('activo')) { fillGroupSelect(); renderCobro(); }
     } catch (e) {}
   }, 700);
 
   // ══════════════════════════════════════════════════════════
-  // 8. BACKFILL: garantizar que state.cobros persista
+  // BACKFILL: garantizar estructura en recargas desde Supabase
   // ══════════════════════════════════════════════════════════
-  // Sobrescribimos backfillState para incluir cobros
   if (typeof window.backfillState === 'function') {
-    const _origBackfill = window.backfillState;
+    const _orig = window.backfillState;
     window.backfillState = function (parsed) {
-      parsed = _origBackfill(parsed);
-      if (!parsed.cobros || !Array.isArray(parsed.cobros.columns)) {
-        parsed.cobros = {
-          columns: JSON.parse(JSON.stringify(COBRO_BASE_COLS)),
-          rows: []
-        };
-      }
+      parsed = _orig(parsed);
+      if (!parsed.cobros) parsed.cobros = {};
+      if (!parsed.cobros.byGroup) parsed.cobros.byGroup = {};
       return parsed;
     };
   }
 
-  // ══════════════════════════════════════════════════════════
-  // 9. DIAGNÓSTICO (opcional — útil para debug)
-  // ══════════════════════════════════════════════════════════
-  window.cobrosDiagnostico = function () {
-    console.log('=== DIAGNÓSTICO COBROS ===');
-    console.log('Botón Agregar fila:', document.getElementById('cobroAddRow') ? '✅ existe' : '❌ FALTA');
-    console.log('Botón Agregar columna:', document.getElementById('cobroAddCol') ? '✅ existe' : '❌ FALTA');
-    console.log('thead:', document.getElementById('cobroThead') ? '✅' : '❌');
-    console.log('tbody:', document.getElementById('cobroTbody') ? '✅' : '❌');
-    console.log('Panel:', document.getElementById('cont-subpanel-cobro') ? '✅' : '❌');
-    console.log('state.cobros:', ensureCobros());
-    console.log('=== FIN DIAGNÓSTICO ===');
-  };
-
-  // Render inicial (por si el panel está activo)
-  setTimeout(() => { try { renderCobroTable(); } catch (e) {} }, 1000);
-
-  console.log('✅ Módulo Cobros cargado. Para diagnosticar: escribe "cobrosDiagnostico()" en la consola.');
+  console.log('✅ Módulo Cobros V2 (por grupo → padres/alumnos) cargado.');
 })();
-</script>
+</script> 
 </body>
 </html>
