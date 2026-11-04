@@ -1972,24 +1972,23 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 
 <!-- ============ SUBPANEL COBRO (V2 — por grupo/padres) ============ -->
 <div class="subpanel" id="cont-subpanel-cobro">
-  <h4 style="color:var(--slate);margin-bottom:8px;font-size:1rem;font-weight:800;">💵 Cobros por Grupo · Padres de Familia y Alumnos</h4>
-  <p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">
-    Selecciona un grupo para cargar <strong>automáticamente</strong> a los padres de familia (con sus hijos) o a los alumnos que no tengan padre registrado. Registra el monto, sube el voucher y/o recibo SUNAT, y marca el estado de pago.
-  </p>
+ <h4 style="color:var(--slate);margin-bottom:8px;font-size:1rem;font-weight:800;">💵 Cobros por Alumno · Padres de Familia y Alumnos</h4>
+<p style="color:var(--gris);font-size:.88rem;margin-bottom:16px;">
+  Selecciona un alumno o deja <strong>"Todos los alumnos"</strong> para ver los cobrables de todos. Cada fila muestra al padre/madre vinculado (si tiene) o al alumno directamente. Registra el monto, sube el voucher y/o recibo SUNAT, y marca el estado de pago.
+</p>
 
-  <div class="tform admin-form" style="margin-bottom:14px;">
-    <div class="tform-grid" style="grid-template-columns:2fr auto auto;gap:10px;align-items:end;">
-      <div class="campo" style="margin:0;">
-        <label>Grupo <span class="req">*</span></label>
-        <select id="cobroGroupSelect">
-          <option value="">— Selecciona un grupo —</option>
-        </select>
-      </div>
-      <button type="button" class="btn btn-azul" id="cobroRefresh" style="height:44px;">🔄 Actualizar</button>
-      <button type="button" class="btn btn-verde" id="cobroAddManualRow" style="height:44px;">➕ Añadir cargo manual</button>
+<div class="tform admin-form" style="margin-bottom:14px;">
+  <div class="tform-grid" style="grid-template-columns:2fr auto auto;gap:10px;align-items:end;">
+    <div class="campo" style="margin:0;">
+      <label>Alumno</label>
+      <select id="cobroGroupSelect">
+        <option value="">— Todos los alumnos —</option>
+      </select>
     </div>
+    <button type="button" class="btn btn-azul" id="cobroRefresh" style="height:44px;">🔄 Actualizar</button>
+    <button type="button" class="btn btn-verde" id="cobroAddManualRow" style="height:44px;">➕ Añadir cargo manual</button>
   </div>
-
+</div>
   <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);overflow-x:auto;max-width:100%;">
     <table id="cobroTable" style="width:100%;min-width:900px;border-collapse:collapse;">
       <thead id="cobroThead">
@@ -10901,150 +10900,152 @@ console.log('Planilla lista y visible');
 })();
 </script>
 <!-- ============================================================
-     MÓDULO COBROS V2 — por grupo → padres/alumnos
+     MÓDULO COBROS V3 — por alumno (todos los alumnos con cuenta)
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log('🚀 Cobros V2 iniciando…');
+  console.log('🚀 Cobros V3 iniciando…');
 
   // ══════════════════════════════════════════════════════════
-  // ESTRUCTURA EN state.cobros.byGroup[groupId]
+  // ESTRUCTURA: state.cobros.byStudent[studentCode] = { rows: [] }
   // ══════════════════════════════════════════════════════════
   function ensureCobros() {
     if (typeof state === 'undefined' || !state) return null;
     if (!state.cobros) state.cobros = {};
-    if (!state.cobros.byGroup) state.cobros.byGroup = {};
-    return state.cobros.byGroup;
+    if (!state.cobros.byStudent) state.cobros.byStudent = {};
+    return state.cobros.byStudent;
   }
 
-  function getGroupCobros(groupId) {
-    const bg = ensureCobros();
-    if (!bg) return { rows: [] };
-    if (!bg[groupId]) bg[groupId] = { rows: [], mes: getMesActual() };
-    return bg[groupId];
+  function getStudentCobros(studentCode) {
+    const bs = ensureCobros();
+    if (!bs) return { rows: [] };
+    if (!bs[studentCode]) bs[studentCode] = { rows: [] };
+    return bs[studentCode];
   }
 
-  function getMesActual() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // GENERAR COBRABLES DESDE EL GRUPO
-  //   - Un padre con varios hijos en el grupo → 1 fila
-  //   - Alumno sin padre → 1 fila con su nombre
-  // ══════════════════════════════════════════════════════════
-  function generateCobrables(groupId) {
-    const group = (state.groups || []).find(g => g.id === groupId);
-    if (!group) return [];
-    const rows = [];
-    const parentMap = new Map();
-
-    (group.studentCodes || []).forEach(code => {
-      const student = state.students[code];
-      if (!student) return;
-
-      const parentEntry = Object.entries(state.padres || {}).find(
-        ([, p]) => Array.isArray(p.hijos) && p.hijos.includes(code)
-      );
-
-      if (parentEntry) {
-        const [parentUser, parent] = parentEntry;
-        if (parentMap.has(parentUser)) {
-          parentMap.get(parentUser).studentCodes.push(code);
-        } else {
-          const row = {
-            id: 'row_parent_' + parentUser,
-            tipo: 'parent',
-            parentUser,
-            displayName: parent.nombre || parentUser,
-            studentCodes: [code],
-            concepto: 'Mensualidad ' + (student.programa || ''),
-            monto: 0,
-            estado: 'pendiente',
-            voucher: null,
-            sunat: null
-          };
-          parentMap.set(parentUser, row);
-          rows.push(row);
-        }
-      } else {
-        rows.push({
-          id: 'row_student_' + code,
-          tipo: 'student',
-          parentUser: null,
-          displayName: student.nombre,
-          studentCodes: [code],
-          concepto: 'Mensualidad ' + (student.programa || ''),
-          monto: 0,
-          estado: 'pendiente',
-          voucher: null,
-          sunat: null
+  // Migración opcional: si existían datos de la versión por grupo, moverlos
+  function migrarByGroupSiExiste() {
+    if (!state || !state.cobros) return;
+    if (!state.cobros.byGroup) return;
+    if (state.cobros._migratedToStudents) return;
+    const bs = ensureCobros();
+    if (!bs) return;
+    Object.values(state.cobros.byGroup).forEach(groupData => {
+      (groupData.rows || []).forEach(row => {
+        (row.studentCodes || []).forEach(sc => {
+          let newId = row.id;
+          if (newId && (newId.startsWith('row_parent_') || newId.startsWith('row_student_'))) {
+            newId = 'auto_' + sc;
+          }
+          if (!bs[sc]) bs[sc] = { rows: [] };
+          if (!bs[sc].rows.some(r => r.id === newId)) {
+            bs[sc].rows.push({ ...row, id: newId });
+          }
         });
-      }
+      });
     });
-
-    return rows;
-  }
-
-  // Fusiona autogeneradas con guardadas (conserva pagos previos)
-  function mergeRows(autoRows, savedRows) {
-    const result = [];
-    const usedIds = new Set();
-
-    autoRows.forEach(auto => {
-      const saved = savedRows.find(s => s.id === auto.id);
-      if (saved) {
-        result.push({
-          ...saved,
-          // Refrescar campos descriptivos por si cambió el grupo/alumnos
-          displayName: auto.displayName,
-          studentCodes: auto.studentCodes,
-          tipo: auto.tipo,
-          parentUser: auto.parentUser
-        });
-      } else {
-        result.push(auto);
-      }
-      usedIds.add(auto.id);
-    });
-
-    // Conservar filas manuales creadas por el usuario
-    savedRows.forEach(s => {
-      if (!usedIds.has(s.id) && s.tipo === 'manual') result.push(s);
-    });
-
-    return result;
+    state.cobros._migratedToStudents = true;
+    try { saveState(); } catch (e) {}
+    console.log('✅ Cobros migrados de byGroup → byStudent');
   }
 
   // ══════════════════════════════════════════════════════════
-  // RENDER PRINCIPAL
+  // GENERAR FILA AUTOMÁTICA PARA UN ALUMNO
+  // ══════════════════════════════════════════════════════════
+  function generateAutoRow(studentCode) {
+    const student = state.students[studentCode];
+    if (!student) return null;
+
+    const parentEntry = Object.entries(state.padres || {}).find(
+      ([, p]) => Array.isArray(p.hijos) && p.hijos.includes(studentCode)
+    );
+
+    if (parentEntry) {
+      const [parentUser, parent] = parentEntry;
+      return {
+        id: 'auto_' + studentCode,
+        tipo: 'parent',
+        parentUser,
+        studentCodes: [studentCode],
+        displayName: parent.nombre || parentUser,
+        studentName: student.nombre || studentCode,
+        concepto: 'Mensualidad ' + (student.programa || ''),
+        monto: 0,
+        estado: 'pendiente',
+        voucher: null,
+        sunat: null
+      };
+    }
+
+    return {
+      id: 'auto_' + studentCode,
+      tipo: 'student',
+      parentUser: null,
+      studentCodes: [studentCode],
+      displayName: student.nombre || studentCode,
+      studentName: student.nombre || studentCode,
+      concepto: 'Mensualidad ' + (student.programa || ''),
+      monto: 0,
+      estado: 'pendiente',
+      voucher: null,
+      sunat: null
+    };
+  }
+
+  // Fusiona la fila automática con la guardada (conserva pagos previos)
+  function mergeRowsForStudent(studentCode) {
+    const saved = getStudentCobros(studentCode);
+    const auto = generateAutoRow(studentCode);
+    if (!auto) return [];
+
+    const savedAuto = saved.rows.find(r => r.id === auto.id);
+    const mergedAuto = savedAuto
+      ? { ...auto, ...savedAuto, displayName: auto.displayName, studentName: auto.studentName, tipo: auto.tipo, parentUser: auto.parentUser, studentCodes: auto.studentCodes }
+      : auto;
+
+    const manualRows = saved.rows.filter(r => r.id && !r.id.startsWith('auto_'));
+
+    saved.rows = [mergedAuto, ...manualRows];
+    return saved.rows;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // RENDER
   // ══════════════════════════════════════════════════════════
   function renderCobro() {
     const sel = document.getElementById('cobroGroupSelect');
-    const groupId = sel ? sel.value : '';
+    const selected = sel ? sel.value : '';
 
     const thead = document.getElementById('cobroThead');
     const tbody = document.getElementById('cobroTbody');
     const resumen = document.getElementById('cobroResumen');
     if (!thead || !tbody) return;
 
-    if (!groupId) {
-      thead.innerHTML = '<tr><th style="background:var(--azul);color:#fff;padding:12px;text-align:center;">👆 Selecciona un grupo arriba para cargar los cobrables</th></tr>';
+    const allCodes = Object.keys(state.students || {});
+    if (!allCodes.length) {
+      thead.innerHTML = '<tr><th style="background:var(--azul);color:#fff;padding:12px;text-align:center;">No hay alumnos con cuenta registrados</th></tr>';
       tbody.innerHTML = '';
       if (resumen) resumen.innerHTML = '';
       return;
     }
 
-    const groupCobros = getGroupCobros(groupId);
-    const auto = generateCobrables(groupId);
-    const merged = mergeRows(auto, groupCobros.rows || []);
-    groupCobros.rows = merged;
+    const codesToShow = selected ? [selected] : allCodes.slice().sort((a, b) =>
+      (state.students[a].nombre || '').localeCompare(state.students[b].nombre || '')
+    );
 
-    // HEADER
+    const allRows = [];
+    codesToShow.forEach(code => {
+      const rows = mergeRowsForStudent(code);
+      rows.forEach(r => {
+        r._studentCode = code;
+        allRows.push(r);
+      });
+    });
+
+    // ── HEADER ──
     thead.innerHTML = `<tr>
-      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;min-width:230px;">Cobrable</th>
+      <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;min-width:230px;">Alumno / Padre</th>
       <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;min-width:150px;">Concepto</th>
       <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:right;min-width:110px;">Monto (S/)</th>
       <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;min-width:190px;">Comprobantes</th>
@@ -11052,49 +11053,44 @@ console.log('Planilla lista y visible');
       <th style="background:var(--azul);color:#fff;padding:10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;text-align:center;width:70px;">Acción</th>
     </tr>`;
 
-    // BODY
-    if (!merged.length) {
+    // ── BODY ──
+    if (!allRows.length) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--gris);padding:30px;background:#f9fafb;">
-        📋 Este grupo no tiene alumnos con padre/madre registrado, ni alumnos sin padre asignado.<br>
-        <small style="display:block;margin-top:6px;">Verifica en <strong>Coordinación Académica → Grupos</strong> que haya alumnos y en <strong>Padres de familia</strong> que estén vinculados.</small>
+        📋 Sin cobrables para mostrar.
       </td></tr>`;
     } else {
-      let html = '';
-      merged.forEach(row => { html += renderRow(row); });
-      tbody.innerHTML = html;
+      tbody.innerHTML = allRows.map(r => renderRow(r)).join('');
     }
 
-    renderResumen(merged);
-    attachListeners(groupId, merged);
+    renderResumen(allRows);
+    attachListeners(allRows);
   }
 
   function renderRow(row) {
     const safe = v => (v === null || v === undefined ? '' : String(v).replace(/"/g, '&quot;'));
     const baseStyle = 'width:100%;padding:7px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.9rem;';
+    const studentCode = row._studentCode || (row.studentCodes && row.studentCodes[0]) || '';
 
-    // ─ Nombre tipo
     let nameHtml;
     if (row.tipo === 'parent') {
-      const hijos = (row.studentCodes || []).map(c => state.students[c]?.nombre || c).join(', ');
       nameHtml = `<div>
         <strong style="color:var(--azul);">👨‍👩‍👧 ${safe(row.displayName)}</strong>
-        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Hijo(s): ${safe(hijos)}</div>
-        <div style="font-size:.72rem;color:var(--morado);margin-top:1px;">Usuario: ${safe(row.parentUser)}</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Alumno: ${safe(row.studentName || '')}</div>
+        <div style="font-size:.72rem;color:var(--morado);margin-top:1px;">Usuario padre: ${safe(row.parentUser)}</div>
       </div>`;
     } else if (row.tipo === 'manual') {
       nameHtml = `<div>
         <strong style="color:var(--morado);">✏️ ${safe(row.displayName)}</strong>
-        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Cargo manual</div>
+        <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Cargo manual · ${safe(row.studentName || '')}</div>
       </div>`;
     } else {
       nameHtml = `<div>
         <strong style="color:var(--verde);">🎓 ${safe(row.displayName)}</strong>
         <div style="font-size:.78rem;color:var(--gris);margin-top:2px;">Sin padre/madre registrado</div>
-        <div style="font-size:.72rem;color:var(--slate-medio);margin-top:1px;">${(row.studentCodes || []).join(', ')}</div>
+        <div style="font-size:.72rem;color:var(--slate-medio);margin-top:1px;">${safe(studentCode)}</div>
       </div>`;
     }
 
-    // ─ Voucher
     let voucherHtml;
     if (row.voucher && row.voucher.url) {
       voucherHtml = `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
@@ -11106,7 +11102,6 @@ console.log('Planilla lista y visible');
       voucherHtml = `<button type="button" class="cobro-up" data-row-id="${row.id}" data-type="voucher" style="background:var(--azul-medio);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:.76rem;font-weight:700;cursor:pointer;width:100%;">📤 Voucher</button>`;
     }
 
-    // ─ Sunat
     let sunatHtml;
     if (row.sunat && row.sunat.url) {
       sunatHtml = `<div style="display:flex;gap:4px;align-items:center;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:.74rem;">
@@ -11121,22 +11116,22 @@ console.log('Planilla lista y visible');
     return `<tr style="border-bottom:1px solid var(--borde);">
       <td style="padding:10px;vertical-align:middle;">${nameHtml}</td>
       <td style="padding:10px;vertical-align:middle;">
-        <input type="text" data-cobro-field="concepto" data-row-id="${row.id}" value="${safe(row.concepto)}" placeholder="Concepto..." style="${baseStyle}">
+        <input type="text" data-cobro-field="concepto" data-row-id="${row.id}" data-student="${studentCode}" value="${safe(row.concepto)}" placeholder="Concepto..." style="${baseStyle}">
       </td>
       <td style="padding:10px;vertical-align:middle;">
-        <input type="number" data-cobro-field="monto" data-row-id="${row.id}" value="${row.monto || 0}" min="0" step="0.01" style="${baseStyle}text-align:right;font-weight:700;">
+        <input type="number" data-cobro-field="monto" data-row-id="${row.id}" data-student="${studentCode}" value="${row.monto || 0}" min="0" step="0.01" style="${baseStyle}text-align:right;font-weight:700;">
       </td>
       <td style="padding:10px;vertical-align:middle;">
         <div style="display:flex;flex-direction:column;gap:6px;">${voucherHtml}${sunatHtml}</div>
       </td>
       <td style="padding:10px;vertical-align:middle;">
-        <select data-cobro-field="estado" data-row-id="${row.id}" style="${baseStyle}">
+        <select data-cobro-field="estado" data-row-id="${row.id}" data-student="${studentCode}" style="${baseStyle}">
           <option value="pagado" ${row.estado === 'pagado' ? 'selected' : ''}>✅ Pagado</option>
           <option value="pendiente" ${row.estado === 'pendiente' || !row.estado ? 'selected' : ''}>⏳ Pendiente</option>
         </select>
       </td>
       <td style="text-align:center;padding:10px;vertical-align:middle;">
-        <button type="button" class="btn btn-rojo btn-mini cobro-del-row" data-row-id="${row.id}" title="Eliminar fila">🗑️</button>
+        <button type="button" class="btn btn-rojo btn-mini cobro-del-row" data-row-id="${row.id}" data-student="${studentCode}" title="Eliminar fila">🗑️</button>
       </td>
     </tr>`;
   }
@@ -11176,47 +11171,53 @@ console.log('Planilla lista y visible');
       </div>`;
   }
 
-  // ══════════════════════════════════════════════════════════
-  // LISTENERS
-  // ══════════════════════════════════════════════════════════
-  function attachListeners(groupId, rows) {
-    const gc = getGroupCobros(groupId);
+  function attachListeners(rows) {
+    const bs = ensureCobros();
+    if (!bs) return;
 
-    // Campos editables
+    function findRow(rowId, studentCode) {
+      const bucket = bs[studentCode];
+      if (!bucket) return null;
+      return bucket.rows.find(r => r.id === rowId);
+    }
+
     document.querySelectorAll('#cobroTbody [data-cobro-field]').forEach(inp => {
       inp.addEventListener('change', () => {
-        const row = gc.rows.find(r => r.id === inp.dataset.rowId);
+        const row = findRow(inp.dataset.rowId, inp.dataset.student);
         if (!row) return;
         const f = inp.dataset.cobroField;
         let v = inp.value;
         if (inp.type === 'number') v = parseFloat(v) || 0;
         row[f] = v;
         saveState();
-        renderResumen(gc.rows);
+        renderResumen(rows);
       });
     });
 
-    // Eliminar fila
     document.querySelectorAll('#cobroTbody .cobro-del-row').forEach(btn => {
       btn.addEventListener('click', () => {
-        const row = gc.rows.find(r => r.id === btn.dataset.rowId);
+        const sc = btn.dataset.student;
+        const rowId = btn.dataset.rowId;
+        const bucket = bs[sc];
+        if (!bucket) return;
+        const row = bucket.rows.find(r => r.id === rowId);
         if (!row) return;
         if (row.tipo !== 'manual') {
-          if (!confirm(`¿Eliminar esta fila?\n\n(Si vuelves a actualizar, volverá a aparecer porque es un ${row.tipo === 'parent' ? 'padre del grupo' : 'alumno del grupo'}).`)) return;
+          if (!confirm('¿Eliminar esta fila?\n\n(Si vuelves a actualizar, volverá a aparecer porque es la fila automática del alumno).')) return;
         } else {
           if (!confirm('¿Eliminar este cargo manual?')) return;
         }
-        gc.rows = gc.rows.filter(r => r.id !== btn.dataset.rowId);
+        bucket.rows = bucket.rows.filter(r => r.id !== rowId);
         saveState();
         renderCobro();
       });
     });
 
-    // Subir archivo
     document.querySelectorAll('#cobroTbody .cobro-up').forEach(btn => {
       btn.addEventListener('click', () => {
         const rowId = btn.dataset.rowId;
         const tipo = btn.dataset.type;
+        const sc = btn.closest('tr')?.querySelector('[data-student]')?.dataset.student || '';
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*,.pdf';
@@ -11231,10 +11232,10 @@ console.log('Planilla lista y visible');
             else if (typeof fileToBase64 === 'function') url = await fileToBase64(file);
             else throw new Error('No hay función para procesar archivos.');
 
-            const row = gc.rows.find(r => r.id === rowId);
+            const row = findRow(rowId, sc);
             if (!row) return;
             row[tipo] = { url, name: file.name, uploadedAt: new Date().toISOString() };
-            try { saveState(); } catch (se) { console.warn('saveState tras cobro:', se); }
+            try { saveState(); } catch (se) { console.warn('saveState:', se); }
             try { renderCobro(); } catch (re) { console.warn('renderCobro:', re); }
           } catch (e) { alert('Error al subir: ' + e.message); }
         };
@@ -11242,23 +11243,25 @@ console.log('Planilla lista y visible');
       });
     });
 
-    // Ver
     document.querySelectorAll('#cobroTbody .cobro-view').forEach(btn => {
       btn.addEventListener('click', () => {
-        const row = gc.rows.find(r => r.id === btn.dataset.rowId);
-        const t = btn.dataset.type;
-        if (!row || !row[t] || !row[t].url) return;
-        abrirArchivo(row[t].url);
+        const rowId = btn.dataset.rowId;
+        const tipo = btn.dataset.type;
+        const sc = btn.closest('tr')?.querySelector('[data-student]')?.dataset.student || '';
+        const row = findRow(rowId, sc);
+        if (!row || !row[tipo] || !row[tipo].url) return;
+        abrirArchivo(row[tipo].url);
       });
     });
 
-    // Eliminar archivo
     document.querySelectorAll('#cobroTbody .cobro-del-file').forEach(btn => {
       btn.addEventListener('click', () => {
         if (!confirm('¿Eliminar este archivo?')) return;
-        const row = gc.rows.find(r => r.id === btn.dataset.rowId);
-        const t = btn.dataset.type;
-        if (row) { row[t] = null; saveState(); renderCobro(); }
+        const rowId = btn.dataset.rowId;
+        const tipo = btn.dataset.type;
+        const sc = btn.closest('tr')?.querySelector('[data-student]')?.dataset.student || '';
+        const row = findRow(rowId, sc);
+        if (row) { row[tipo] = null; saveState(); renderCobro(); }
       });
     });
   }
@@ -11288,51 +11291,66 @@ console.log('Planilla lista y visible');
   }
 
   // ══════════════════════════════════════════════════════════
-  // SELECTOR DE GRUPOS
+  // SELECTOR DE ALUMNOS
   // ══════════════════════════════════════════════════════════
-  function fillGroupSelect() {
+  function fillStudentSelect() {
     const sel = document.getElementById('cobroGroupSelect');
     if (!sel) return;
     const cur = sel.value;
-    sel.innerHTML = '<option value="">— Selecciona un grupo —</option>';
-    (state.groups || [])
-      .slice()
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
-      .forEach(g => {
-        const t = state.teachers[g.teacherCode];
-        const opt = document.createElement('option');
-        opt.value = g.id;
-        const nAl = (g.studentCodes || []).length;
-        opt.textContent = `${g.nombre || g.id}${t ? ' · ' + t.nombre : ''} · ${nAl} alumno(s)${g.cerrado ? ' 🔒' : ''}`;
-        sel.appendChild(opt);
-      });
-    if (cur && (state.groups || []).find(g => g.id === cur)) sel.value = cur;
+    sel.innerHTML = '<option value="">— Todos los alumnos —</option>';
+
+    const codes = Object.keys(state.students || {}).sort((a, b) =>
+      (state.students[a].nombre || '').localeCompare(state.students[b].nombre || '')
+    );
+
+    if (!codes.length) {
+      sel.innerHTML += '<option value="" disabled>No hay alumnos con cuenta registrados</option>';
+      return;
+    }
+
+    codes.forEach(code => {
+      const s = state.students[code];
+      const parent = Object.entries(state.padres || {}).find(
+        ([, p]) => Array.isArray(p.hijos) && p.hijos.includes(code)
+      );
+      const parentTag = parent ? ' · 👨‍👩‍👧 ' + (parent[1].nombre || '') : '';
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = `${s.nombre || code} · ${code}${parentTag}`;
+      sel.appendChild(opt);
+    });
+
+    if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
   }
 
   // ══════════════════════════════════════════════════════════
   // BOTONES
   // ══════════════════════════════════════════════════════════
-  document.getElementById('cobroGroupSelect')?.addEventListener('change', () => renderCobro());
+  document.getElementById('cobroGroupSelect')?.addEventListener('change', renderCobro);
 
   document.getElementById('cobroRefresh')?.addEventListener('click', () => {
     const cur = document.getElementById('cobroGroupSelect')?.value;
-    fillGroupSelect();
+    fillStudentSelect();
     if (cur) document.getElementById('cobroGroupSelect').value = cur;
     renderCobro();
   });
 
   document.getElementById('cobroAddManualRow')?.addEventListener('click', () => {
-    const groupId = document.getElementById('cobroGroupSelect')?.value;
-    if (!groupId) { alert('Selecciona un grupo primero.'); return; }
+    const selected = document.getElementById('cobroGroupSelect')?.value || '';
+    if (!selected) {
+      alert('Selecciona un alumno específico arriba (no "Todos los alumnos") para agregar cargos manuales.');
+      return;
+    }
     const nombre = prompt('Nombre del cargo manual (ej: "Material didáctico", "Uniforme", "Cobro especial"):');
     if (!nombre || !nombre.trim()) return;
-    const gc = getGroupCobros(groupId);
-    gc.rows.push({
+    const bucket = getStudentCobros(selected);
+    bucket.rows.push({
       id: 'manual_' + Date.now(),
       tipo: 'manual',
       parentUser: null,
       displayName: nombre.trim(),
-      studentCodes: [],
+      studentName: state.students[selected]?.nombre || selected,
+      studentCodes: [selected],
       concepto: 'Cargo adicional',
       monto: 0,
       estado: 'pendiente',
@@ -11347,32 +11365,32 @@ console.log('Planilla lista y visible');
   // HOOKS
   // ══════════════════════════════════════════════════════════
   document.querySelectorAll('[data-cont-subtab="cobro"]').forEach(tab => {
-    tab.addEventListener('click', () => setTimeout(() => { fillGroupSelect(); renderCobro(); }, 80));
+    tab.addEventListener('click', () => setTimeout(() => { fillStudentSelect(); renderCobro(); }, 80));
   });
 
   setTimeout(() => {
     try {
       const p = document.getElementById('cont-subpanel-cobro');
-      if (p && p.classList.contains('activo')) { fillGroupSelect(); renderCobro(); }
+      if (p && p.classList.contains('activo')) { fillStudentSelect(); renderCobro(); }
     } catch (e) {}
   }, 700);
 
-  // ══════════════════════════════════════════════════════════
-  // BACKFILL: garantizar estructura en recargas desde Supabase
-  // ══════════════════════════════════════════════════════════
+  // Migración / backfill
+  setTimeout(migrarByGroupSiExiste, 900);
+
   if (typeof window.backfillState === 'function') {
     const _orig = window.backfillState;
     window.backfillState = function (parsed) {
       parsed = _orig(parsed);
       if (!parsed.cobros) parsed.cobros = {};
-      if (!parsed.cobros.byGroup) parsed.cobros.byGroup = {};
+      if (!parsed.cobros.byStudent) parsed.cobros.byStudent = {};
       return parsed;
     };
   }
 
-  console.log('✅ Módulo Cobros V2 (por grupo → padres/alumnos) cargado.');
+  console.log('✅ Módulo Cobros V3 (por alumno) cargado.');
 })();
-</script> 
+</script>
  <!-- MODAL EDITAR PADRE/MADRE -->
 <div class="modal-overlay" id="modalEditarPadre">
   <div class="modal-box" style="max-width:560px; text-align:left; padding:32px 28px;">
