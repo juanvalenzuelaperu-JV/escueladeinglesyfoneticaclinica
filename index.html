@@ -12383,9 +12383,9 @@ console.log('Planilla lista y visible');
   init();
 })();
 </script>
- <!-- ============================================================
-     FLECHAS ◀ ▶ PARA NAVEGAR ENTRE MESES
-     Se agregan a los 4 calendarios del sistema:
+<!-- ============================================================
+     FLECHAS ‹ › A LOS LADOS DEL CALENDARIO
+     Aplica a los 4 calendarios del sistema:
        · Coordinación → Calendarización
        · Coordinación → Calendarización de clases
        · Portal Alumno → Calendario
@@ -12395,122 +12395,131 @@ console.log('Planilla lista y visible');
 (function () {
   'use strict';
 
-  // ─── Cambiar el valor del input de mes ±1 y disparar re-render ───
+  // ─── CSS (se inyecta una sola vez) ───
+  if (!document.getElementById('calNavStyles')) {
+    const style = document.createElement('style');
+    style.id = 'calNavStyles';
+    style.textContent = `
+      .cal-nav-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+        margin-bottom: 12px;
+      }
+      .cal-nav-btn {
+        flex-shrink: 0;
+        width: 44px;
+        align-self: center;
+        height: 80px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #004a8f 0%, #0066cc 100%);
+        color: #fff;
+        font-size: 1.7rem;
+        font-weight: 800;
+        cursor: pointer;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(0,74,143,.3);
+        transition: transform .15s, box-shadow .2s;
+        user-select: none;
+        padding: 0;
+      }
+      .cal-nav-btn:hover {
+        transform: scale(1.06);
+        box-shadow: 0 6px 22px rgba(0,74,143,.45);
+      }
+      .cal-nav-btn:active { transform: scale(0.94); }
+      .cal-nav-btn:focus {
+        outline: 3px solid rgba(253,185,19,.6);
+        outline-offset: 2px;
+      }
+      @media (max-width: 768px) {
+        .cal-nav-wrapper { gap: 6px; }
+        .cal-nav-btn {
+          width: 34px;
+          height: 60px;
+          font-size: 1.3rem;
+          border-radius: 10px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ─── Cambiar mes ±1 y disparar re-render ───
   function changeMonth(input, delta) {
     if (!input || !input.value) return;
     const [y, m] = input.value.split('-').map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     input.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    // Disparar el evento 'change' que ya tienen enganchado los renders
+    // Disparar el 'change' que ya tienen enganchado los renders
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  // ─── Insertar las 2 flechas a los lados del input ───
-  function addArrowsToMonthInput(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
+  function createArrow(direction, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cal-nav-btn';
+    btn.innerHTML = direction < 0 ? '‹' : '›';
+    btn.title = direction < 0 ? 'Mes anterior' : 'Mes siguiente';
+    btn.setAttribute('aria-label', direction < 0 ? 'Mes anterior' : 'Mes siguiente');
+    btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); onClick(); };
+    return btn;
+  }
 
-    // Ya tiene flechas? Salir (idempotente)
-    if (input.parentNode.querySelector('.month-arrow')) return;
+  function addArrowsToGrid(gridId, monthInputId) {
+    const grid = document.getElementById(gridId);
+    const input = document.getElementById(monthInputId);
+    if (!grid || !input) return;
+    if (grid.dataset.calNavAdded === '1') return;  // idempotente
 
-    const btnBase = 'background:#004a8f;color:#fff;border:none;border-radius:8px;' +
-                    'width:44px;height:44px;cursor:pointer;font-size:1.15rem;' +
-                    'flex-shrink:0;display:flex;align-items:center;justify-content:center;' +
-                    'transition:background .2s, transform .1s;user-select:none;';
-
-    // Botón "mes anterior"
-    const prev = document.createElement('button');
-    prev.type = 'button';
-    prev.className = 'month-arrow';
-    prev.innerHTML = '◀';
-    prev.title = 'Mes anterior';
-    prev.setAttribute('aria-label', 'Mes anterior');
-    prev.style.cssText = btnBase;
-    prev.onmouseover = () => { prev.style.background = '#0066cc'; };
-    prev.onmouseout  = () => { prev.style.background = '#004a8f'; };
-    prev.onmousedown = () => { prev.style.transform = 'scale(0.95)'; };
-    prev.onmouseup   = () => { prev.style.transform = 'scale(1)'; };
-    prev.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      changeMonth(input, -1);
-    };
-
-    // Botón "mes siguiente"
-    const next = document.createElement('button');
-    next.type = 'button';
-    next.className = 'month-arrow';
-    next.innerHTML = '▶';
-    next.title = 'Mes siguiente';
-    next.setAttribute('aria-label', 'Mes siguiente');
-    next.style.cssText = btnBase;
-    next.onmouseover = () => { next.style.background = '#0066cc'; };
-    next.onmouseout  = () => { next.style.background = '#004a8f'; };
-    next.onmousedown = () => { next.style.transform = 'scale(0.95)'; };
-    next.onmouseup   = () => { next.style.transform = 'scale(1)'; };
-    next.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      changeMonth(input, 1);
-    };
-
-    // Envolver el input en un flex container
+    // Crear contenedor flex
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'display:flex;gap:8px;align-items:center;width:100%;';
+    wrapper.className = 'cal-nav-wrapper';
+    grid.parentNode.insertBefore(wrapper, grid);
 
-    input.parentNode.insertBefore(wrapper, input);
-    wrapper.appendChild(prev);
-    wrapper.appendChild(input);
-    wrapper.appendChild(next);
+    // ← Anterior  |  Grid  |  Siguiente →
+    wrapper.appendChild(createArrow(-1, () => changeMonth(input, -1)));
+    wrapper.appendChild(grid);
+    wrapper.appendChild(createArrow(1, () => changeMonth(input, 1)));
 
-    input.style.flex = '1';
-    input.style.minWidth = '0';
+    // Ajustar estilos del grid dentro del flex
+    grid.style.flex = '1';
+    grid.style.minWidth = '0';
+    grid.style.marginBottom = '0';
+    grid.dataset.calNavAdded = '1';
   }
 
-  // ─── Aplicar a todos los inputs de mes del sistema ───
   function applyAll() {
-    [
-      'calMesSelect',    // Coordinación → Calendarización
-      'ccMes',           // Coordinación → Calendarización de clases
-      'alumnoCalMes',    // Portal Alumno → Calendario
-      'dCalMes'          // Portal Docente → Calendario
-    ].forEach(addArrowsToMonthInput);
+    addArrowsToGrid('calGrid',       'calMesSelect');   // Calendarización
+    addArrowsToGrid('ccGrid',        'ccMes');          // Calendarización de clases
+    addArrowsToGrid('alumnoCalGrid', 'alumnoCalMes');   // Portal Alumno
+    addArrowsToGrid('dCalGrid',      'dCalMes');        // Portal Docente
   }
 
-  // ─── Ejecutar al cargar ───
+  // Aplicar al cargar
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', applyAll);
   } else {
     applyAll();
   }
 
-  // ─── Re-aplicar al entrar a cualquier tab de calendario (por si acaso) ───
-  const tabs = [
+  // Re-aplicar al entrar a cualquier tab de calendario (por si acaso)
+  [
     '#tal-panel-admin [data-admtab="calendarizacion"]',
     '#tal-panel-admin [data-admtab="calendarizacion_clases"]',
     '#dashboardAlumno [data-atab="calendario"]',
     '#dashboardDocente [data-dtab="calendario"]'
-  ];
-  tabs.forEach(sel => {
+  ].forEach(sel => {
     document.querySelectorAll(sel).forEach(tab => {
-      tab.addEventListener('click', () => setTimeout(applyAll, 80));
+      tab.addEventListener('click', () => setTimeout(applyAll, 100));
     });
   });
 
-  // ─── Soporte de teclado: Alt+← / Alt+→ en el mes activo ───
-  document.addEventListener('keydown', (e) => {
-    if (!e.altKey) return;
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    // Solo si el foco está cerca de un input de mes (para no interferir con el slider)
-    const active = document.activeElement;
-    const monthInputs = ['calMesSelect', 'ccMes', 'alumnoCalMes', 'dCalMes'];
-    const isMonthFocused = active && monthInputs.includes(active.id);
-    if (!isMonthFocused) return;
-    e.preventDefault();
-    changeMonth(active, e.key === 'ArrowRight' ? 1 : -1);
-  });
-
-  console.log('✅ Flechas de navegación mensual agregadas a los 4 calendarios.');
+  console.log('✅ Flechas laterales agregadas a los 4 calendarios.');
 })();
 </script>
 </body>
