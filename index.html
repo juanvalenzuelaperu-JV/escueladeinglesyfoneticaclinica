@@ -13680,5 +13680,61 @@ console.log('Planilla lista y visible');
   console.log('✅ Fix comprobante listo. Botones re-enganchados con listener directo + fallback HTML.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: Re-habilitar botones SUNAT al marcar el checkbox
+     (checkHandler del v3 los muestra pero no los habilita)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Fix botones SUNAT iniciando...');
+
+  // ─── Sincronizar disabled ↔ checked ───
+  function syncSunatButtons() {
+    const check = document.getElementById('inscReciboCheck');
+    const bd = document.getElementById('btnDescargarReciboSunat');
+    const bi = document.getElementById('btnImprimirReciboSunat');
+    if (!check || !bd || !bi) return;
+
+    const habilitar = !!check.checked;
+    bd.disabled = !habilitar;
+    bi.disabled = !habilitar;
+
+    // Mantener también el contenedor visible cuando corresponde
+    const acciones = document.getElementById('inscReciboAcciones');
+    if (acciones) {
+      acciones.style.display = habilitar ? 'flex' : 'none';
+    }
+  }
+
+  // ─── Escuchar cambios en el checkbox ───
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'inscReciboCheck') {
+      // pequeño delay para que corra después del checkHandler del v3
+      setTimeout(syncSunatButtons, 10);
+    }
+  }, true);
+
+  // ─── Escuchar clics en "Verificar" (por si el reset deshabilita) ───
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'btnVerificarCodigo') {
+      // después de que v3 haga su trabajo
+      setTimeout(syncSunatButtons, 300);
+      setTimeout(syncSunatButtons, 800);
+    }
+  }, true);
+
+  // ─── Reforzar en varias instancias de carga ───
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncSunatButtons);
+  } else {
+    syncSunatButtons();
+  }
+  setTimeout(syncSunatButtons, 1500);
+  setTimeout(syncSunatButtons, 3000);
+
+  console.log('✅ Fix SUNAT: los botones se habilitan al marcar el checkbox.');
+})();
+</script>
 </body>
 </html>
