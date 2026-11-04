@@ -2248,7 +2248,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         <p id="inscEstadoMsg" style="font-size:.82rem; margin:8px 0 0; color:var(--gris);"></p>
       </div>
 
-      <!-- Recibo SUNAT (solo si está aprobado) -->
+      <!-- Estado del recibo SUNAT y acceso a la ventana de reconocimiento -->
       <div id="inscReciboBox" style="display:none; margin-top:8px;">
         <div style="background:#f8fafc; border:1px solid var(--borde); border-radius:12px; padding:16px; margin-bottom:12px;">
           <h4 style="color:var(--azul); font-size:.95rem; margin-bottom:8px; font-weight:800;">📄 Tu recibo de pago (SUNAT)</h4>
@@ -2256,14 +2256,31 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           <div id="inscReciboNoDisponible" style="display:none; background:#fef3c7; color:#b45309; padding:10px 12px; border-radius:8px; font-size:.85rem; font-weight:600; margin-bottom:10px;">
             ⏳ Aún no hay un recibo SUNAT cargado por administración para tu código. Contacta a la escuela.
           </div>
-          <label id="inscReciboCheckLabel" style="display:none; align-items:flex-start; gap:10px; cursor:pointer; font-size:.88rem; color:var(--texto); margin-bottom:12px;">
-            <input type="checkbox" id="inscReciboCheck" style="margin-top:3px; width:18px; height:18px; accent-color:var(--azul-medio); flex-shrink:0;">
-            <span>Reconozco que este es mi recibo emitido por el pago de mi matrícula.</span>
-          </label>
-          <button type="button" class="btn btn-azul btn-mini" id="btnDescargarReciboSunat" style="width:100%;" disabled>⬇️ Descargar recibo SUNAT</button>
+          <button type="button" class="btn btn-azul btn-mini" id="btnAbrirReconocimientoSunat" style="width:100%; display:none;">Ver y reconocer mi recibo SUNAT</button>
         </div>
-        <button type="button" class="btn btn-verde" id="btnMatricularExistente" style="width:100%; display:none;" disabled>Matricularme al curso</button>
+        <button type="button" class="btn btn-verde" id="btnMatricularExistente" style="width:100%; display:none;" disabled>Matricularme ahora</button>
       </div>
+    </div>
+
+    <!-- VENTANA / PASO DE RECONOCIMIENTO SUNAT -->
+    <div id="inscReconocimientoSunat" style="display:none; text-align:left;">
+      <h3 style="color:var(--azul); font-size:1.15rem; margin-bottom:6px;">Reconocimiento de recibo SUNAT</h3>
+      <p style="font-size:.88rem; color:var(--gris); margin-bottom:14px;">Revisa la vista previa del recibo que la administración ha asociado a tu código de alumno.</p>
+      <div style="border:1px solid var(--borde); border-radius:12px; padding:12px; background:#f8fafc; margin-bottom:14px;">
+        <div style="font-weight:800; color:var(--azul); margin-bottom:8px;">📄 Recibo SUNAT</div>
+        <iframe id="inscSunatPreview" title="Vista previa del recibo SUNAT" style="width:100%; height:360px; border:1px solid #cbd5e1; border-radius:8px; background:#fff;" loading="lazy"></iframe>
+        <p id="inscSunatPreviewFallback" style="display:none; font-size:.82rem; color:#92400e; margin-top:8px;">La vista previa integrada no está disponible para este formato. Usa la opción de abrir el recibo para revisarlo antes de reconocerlo.</p>
+        <a id="inscSunatAbrirEnlace" href="#" target="_blank" rel="noopener" style="display:inline-block; margin-top:8px; color:var(--azul-medio); font-weight:700; font-size:.85rem;">Abrir recibo en otra pestaña</a>
+      </div>
+      <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:.9rem; color:var(--texto); margin:0 0 14px;">
+        <input type="checkbox" id="inscReciboCheck" style="margin-top:3px; width:18px; height:18px; accent-color:var(--azul-medio); flex-shrink:0;">
+        <span>Reconozco que este es mi recibo emitido por el pago de mi matrícula.</span>
+      </label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+        <button type="button" class="btn btn-azul btn-mini" id="btnDescargarReciboSunat" disabled>⬇️ Descargar voucher SUNAT</button>
+        <button type="button" class="btn btn-slate btn-mini" id="btnImprimirReciboSunat" disabled>🖨️ Imprimir voucher SUNAT</button>
+      </div>
+      <button type="button" class="btn btn-verde" id="btnVolverInscripcionSunat" style="width:100%;" disabled>Volver a inscripción</button>
     </div>
 
     <div id="inscPasoNuevo" style="display:none; text-align:left;">
@@ -2280,7 +2297,12 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
     <div id="inscExito" style="display:none; padding:20px 0;">
       <div style="font-size:3.5rem; margin-bottom:14px;">🎉</div>
       <h3 style="color:var(--verde); margin-bottom:10px;">¡Felicitaciones!</h3>
-      <p style="color:var(--gris); font-size:.95rem;">Hemos recibido tu inscripción correctamente.<br>La escuela se contactará con usted en las próximas horas.</p>
+      <p id="inscExitoMensaje" style="color:var(--gris); font-size:.95rem;">Hemos recibido tu inscripción correctamente.<br>La escuela se contactará con usted en las próximas horas.</p>
+      <div id="inscResumenMatricula" style="display:none; text-align:left; margin-top:18px; padding:16px; border:1px solid #bfdbfe; border-radius:12px; background:#f8fafc;"></div>
+      <div id="inscAccionesComprobante" style="display:none; gap:10px; flex-direction:column; margin-top:14px;">
+        <button type="button" class="btn btn-azul" id="btnDescargarComprobanteInscripcion">⬇️ Descargar comprobante de inscripción</button>
+        <button type="button" class="btn btn-slate" id="btnImprimirComprobanteInscripcion">🖨️ Imprimir comprobante de inscripción</button>
+      </div>
       <button type="button" class="btn btn-azul" onclick="document.getElementById('modalInscripcion').classList.remove('visible')" style="margin-top:16px;">Cerrar</button>
     </div>
   </div>
@@ -2894,6 +2916,7 @@ function renderHorariosTable() {
    ============================================================ */
 let _inscSunatRecibo = null;
 let _inscReciboDescargado = false;
+let _inscComprobanteHTML = "";
 
 function findStudentSunat(studentCode) {
   const byGroup = (state.cobros && state.cobros.byGroup) || {};
@@ -2935,14 +2958,24 @@ function resetInscExistenteUI() {
   if (msg) msg.textContent = "";
   const reciboBox = document.getElementById("inscReciboBox");
   if (reciboBox) reciboBox.style.display = "none";
+  const reconocimiento = document.getElementById("inscReconocimientoSunat");
+  if (reconocimiento) reconocimiento.style.display = "none";
+  const preview = document.getElementById("inscSunatPreview");
+  if (preview) preview.src = "about:blank";
+  const abrir = document.getElementById("inscSunatAbrirEnlace");
+  if (abrir) abrir.href = "#";
+  const volver = document.getElementById("btnVolverInscripcionSunat");
+  if (volver) volver.disabled = true;
+  const btnAbrir = document.getElementById("btnAbrirReconocimientoSunat");
+  if (btnAbrir) btnAbrir.style.display = "none";
   const noDisp = document.getElementById("inscReciboNoDisponible");
   if (noDisp) noDisp.style.display = "none";
-  const checkLabel = document.getElementById("inscReciboCheckLabel");
-  if (checkLabel) checkLabel.style.display = "none";
   const check = document.getElementById("inscReciboCheck");
   if (check) check.checked = false;
   const btnDl = document.getElementById("btnDescargarReciboSunat");
   if (btnDl) btnDl.disabled = true;
+  const btnPrint = document.getElementById("btnImprimirReciboSunat");
+  if (btnPrint) btnPrint.disabled = true;
   const btnMat = document.getElementById("btnMatricularExistente");
   if (btnMat) {
     btnMat.style.display = "none";
@@ -2951,14 +2984,19 @@ function resetInscExistenteUI() {
   }
   _inscSunatRecibo = null;
   _inscReciboDescargado = false;
+  _inscComprobanteHTML = "";
 }
 
 function abrirModalInscripcion(course) {
   document.getElementById("inscCourseId").value = course.id;
   document.getElementById("inscPaso1").style.display = "block";
   document.getElementById("inscPasoExistente").style.display = "none";
+  document.getElementById("inscReconocimientoSunat").style.display = "none";
   document.getElementById("inscPasoNuevo").style.display = "none";
   document.getElementById("inscExito").style.display = "none";
+  document.getElementById("inscExitoMensaje").innerHTML = "Hemos recibido tu inscripción correctamente.<br>La escuela se contactará con usted en las próximas horas.";
+  document.getElementById("inscResumenMatricula").style.display = "none";
+  document.getElementById("inscAccionesComprobante").style.display = "none";
   document.getElementById("inscCodigoAlumno").value = "";
   resetInscExistenteUI();
   document.getElementById("inscNombres").value = "";
@@ -3028,73 +3066,89 @@ document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
   const courseId = document.getElementById("inscCourseId").value;
   const cursoLabel = getInscCourseLabel(courseId);
   const btnMat = document.getElementById("btnMatricularExistente");
-  btnMat.textContent = "Matricularme al curso " + cursoLabel;
+  btnMat.textContent = "Matricularme ahora";
+  btnMat.style.display = "none";
+  btnMat.disabled = true;
 
   _inscSunatRecibo = findStudentSunat(code);
   const reciboBox = document.getElementById("inscReciboBox");
   reciboBox.style.display = "block";
   const noDisp = document.getElementById("inscReciboNoDisponible");
-  const checkLabel = document.getElementById("inscReciboCheckLabel");
-  const btnDl = document.getElementById("btnDescargarReciboSunat");
+  const btnAbrir = document.getElementById("btnAbrirReconocimientoSunat");
 
-  if (!_inscSunatRecibo) {
+  if (!_inscSunatRecibo || !_inscSunatRecibo.url) {
     noDisp.style.display = "block";
-    checkLabel.style.display = "none";
-    btnDl.disabled = true;
-    btnMat.style.display = "none";
+    btnAbrir.style.display = "none";
     return;
   }
 
   noDisp.style.display = "none";
-  checkLabel.style.display = "flex";
-  btnDl.disabled = true;
+  btnAbrir.style.display = "block";
   const info = document.getElementById("inscReciboInfo");
   if (info) {
     info.textContent = "Recibo emitido por la administración" +
       (_inscSunatRecibo.name ? " · " + _inscSunatRecibo.name : "") +
-      (_inscSunatRecibo.uploadedAt ? " · " + formatearFecha(String(_inscSunatRecibo.uploadedAt).slice(0, 10)) : "") +
-      ".";
+      (_inscSunatRecibo.uploadedAt ? " · " + formatearFecha(String(_inscSunatRecibo.uploadedAt).slice(0, 10)) : "") + ".";
   }
+});
+
+// Abrir el paso independiente de reconocimiento: el recibo aparece antes de la casilla.
+document.getElementById("btnAbrirReconocimientoSunat").addEventListener("click", () => {
+  if (!_inscSunatRecibo || !_inscSunatRecibo.url) { alert("No hay recibo SUNAT disponible."); return; }
+  const url = _inscSunatRecibo.url;
+  document.getElementById("inscPasoExistente").style.display = "none";
+  document.getElementById("inscReconocimientoSunat").style.display = "block";
+  const preview = document.getElementById("inscSunatPreview");
+  const fallback = document.getElementById("inscSunatPreviewFallback");
+  preview.src = url;
+  fallback.style.display = "none";
+  document.getElementById("inscSunatAbrirEnlace").href = url;
+  document.getElementById("inscReciboCheck").checked = false;
+  document.getElementById("btnDescargarReciboSunat").disabled = true;
+  document.getElementById("btnImprimirReciboSunat").disabled = true;
+  document.getElementById("btnVolverInscripcionSunat").disabled = true;
+  _inscReciboDescargado = false;
 });
 
 document.getElementById("inscReciboCheck").addEventListener("change", (e) => {
-  const btnDl = document.getElementById("btnDescargarReciboSunat");
-  if (btnDl) btnDl.disabled = !e.target.checked || !_inscSunatRecibo;
-  if (!e.target.checked) {
-    const btnMat = document.getElementById("btnMatricularExistente");
-    if (btnMat) { btnMat.style.display = "none"; btnMat.disabled = true; }
-    _inscReciboDescargado = false;
-  }
+  const reconocido = !!e.target.checked && !!_inscSunatRecibo;
+  document.getElementById("btnDescargarReciboSunat").disabled = !reconocido;
+  document.getElementById("btnImprimirReciboSunat").disabled = !reconocido;
+  document.getElementById("btnVolverInscripcionSunat").disabled = !reconocido;
+  if (!reconocido) _inscReciboDescargado = false;
 });
 
 document.getElementById("btnDescargarReciboSunat").addEventListener("click", () => {
-  if (!_inscSunatRecibo || !_inscSunatRecibo.url) {
-    alert("No hay recibo disponible para descargar.");
-    return;
+  if (!_inscSunatRecibo || !_inscSunatRecibo.url || !document.getElementById("inscReciboCheck").checked) {
+    alert("Primero revisa y reconoce el recibo SUNAT."); return;
   }
-  const check = document.getElementById("inscReciboCheck");
-  if (!check || !check.checked) {
-    alert("Marca la casilla reconociendo que es tu recibo antes de descargar.");
-    return;
-  }
-  try {
-    const a = document.createElement("a");
-    a.href = _inscSunatRecibo.url;
-    a.download = _inscSunatRecibo.name || ("recibo-sunat-" + (_alumnoVerificado || "alumno") + ".pdf");
-    a.target = "_blank";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch (err) {
-    window.open(_inscSunatRecibo.url, "_blank");
-  }
+  const a = document.createElement("a");
+  a.href = _inscSunatRecibo.url;
+  a.download = _inscSunatRecibo.name || ("recibo-sunat-" + (_alumnoVerificado || "alumno") + ".pdf");
+  a.target = "_blank"; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
   _inscReciboDescargado = true;
-  const btnMat = document.getElementById("btnMatricularExistente");
-  if (btnMat) {
-    btnMat.style.display = "block";
-    btnMat.disabled = false;
+});
+
+document.getElementById("btnImprimirReciboSunat").addEventListener("click", () => {
+  if (!_inscSunatRecibo || !_inscSunatRecibo.url || !document.getElementById("inscReciboCheck").checked) {
+    alert("Primero revisa y reconoce el recibo SUNAT."); return;
   }
+  const w = window.open(_inscSunatRecibo.url, "_blank");
+  if (!w) { alert("Permite las ventanas emergentes para abrir el voucher SUNAT e imprimirlo."); return; }
+  try { w.opener = null; } catch (e) {}
+  // El visor del PDF se abre en otra pestaña; se invoca imprimir cuando el navegador lo permite.
+  setTimeout(() => { try { w.focus(); w.print(); } catch (e) { /* El alumno puede imprimir desde el visor PDF. */ } }, 900);
+  _inscReciboDescargado = true;
+});
+
+document.getElementById("btnVolverInscripcionSunat").addEventListener("click", () => {
+  if (!document.getElementById("inscReciboCheck").checked) { alert("Reconoce primero el recibo SUNAT."); return; }
+  document.getElementById("inscReconocimientoSunat").style.display = "none";
+  document.getElementById("inscPasoExistente").style.display = "block";
+  const btnMat = document.getElementById("btnMatricularExistente");
+  btnMat.style.display = "block";
+  btnMat.disabled = false;
 });
 
 document.getElementById("btnMatricularExistente").addEventListener("click", () => {
@@ -3113,11 +3167,6 @@ document.getElementById("btnMatricularExistente").addEventListener("click", () =
     alert("Debes reconocer que el recibo es tuyo.");
     return;
   }
-  if (!_inscReciboDescargado) {
-    alert("Descarga primero tu recibo SUNAT.");
-    return;
-  }
-
   const courseId = document.getElementById("inscCourseId").value;
   const student = state.students[_alumnoVerificado];
   if (!student) { alert("Alumno no encontrado."); return; }
@@ -3139,35 +3188,86 @@ document.getElementById("btnMatricularExistente").addEventListener("click", () =
 
   const cursoLabel = getInscCourseLabel(courseId);
   if (!Array.isArray(state.registrations)) state.registrations = [];
-  state.registrations.push({
+  const fechaMatricula = new Date().toISOString().slice(0, 10);
+  const registroMatricula = {
     id: "reg_" + Date.now(),
     scheduleId: courseId,
     programa: group ? (group.programa || group.nombre) : cursoLabel,
     nombre: student.nombre,
     email: student.email || "—",
     telefono: student.telefono || "—",
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: fechaMatricula,
     tipo: "matricula",
     origen: "web_existente",
     codigoAlumno: _alumnoVerificado,
     voucher: null,
     sunat: _inscSunatRecibo,
     groupId: courseId
-  });
+  };
+  state.registrations.push(registroMatricula);
   saveState();
   if (typeof renderHorariosTable === "function") renderHorariosTable();
   if (typeof renderAdminMatriculas === "function") renderAdminMatriculas();
   if (typeof renderAdminGrupos === "function") renderAdminGrupos();
 
   document.getElementById("inscPasoExistente").style.display = "none";
+  document.getElementById("inscReconocimientoSunat").style.display = "none";
   const exito = document.getElementById("inscExito");
-  if (exito) {
-    const p = exito.querySelector("p");
-    if (p) {
-      p.innerHTML = "Tu matrícula al curso <strong>" + cursoLabel + "</strong> fue registrada correctamente.<br>Ya figuras en el aula abierta. La escuela se contactará contigo si es necesario.";
-    }
-    exito.style.display = "block";
-  }
+  const resumen = document.getElementById("inscResumenMatricula");
+  const acciones = document.getElementById("inscAccionesComprobante");
+  const fechaBonita = typeof formatearFecha === "function" ? formatearFecha(fechaMatricula) : fechaMatricula;
+  const programaFinal = registroMatricula.programa || cursoLabel;
+  resumen.innerHTML = `
+    <h4 style="color:var(--azul); margin-bottom:12px;">Resumen de matrícula</h4>
+    <p style="margin:6px 0;"><strong>Alumno:</strong> ${escapeHTMLInsc(student.nombre)}</p>
+    <p style="margin:6px 0;"><strong>Código:</strong> ${escapeHTMLInsc(_alumnoVerificado)}</p>
+    <p style="margin:6px 0;"><strong>Curso / grupo:</strong> ${escapeHTMLInsc(programaFinal)}</p>
+    <p style="margin:6px 0;"><strong>Fecha:</strong> ${escapeHTMLInsc(fechaBonita)}</p>
+    <p style="margin:6px 0;"><strong>Estado:</strong> <span style="color:#15803d;font-weight:800;">MATRÍCULA REGISTRADA</span></p>
+    <p style="margin:10px 0 0; font-size:.82rem; color:var(--gris);">Comprobante interno de inscripción de Jotavalenzuela. No reemplaza el recibo SUNAT.</p>`;
+  resumen.style.display = "block";
+  acciones.style.display = "flex";
+  document.getElementById("inscExitoMensaje").innerHTML = "Tu matrícula fue registrada correctamente. ¡Felicitaciones! Ya figuras en el grupo seleccionado.";
+  _inscComprobanteHTML = `
+    <div style="font-family:Arial,sans-serif;color:#1f2937;padding:24px;max-width:760px;margin:auto;">
+      <div style="text-align:center;border-bottom:3px solid #004A8F;padding-bottom:14px;margin-bottom:22px;">
+        <h1 style="color:#004A8F;margin:0;font-size:24px;">JOTAVALENZUELA</h1>
+        <p style="margin:5px 0;color:#64748b;">Escuela de Inglés y Fonética Clínica</p>
+        <h2 style="margin:18px 0 0;font-size:20px;">COMPROBANTE DE INSCRIPCIÓN</h2>
+      </div>
+      <p><strong>N.° de registro:</strong> ${escapeHTMLInsc(registroMatricula.id)}</p>
+      <p><strong>Alumno:</strong> ${escapeHTMLInsc(student.nombre)}</p>
+      <p><strong>Código de alumno:</strong> ${escapeHTMLInsc(_alumnoVerificado)}</p>
+      <p><strong>Curso / grupo:</strong> ${escapeHTMLInsc(programaFinal)}</p>
+      <p><strong>Fecha de matrícula:</strong> ${escapeHTMLInsc(fechaBonita)}</p>
+      <p><strong>Estado:</strong> MATRÍCULA REGISTRADA</p>
+      <div style="margin-top:28px;padding:14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;color:#166534;">
+        <strong>¡Felicitaciones!</strong> Tu inscripción ha sido registrada correctamente en Jotavalenzuela.
+      </div>
+      <p style="margin-top:28px;font-size:11px;color:#64748b;">Documento interno de constancia de inscripción. No constituye factura, boleta ni comprobante tributario SUNAT.</p>
+    </div>`;
+  exito.style.display = "block";
+});
+
+function escapeHTMLInsc(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+
+document.getElementById("btnDescargarComprobanteInscripcion").addEventListener("click", () => {
+  if (!_inscComprobanteHTML) { alert("No hay comprobante de inscripción disponible."); return; }
+  if (typeof window.descargarComoPDF === "function") window.descargarComoPDF(_inscComprobanteHTML, "Comprobante-Inscripcion-Jotavalenzuela");
+  else if (typeof window.descargarElementoPDF === "function") {
+    const temp = document.createElement("div"); temp.innerHTML = _inscComprobanteHTML;
+    window.descargarElementoPDF(temp, "Comprobante-Inscripcion-Jotavalenzuela");
+  } else { alert("No está disponible el módulo de generación PDF."); }
+});
+
+document.getElementById("btnImprimirComprobanteInscripcion").addEventListener("click", () => {
+  if (!_inscComprobanteHTML) { alert("No hay comprobante de inscripción disponible."); return; }
+  const w = window.open("", "_blank");
+  if (!w) { alert("Permite ventanas emergentes para imprimir el comprobante."); return; }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante de inscripción</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#1f2937}p{margin:10px 0}@media print{body{padding:0}}</style></head><body>${_inscComprobanteHTML}<script>window.onload=function(){setTimeout(function(){window.print()},350)}<\/script></body></html>`);
+  w.document.close();
 });
 document.getElementById("btnTerminarPreInsc").addEventListener("click", async () => {
   const nombres = document.getElementById("inscNombres").value.trim();
