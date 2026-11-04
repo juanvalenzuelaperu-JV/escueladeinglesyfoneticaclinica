@@ -2342,6 +2342,20 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
       <div class="campo"><label>Email</label><input type="email" id="editEmail"></div>
       <div class="campo" id="editTelefonoWrap" style="display:none;"><label>Teléfono / WhatsApp</label><input type="tel" id="editTelefono" placeholder="Ej: 51915900797"></div>
       <div class="campo" id="editProgramaWrap"><label>Programa</label><input type="text" id="editPrograma"></div>
+     <!-- 🆕 Dropdowns de padre/madre (solo para alumnos) -->
+<div class="campo" id="editParentWrap">
+  <label>👨‍👩‍👧 Nombre del padre/madre</label>
+  <select id="editAlumnoParentNombre">
+    <option value="">— Sin vínculo (cuenta independiente) —</option>
+  </select>
+</div>
+<div class="campo" id="editParentCelWrap">
+  <label>📱 Celular del padre/madre</label>
+  <select id="editAlumnoParentCelular">
+    <option value="">— Sin vínculo —</option>
+  </select>
+</div>
+<!-- FIN nuevos dropdowns -->
       <div class="campo" id="editAreaWrap" style="display:none;"><label>Área</label><input type="text" id="editArea"></div>
       <div class="campo" id="editPagoHoraWrap" style="display:none;"><label>Pago por hora pedagógica (S/)</label><input type="number" id="editPagoHora" step="0.01" min="0"></div>
       <div class="campo"><label>Año de ingreso</label><input type="number" id="editYear" min="2000" max="2100"></div>
@@ -5507,6 +5521,22 @@ document.getElementById("formEditar").addEventListener("submit", (e) => {
   else state.teachers[code] = updated;
   if (currentStudentCode === code) currentStudent = updated;
   if (currentTeacherCode === code) currentTeacher = updated;
+   // 🆕 Sincronizar vínculo con padre/madre (solo alumnos)
+  if (tipo === "alumno") {
+    const newParentUser = document.getElementById("editAlumnoParentNombre")?.value || "";
+    // 1) Quitar al alumno de CUALQUIER padre que lo tuviera (por si cambió de padre o se desvinculó)
+    Object.entries(state.padres || {}).forEach(([u, p]) => {
+      if (Array.isArray(p.hijos)) p.hijos = p.hijos.filter(c => c !== code);
+    });
+    // 2) Agregar al nuevo padre (si se eligió uno)
+    if (newParentUser && state.padres && state.padres[newParentUser]) {
+      const p = state.padres[newParentUser];
+      if (!Array.isArray(p.hijos)) p.hijos = [];
+      if (!p.hijos.includes(code)) p.hijos.push(code);
+    }
+  }
+
+  try { saveState(); } catch (err) { console.error(err); }
   try { saveState(); } catch (err) { console.error(err); }
   // Forzar refresco inmediato de tablas admin
   try { if (typeof renderAdminDocentes === "function") renderAdminDocentes(); } catch (err) {}
@@ -11640,6 +11670,104 @@ console.log('Planilla lista y visible');
   setTimeout(fillParentDropdownsAlumno, 1200);
 
   console.log('✅ Dropdowns de padres (nombre + celular) cargados.');
+})();
+</script>
+ <script>
+(function () {
+  'use strict';
+
+  // ─── Rellenar los dropdowns del modal Editar ───
+  function fillEditParentDropdowns(selectedParentUser) {
+    const selN = document.getElementById('editAlumnoParentNombre');
+    const selC = document.getElementById('editAlumnoParentCelular');
+    if (!selN || !selC) return;
+
+    const cur = selectedParentUser || '';
+
+    selN.innerHTML = '<option value="">— Sin vínculo (cuenta independiente) —</option>';
+    selC.innerHTML = '<option value="">— Sin vínculo —</option>';
+
+    const padres = Object.entries(state.padres || {});
+    if (!padres.length) {
+      selN.innerHTML += '<option value="" disabled>No hay padres registrados aún</option>';
+      selC.innerHTML += '<option value="" disabled>No hay padres registrados aún</option>';
+      return;
+    }
+
+    padres.sort((a, b) => (a[1].nombre || '').localeCompare(b[1].nombre || ''));
+    padres.forEach(([user, p]) => {
+      const optN = document.createElement('option');
+      optN.value = user;
+      optN.textContent = `${p.nombre || user}${p.dni ? ' · DNI ' + p.dni : ''}`;
+      selN.appendChild(optN);
+
+      const optC = document.createElement('option');
+      optC.value = user;
+      optC.textContent = `${p.celular || 'Sin celular'} · ${p.nombre || user}`;
+      selC.appendChild(optC);
+    });
+
+    if (cur) { selN.value = cur; selC.value = cur; }
+  }
+
+  // ─── Determinar el padre actual del alumno ───
+  function getParentActualDelAlumno(studentCode) {
+    let found = '';
+    Object.entries(state.padres || {}).forEach(([u, p]) => {
+      if (Array.isArray(p.hijos) && p.hijos.includes(studentCode)) found = u;
+    });
+    return found;
+  }
+
+  // ─── Sincronización nombre ↔ celular ───
+  document.addEventListener('change', function (e) {
+    if (!e.target) return;
+    if (e.target.id === 'editAlumnoParentNombre') {
+      const selC = document.getElementById('editAlumnoParentCelular');
+      if (selC) selC.value = e.target.value;
+    }
+    if (e.target.id === 'editAlumnoParentCelular') {
+      const selN = document.getElementById('editAlumnoParentNombre');
+      if (selN) selN.value = e.target.value;
+    }
+  });
+
+  // ─── Patch: abrirEditar → rellenar y mostrar/ocultar según tipo ───
+  const _origAbrirEditar = window.abrirEditar;
+  window.abrirEditar = function (code, tipo) {
+    if (typeof _origAbrirEditar === 'function') _origAbrirEditar.apply(this, arguments);
+
+    const wrapN = document.getElementById('editParentWrap');
+    const wrapC = document.getElementById('editParentCelWrap');
+
+    if (tipo === 'alumno') {
+      if (wrapN) wrapN.style.display = '';
+      if (wrapC) wrapC.style.display = '';
+      const parentActual = getParentActualDelAlumno(code);
+      fillEditParentDropdowns(parentActual);
+    } else {
+      if (wrapN) wrapN.style.display = 'none';
+      if (wrapC) wrapC.style.display = 'none';
+    }
+  };
+
+  // ─── Patch: refrescar dropdowns tras crear/editar/eliminar un padre ───
+  const _origPadres = window.renderAdminPadres;
+  if (typeof _origPadres === 'function') {
+    window.renderAdminPadres = function () {
+      _origPadres.apply(this, arguments);
+      const modalVisible = document.getElementById('modalEditar')?.classList.contains('visible');
+      if (modalVisible) {
+        const tipo = document.getElementById('editTipo')?.value;
+        const code = document.getElementById('editCode')?.value;
+        if (tipo === 'alumno' && code) {
+          fillEditParentDropdowns(getParentActualDelAlumno(code));
+        }
+      }
+    };
+  }
+
+  console.log('✅ Dropdowns de padres en el modal Editar cargados.');
 })();
 </script>
 </body>
