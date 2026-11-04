@@ -12383,5 +12383,135 @@ console.log('Planilla lista y visible');
   init();
 })();
 </script>
+ <!-- ============================================================
+     FLECHAS ◀ ▶ PARA NAVEGAR ENTRE MESES
+     Se agregan a los 4 calendarios del sistema:
+       · Coordinación → Calendarización
+       · Coordinación → Calendarización de clases
+       · Portal Alumno → Calendario
+       · Portal Docente → Calendario
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // ─── Cambiar el valor del input de mes ±1 y disparar re-render ───
+  function changeMonth(input, delta) {
+    if (!input || !input.value) return;
+    const [y, m] = input.value.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    input.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    // Disparar el evento 'change' que ya tienen enganchado los renders
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // ─── Insertar las 2 flechas a los lados del input ───
+  function addArrowsToMonthInput(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // Ya tiene flechas? Salir (idempotente)
+    if (input.parentNode.querySelector('.month-arrow')) return;
+
+    const btnBase = 'background:#004a8f;color:#fff;border:none;border-radius:8px;' +
+                    'width:44px;height:44px;cursor:pointer;font-size:1.15rem;' +
+                    'flex-shrink:0;display:flex;align-items:center;justify-content:center;' +
+                    'transition:background .2s, transform .1s;user-select:none;';
+
+    // Botón "mes anterior"
+    const prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'month-arrow';
+    prev.innerHTML = '◀';
+    prev.title = 'Mes anterior';
+    prev.setAttribute('aria-label', 'Mes anterior');
+    prev.style.cssText = btnBase;
+    prev.onmouseover = () => { prev.style.background = '#0066cc'; };
+    prev.onmouseout  = () => { prev.style.background = '#004a8f'; };
+    prev.onmousedown = () => { prev.style.transform = 'scale(0.95)'; };
+    prev.onmouseup   = () => { prev.style.transform = 'scale(1)'; };
+    prev.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      changeMonth(input, -1);
+    };
+
+    // Botón "mes siguiente"
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'month-arrow';
+    next.innerHTML = '▶';
+    next.title = 'Mes siguiente';
+    next.setAttribute('aria-label', 'Mes siguiente');
+    next.style.cssText = btnBase;
+    next.onmouseover = () => { next.style.background = '#0066cc'; };
+    next.onmouseout  = () => { next.style.background = '#004a8f'; };
+    next.onmousedown = () => { next.style.transform = 'scale(0.95)'; };
+    next.onmouseup   = () => { next.style.transform = 'scale(1)'; };
+    next.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      changeMonth(input, 1);
+    };
+
+    // Envolver el input en un flex container
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;gap:8px;align-items:center;width:100%;';
+
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(prev);
+    wrapper.appendChild(input);
+    wrapper.appendChild(next);
+
+    input.style.flex = '1';
+    input.style.minWidth = '0';
+  }
+
+  // ─── Aplicar a todos los inputs de mes del sistema ───
+  function applyAll() {
+    [
+      'calMesSelect',    // Coordinación → Calendarización
+      'ccMes',           // Coordinación → Calendarización de clases
+      'alumnoCalMes',    // Portal Alumno → Calendario
+      'dCalMes'          // Portal Docente → Calendario
+    ].forEach(addArrowsToMonthInput);
+  }
+
+  // ─── Ejecutar al cargar ───
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyAll);
+  } else {
+    applyAll();
+  }
+
+  // ─── Re-aplicar al entrar a cualquier tab de calendario (por si acaso) ───
+  const tabs = [
+    '#tal-panel-admin [data-admtab="calendarizacion"]',
+    '#tal-panel-admin [data-admtab="calendarizacion_clases"]',
+    '#dashboardAlumno [data-atab="calendario"]',
+    '#dashboardDocente [data-dtab="calendario"]'
+  ];
+  tabs.forEach(sel => {
+    document.querySelectorAll(sel).forEach(tab => {
+      tab.addEventListener('click', () => setTimeout(applyAll, 80));
+    });
+  });
+
+  // ─── Soporte de teclado: Alt+← / Alt+→ en el mes activo ───
+  document.addEventListener('keydown', (e) => {
+    if (!e.altKey) return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    // Solo si el foco está cerca de un input de mes (para no interferir con el slider)
+    const active = document.activeElement;
+    const monthInputs = ['calMesSelect', 'ccMes', 'alumnoCalMes', 'dCalMes'];
+    const isMonthFocused = active && monthInputs.includes(active.id);
+    if (!isMonthFocused) return;
+    e.preventDefault();
+    changeMonth(active, e.key === 'ArrowRight' ? 1 : -1);
+  });
+
+  console.log('✅ Flechas de navegación mensual agregadas a los 4 calendarios.');
+})();
+</script>
 </body>
 </html>
