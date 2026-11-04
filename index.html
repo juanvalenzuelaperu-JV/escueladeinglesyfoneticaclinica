@@ -12895,34 +12895,134 @@ console.log('Planilla lista y visible');
   console.log('✅ Calendarización de clases (v2) cargada.');
 })();
 </script>
- <!-- ============================================================
-     INSCRIPCIÓN: estado académico desde el ÚLTIMO REPORT CARD
-     Sobrescribe solo los botones de inscripción por Horarios.
-     No toca estadoCurso() global ni otras vistas.
+<!-- ============================================================
+     FLUJO INSCRIPCIÓN v3 — SUNAT + COMPROBANTE FINAL
+     · Muestra el recibo SUNAT arriba (preview real)
+     · Checkbox de reconocimiento abajo
+     · Al marcar → activa Descargar / Imprimir
+     · Al descargar/imprimir → vuelve a la ventana y aparece "Matricularme ahora"
+     · Al matricular → modal con resumen + felicitaciones + descargar/imprimir
      ============================================================ -->
 <script>
 (function () {
   'use strict';
 
-  // ─── Obtener el RC más reciente del alumno ───
-  function getUltimoRC(studentCode) {
+  // ══════════════════════════════════════════════════════════
+  //  1) HTML NUEVO DEL BLOQUE DE RECIBO SUNAT
+  // ══════════════════════════════════════════════════════════
+  const HTML_RECIBO = `
+    <div style="background:#f8fafc; border:1px solid var(--borde); border-radius:12px; padding:16px; margin-bottom:12px;">
+      <h4 style="color:var(--azul); font-size:.95rem; margin-bottom:8px; font-weight:800;">📄 Tu recibo de pago (SUNAT)</h4>
+      <p id="inscReciboInfo" style="font-size:.85rem; color:var(--gris); margin-bottom:12px;">Recibo emitido por la administración por tu pago de matrícula.</p>
+
+      <div id="inscReciboNoDisponible" style="display:none; background:#fef3c7; color:#b45309; padding:10px 12px; border-radius:8px; font-size:.85rem; font-weight:600; margin-bottom:10px;">
+        ⏳ Aún no hay un recibo SUNAT cargado por administración para tu código. Contacta a la escuela.
+      </div>
+
+      <!-- Preview del recibo -->
+      <div id="inscReciboPreview" style="display:none; margin-bottom:14px;">
+        <p style="font-size:.82rem; color:var(--gris); margin:0 0 6px; font-weight:600;">Vista previa del recibo:</p>
+        <div id="inscReciboPreviewInner" style="border:1px solid var(--borde); border-radius:8px; overflow:hidden; background:#fff;"></div>
+      </div>
+
+      <!-- Checkbox de reconocimiento -->
+      <label id="inscReciboCheckLabel" style="display:none; align-items:flex-start; gap:10px; cursor:pointer; font-size:.88rem; color:var(--texto); margin-bottom:12px; padding:10px 12px; background:#fff; border:1.5px solid var(--borde); border-radius:8px;">
+        <input type="checkbox" id="inscReciboCheck" style="margin-top:3px; width:18px; height:18px; accent-color:var(--azul-medio); flex-shrink:0;">
+        <span>Reconozco que este es mi recibo emitido por el pago de mi matrícula.</span>
+      </label>
+
+      <!-- Botones descargar / imprimir SUNAT (ocultos hasta marcar el check) -->
+      <div id="inscReciboAcciones" style="display:none; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+        <button type="button" class="btn btn-azul btn-mini" id="btnDescargarReciboSunat" style="flex:1; min-width:140px;">⬇️ Descargar SUNAT</button>
+        <button type="button" class="btn btn-slate btn-mini" id="btnImprimirReciboSunat" style="flex:1; min-width:140px;">🖨️ Imprimir SUNAT</button>
+      </div>
+    </div>
+
+    <!-- Botón matricular (aparece después de descargar/imprimir) -->
+    <button type="button" class="btn btn-verde" id="btnMatricularExistente" style="width:100%; display:none;" disabled>Matricularme ahora</button>
+
+    <p id="inscReciboHint" style="font-size:.78rem; color:var(--gris); margin-top:10px; text-align:center; display:none;">
+      Primero descarga o imprime tu recibo para habilitar la matrícula.
+    </p>
+  `;
+
+  // ══════════════════════════════════════════════════════════
+  //  2) INYECTAR MODAL DE COMPROBANTE DE MATRÍCULA
+  // ══════════════════════════════════════════════════════════
+  function ensureComprobanteModal() {
+    if (document.getElementById('modalComprobanteMatricula')) return;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'modalComprobanteMatricula';
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:680px; text-align:left; padding:28px 24px; max-height:92vh; overflow-y:auto;">
+        <button class="modal-close" id="btnCerrarComprobanteMatricula" type="button" style="font-size:1.2rem;">✕</button>
+        <div id="comprobanteMatriculaContent"></div>
+        <div class="tform-acciones" style="justify-content:flex-end; margin-top:20px; flex-wrap:wrap; gap:8px; border-top:1px solid var(--borde); padding-top:16px;">
+          <button type="button" class="btn btn-verde btn-mini" id="btnDescargarComprobanteMatricula">⬇️ Descargar comprobante</button>
+          <button type="button" class="btn btn-slate btn-mini" id="btnImprimirComprobanteMatricula">🖨️ Imprimir comprobante</button>
+          <button type="button" class="btn btn-azul btn-mini" id="btnCerrarComprobanteMatricula2">Cerrar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  3) HELPERS: PREVIEW DEL SUNAT (PDF o imagen)
+  // ══════════════════════════════════════════════════════════
+  function buildSunatPreviewHtml(recibo) {
+    if (!recibo || !recibo.url) return '';
+    const url = recibo.url;
+    const nombre = (recibo.name || '').toLowerCase();
+    const esDataPdf = url.startsWith('data:application/pdf');
+    const esDataImg = url.startsWith('data:image/');
+    const esPdf = esDataPdf || nombre.endsWith('.pdf');
+
+    let src = url;
+    // Convertir data:pdf a Blob URL para mejor compatibilidad
+    if (esDataPdf) {
+      try {
+        const parts = url.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const bstr = atob(parts[1]);
+        const u8 = new Uint8Array(bstr.length);
+        for (let i = 0; i < bstr.length; i++) u8[i] = bstr.charCodeAt(i);
+        src = URL.createObjectURL(new Blob([u8], { type: mime }));
+      } catch (e) { console.warn(e); }
+    }
+
+    if (esPdf) {
+      return `<iframe src="${src}" title="Recibo SUNAT" style="width:100%; height:420px; border:none; display:block;"></iframe>
+        <div style="padding:8px 12px; background:#f1f5f9; font-size:.75rem; color:var(--gris); text-align:center;">
+          ¿No ves el recibo? Usa el botón "Descargar SUNAT" para abrirlo en tu visor de PDF.
+        </div>`;
+    }
+    if (esDataImg || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(nombre)) {
+      return `<img src="${src}" alt="Recibo SUNAT" style="width:100%; max-height:420px; object-fit:contain; display:block; background:#fff;">`;
+    }
+    // Fallback
+    return `<iframe src="${src}" title="Recibo SUNAT" style="width:100%; height:420px; border:none; display:block;"></iframe>`;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  4) OBTENER ESTADO DESDE ÚLTIMO RC (compatibilidad con flujo anterior)
+  // ══════════════════════════════════════════════════════════
+  function getUltimoRC(code) {
     const rcs = (state.reportCards || [])
-      .filter(rc => rc.studentCode === studentCode)
+      .filter(rc => rc.studentCode === code)
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return rcs[0] || null;
   }
-
-  // ─── Determinar estado académico a partir del último RC ───
-  function estadoDesdeUltimoRC(studentCode) {
-    const rc = getUltimoRC(studentCode);
+  function estadoDesdeUltimoRC(code) {
+    const rc = getUltimoRC(code);
     if (!rc) return { estado: 'Pendiente', clase: 'pendiente', rc: null };
     const avg = parseFloat(rc.average);
     if (isNaN(avg)) return { estado: 'Pendiente', clase: 'pendiente', rc };
-    if (avg >= 14) return { estado: 'Aprobado', clase: 'aprobado', rc };
-    return { estado: 'Desaprobado', clase: 'desaprobado', rc };
+    return avg >= 14
+      ? { estado: 'Aprobado', clase: 'aprobado', rc }
+      : { estado: 'Desaprobado', clase: 'desaprobado', rc };
   }
 
-  // ─── Refrescar RCs desde Supabase (por si acaso) ───
   async function refreshRCsFromCloud() {
     try {
       const { data, error } = await supabase.from('app_state')
@@ -12930,206 +13030,490 @@ console.log('Planilla lista y visible');
       if (error || !data || !data.data) return;
       const remoto = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
       if (Array.isArray(remoto.reportCards)) state.reportCards = remoto.reportCards;
+      if (remoto.cobros) state.cobros = remoto.cobros;
     } catch (e) { console.warn('refreshRCs:', e); }
   }
 
-  // ─── Handler VERIFICAR CÓDIGO ───
-  function verificarHandler(e) {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
+  function findStudentSunatSafe(code) {
+    // Primero intenta la función original
+    try {
+      if (typeof findStudentSunat === 'function') {
+        const r = findStudentSunat(code);
+        if (r) return r;
+      }
+    } catch (e) {}
+    // Fallback: busca en byStudent
+    const bs = (state.cobros && state.cobros.byStudent) || {};
+    for (const key of Object.keys(bs)) {
+      const rows = (bs[key] && bs[key].rows) || [];
+      for (const row of rows) {
+        if (row && row.sunat && row.sunat.url) {
+          const codes = row.studentCodes || [];
+          if (codes.includes(code) || key === code || row.id === 'auto_' + code) return row.sunat;
+        }
+      }
+    }
+    return null;
+  }
 
-    const code = (document.getElementById("inscCodigoAlumno").value || '').trim().toUpperCase();
+  // ══════════════════════════════════════════════════════════
+  //  5) RENDER: aplicar bloque nuevo al div existente
+  // ══════════════════════════════════════════════════════════
+  function patchReciboBoxHtml() {
+    const box = document.getElementById('inscReciboBox');
+    if (!box) return;
+    if (box.dataset.v3 === '1') return;
+    box.innerHTML = HTML_RECIBO;
+    box.dataset.v3 = '1';
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  6) VERIFICAR CÓDIGO → mostramos estado + SUNAT arriba
+  // ══════════════════════════════════════════════════════════
+  async function verificarHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    patchReciboBoxHtml();
+
+    const code = (document.getElementById('inscCodigoAlumno')?.value || '').trim().toUpperCase();
     const student = state.students[code];
 
     if (typeof resetInscExistenteUI === 'function') resetInscExistenteUI();
 
     if (!student) {
-      alert("❌ Código no encontrado.");
-      _alumnoVerificado = null;
+      alert('❌ Código no encontrado.');
+      window._alumnoVerificado = null;
       return;
     }
-    _alumnoVerificado = code;
+    window._alumnoVerificado = code;
 
-    // Refrescar desde Supabase y luego renderizar
-    refreshRCsFromCloud().then(() => {
-      if (_alumnoVerificado !== code) return; // el usuario cambió de código
-      renderVerificacion(code, student);
-    });
-  }
+    await refreshRCsFromCloud();
+    if (window._alumnoVerificado !== code) return;
 
-  function renderVerificacion(code, student) {
     const groups = typeof getStudentGroups === 'function' ? getStudentGroups(code) : [];
     const ultimoNivel = groups.length
       ? (typeof getNivelInfo === 'function' ? getNivelInfo(groups[groups.length - 1].nivel).nombre : groups[groups.length - 1].nivel)
-      : "Sin nivel previo";
-
+      : 'Sin nivel previo';
     const { estado, clase, rc } = estadoDesdeUltimoRC(code);
     const aprobado = clase === 'aprobado';
 
-    document.getElementById("inscNombreExistente").textContent = student.nombre;
-    document.getElementById("inscNivelExistente").textContent = ultimoNivel;
+    document.getElementById('inscNombreExistente').textContent = student.nombre;
+    document.getElementById('inscNivelExistente').textContent = ultimoNivel;
 
-    const estadoEl = document.getElementById("inscEstadoExistente");
-    estadoEl.textContent = estado;
-    estadoEl.className = "calif-estado " + clase;
-    estadoEl.style.fontSize = ".82rem";
-    estadoEl.style.padding = "4px 12px";
+    const estadoEl = document.getElementById('inscEstadoExistente');
+    if (estadoEl) {
+      estadoEl.textContent = estado;
+      estadoEl.className = 'calif-estado ' + clase;
+      estadoEl.style.fontSize = '.82rem';
+      estadoEl.style.padding = '4px 12px';
+    }
 
-    const datos = document.getElementById("inscDatosAlumno");
-    const msg = document.getElementById("inscEstadoMsg");
-    datos.style.display = "block";
+    const datos = document.getElementById('inscDatosAlumno');
+    const msg = document.getElementById('inscEstadoMsg');
+    if (datos) datos.style.display = 'block';
 
     if (!aprobado) {
-      datos.style.background = "#fef2f2";
-      datos.style.borderColor = "#fecaca";
-      msg.style.color = "#b91c1c";
-      if (!rc) {
-        msg.innerHTML = "📭 No hay ningún <strong>Report Card</strong> registrado en el Historial de Reportes. Contacta a Coordinación Académica.";
-      } else {
-        msg.innerHTML = `⛔ Tu último Report Card (<strong>${formatearFecha(rc.date)}</strong>) indica <strong>${estado}</strong> con promedio <strong>${rc.average}</strong>.<br>Solo alumnos con estado <strong>Aprobado</strong> pueden continuar.`;
+      if (datos) { datos.style.background = '#fef2f2'; datos.style.borderColor = '#fecaca'; }
+      if (msg) {
+        msg.style.color = '#b91c1c';
+        msg.innerHTML = !rc
+          ? '📭 No hay ningún <strong>Report Card</strong> registrado en el Historial de Reportes. Contacta a Coordinación Académica.'
+          : `⛔ Tu último Report Card (<strong>${formatearFecha(rc.date)}</strong>) indica <strong>${estado}</strong> con promedio <strong>${rc.average}</strong>.<br>Solo alumnos con estado <strong>Aprobado</strong> pueden continuar.`;
       }
       return;
     }
 
-    datos.style.background = "#f0fdf4";
-    datos.style.borderColor = "#86efac";
-    msg.style.color = "#15803d";
-    msg.innerHTML = `✅ Estado <strong>Aprobado</strong> según tu último Report Card (<strong>${formatearFecha(rc.date)}</strong>) — promedio <strong>${rc.average}</strong>. Puedes continuar.`;
+    if (datos) { datos.style.background = '#f0fdf4'; datos.style.borderColor = '#86efac'; }
+    if (msg) {
+      msg.style.color = '#15803d';
+      msg.innerHTML = `✅ Estado <strong>Aprobado</strong> según tu último Report Card (<strong>${formatearFecha(rc.date)}</strong>) — promedio <strong>${rc.average}</strong>. Puedes continuar.`;
+    }
 
-    // ─── Flujo SUNAT (igual que antes) ───
-    const courseId = document.getElementById("inscCourseId").value;
-    const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
-    const btnMat = document.getElementById("btnMatricularExistente");
-    if (btnMat) btnMat.textContent = "Matricularme al curso " + cursoLabel;
+    // ── Mostrar SUNAT ──
+    window._inscSunatRecibo = findStudentSunatSafe(code);
+    window._inscReciboDescargado = false;
 
-    _inscSunatRecibo = typeof findStudentSunat === 'function' ? findStudentSunat(code) : null;
-    const reciboBox = document.getElementById("inscReciboBox");
-    if (reciboBox) reciboBox.style.display = "block";
+    const reciboBox = document.getElementById('inscReciboBox');
+    if (reciboBox) reciboBox.style.display = 'block';
 
-    const noDisp = document.getElementById("inscReciboNoDisponible");
-    const checkLabel = document.getElementById("inscReciboCheckLabel");
-    const btnDl = document.getElementById("btnDescargarReciboSunat");
+    const noDisp = document.getElementById('inscReciboNoDisponible');
+    const checkLabel = document.getElementById('inscReciboCheckLabel');
+    const check = document.getElementById('inscReciboCheck');
+    const preview = document.getElementById('inscReciboPreview');
+    const previewInner = document.getElementById('inscReciboPreviewInner');
+    const acciones = document.getElementById('inscReciboAcciones');
+    const btnMat = document.getElementById('btnMatricularExistente');
+    const hint = document.getElementById('inscReciboHint');
 
-    if (!_inscSunatRecibo) {
-      if (noDisp) noDisp.style.display = "block";
-      if (checkLabel) checkLabel.style.display = "none";
-      if (btnDl) btnDl.disabled = true;
-      if (btnMat) btnMat.style.display = "none";
+    // Reset
+    if (check) check.checked = false;
+    if (acciones) acciones.style.display = 'none';
+    if (btnMat) { btnMat.style.display = 'none'; btnMat.disabled = true; btnMat.textContent = 'Matricularme ahora'; }
+    if (hint) hint.style.display = 'none';
+
+    if (!window._inscSunatRecibo) {
+      if (noDisp) noDisp.style.display = 'block';
+      if (checkLabel) checkLabel.style.display = 'none';
+      if (preview) preview.style.display = 'none';
       return;
     }
-    if (noDisp) noDisp.style.display = "none";
-    if (checkLabel) checkLabel.style.display = "flex";
-    if (btnDl) btnDl.disabled = true;
 
-    const info = document.getElementById("inscReciboInfo");
+    if (noDisp) noDisp.style.display = 'none';
+
+    // Preview del SUNAT
+    if (preview && previewInner) {
+      previewInner.innerHTML = buildSunatPreviewHtml(window._inscSunatRecibo);
+      preview.style.display = 'block';
+    }
+
+    // Checkbox
+    if (checkLabel) checkLabel.style.display = 'flex';
+
+    // Info
+    const info = document.getElementById('inscReciboInfo');
     if (info) {
-      info.textContent = "Recibo emitido por la administración" +
-        (_inscSunatRecibo.name ? " · " + _inscSunatRecibo.name : "") +
-        (_inscSunatRecibo.uploadedAt ? " · " + formatearFecha(String(_inscSunatRecibo.uploadedAt).slice(0, 10)) : "") + ".";
+      info.textContent = 'Recibo emitido por la administración' +
+        (window._inscSunatRecibo.name ? ' · ' + window._inscSunatRecibo.name : '') +
+        (window._inscSunatRecibo.uploadedAt ? ' · ' + formatearFecha(String(window._inscSunatRecibo.uploadedAt).slice(0, 10)) : '') + '.';
     }
   }
 
-  // ─── Handler MATRICULAR ───
-  function matricularHandler(e) {
+  // ══════════════════════════════════════════════════════════
+  //  7) CHECKBOX → mostrar botones Descargar / Imprimir
+  // ══════════════════════════════════════════════════════════
+  function checkHandler() {
+    const check = document.getElementById('inscReciboCheck');
+    const acciones = document.getElementById('inscReciboAcciones');
+    const btnMat = document.getElementById('btnMatricularExistente');
+    const hint = document.getElementById('inscReciboHint');
+
+    if (!check || !acciones) return;
+
+    if (check.checked) {
+      acciones.style.display = 'flex';
+      if (hint) { hint.style.display = 'block'; hint.textContent = 'Ahora descarga o imprime tu recibo para habilitar la matrícula.'; }
+    } else {
+      acciones.style.display = 'none';
+      if (btnMat) { btnMat.style.display = 'none'; btnMat.disabled = true; }
+      if (hint) hint.style.display = 'none';
+      window._inscReciboDescargado = false;
+    }
+  }
+
+  function mostrarBotonMatricular() {
+    const btnMat = document.getElementById('btnMatricularExistente');
+    const hint = document.getElementById('inscReciboHint');
+    if (btnMat) {
+      btnMat.style.display = 'block';
+      btnMat.disabled = false;
+      btnMat.textContent = '✅ Matricularme ahora';
+    }
+    if (hint) {
+      hint.style.display = 'block';
+      hint.style.color = '#15803d';
+      hint.textContent = '✅ Recibo reconocido. Ya puedes matricularte.';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  8) DESCARGAR / IMPRIMIR SUNAT
+  // ══════════════════════════════════════════════════════════
+  function descargarSunatHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (!window._inscSunatRecibo || !window._inscSunatRecibo.url) {
+      alert('No hay recibo disponible para descargar.');
+      return;
+    }
+    const check = document.getElementById('inscReciboCheck');
+    if (!check || !check.checked) {
+      alert('Marca la casilla reconociendo que es tu recibo.');
+      return;
+    }
+    try {
+      const a = document.createElement('a');
+      a.href = window._inscSunatRecibo.url;
+      a.download = window._inscSunatRecibo.name || ('recibo-sunat-' + (window._alumnoVerificado || 'alumno') + '.pdf');
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      window.open(window._inscSunatRecibo.url, '_blank');
+    }
+    window._inscReciboDescargado = true;
+    mostrarBotonMatricular();
+  }
+
+  function imprimirSunatHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (!window._inscSunatRecibo || !window._inscSunatRecibo.url) {
+      alert('No hay recibo disponible para imprimir.');
+      return;
+    }
+    const check = document.getElementById('inscReciboCheck');
+    if (!check || !check.checked) {
+      alert('Marca la casilla reconociendo que es tu recibo.');
+      return;
+    }
+    const url = window._inscSunatRecibo.url;
+    const nombre = (window._inscSunatRecibo.name || '').toLowerCase();
+    const esPdf = url.startsWith('data:application/pdf') || nombre.endsWith('.pdf');
+
+    const w = window.open('', '_blank');
+    if (!w) { alert('Permite ventanas emergentes para imprimir.'); return; }
+
+    if (esPdf) {
+      w.document.write(`<!DOCTYPE html><html><head><title>Recibo SUNAT</title></head>
+        <body style="margin:0;"><embed src="${url}" type="application/pdf" style="width:100%;height:100vh;"></body></html>`);
+      w.document.close();
+      setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 900);
+    } else {
+      w.document.write(`<!DOCTYPE html><html><head><title>Recibo SUNAT</title>
+        <style>body{margin:0;text-align:center;}img{max-width:100%;max-height:100vh;}</style></head>
+        <body><img src="${url}" onload="setTimeout(function(){window.print();},400);" alt="Recibo SUNAT"></body></html>`);
+      w.document.close();
+    }
+    window._inscReciboDescargado = true;
+    mostrarBotonMatricular();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  9) MATRICULAR → vincula al grupo + muestra comprobante
+  // ══════════════════════════════════════════════════════════
+  async function matricularHandler(e) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
 
-    if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
+    if (!window._alumnoVerificado) { alert('Verifica tu código primero.'); return; }
 
-    const { estado, clase, rc } = estadoDesdeUltimoRC(_alumnoVerificado);
+    const { estado, clase, rc } = estadoDesdeUltimoRC(window._alumnoVerificado);
     if (clase !== 'aprobado') {
       const rcMsg = rc
         ? `Tu último Report Card (${formatearFecha(rc.date)}) indica ${estado} con promedio ${rc.average}.`
         : 'No hay ningún Report Card registrado en el Historial.';
-      alert("Solo alumnos con estado Aprobado (según el último Report Card) pueden matricularse.\n\n" + rcMsg);
+      alert('Solo alumnos con estado Aprobado (según el último Report Card) pueden matricularse.\n\n' + rcMsg);
       return;
     }
 
-    if (!_inscSunatRecibo) {
-      alert("No hay recibo SUNAT cargado por administración.");
-      return;
-    }
-    const check = document.getElementById("inscReciboCheck");
-    if (!check || !check.checked) {
-      alert("Debes reconocer que el recibo es tuyo.");
-      return;
-    }
-    if (!_inscReciboDescargado) {
-      alert("Descarga primero tu recibo SUNAT.");
-      return;
-    }
+    if (!window._inscSunatRecibo) { alert('No hay recibo SUNAT cargado.'); return; }
 
-    const courseId = document.getElementById("inscCourseId").value;
-    const student = state.students[_alumnoVerificado];
-    if (!student) { alert("Alumno no encontrado."); return; }
+    const check = document.getElementById('inscReciboCheck');
+    if (!check || !check.checked) { alert('Debes reconocer tu recibo primero.'); return; }
+    if (!window._inscReciboDescargado) { alert('Descarga o imprime tu recibo SUNAT primero.'); return; }
+
+    const courseId = document.getElementById('inscCourseId')?.value;
+    const student = state.students[window._alumnoVerificado];
+    if (!student) { alert('Alumno no encontrado.'); return; }
 
     const group = (state.groups || []).find(g => g.id === courseId);
     if (group) {
-      if (group.cerrado) {
-        alert("Este grupo ya está cerrado. No se puede matricular.");
-        return;
-      }
+      if (group.cerrado) { alert('Este grupo ya está cerrado.'); return; }
       if (!Array.isArray(group.studentCodes)) group.studentCodes = [];
-      if (group.studentCodes.includes(_alumnoVerificado)) {
-        alert("Ya estás matriculado en este grupo.");
+      if (group.studentCodes.includes(window._alumnoVerificado)) {
+        alert('Ya estás matriculado en este grupo.');
         return;
       }
-      group.studentCodes.push(_alumnoVerificado);
+      group.studentCodes.push(window._alumnoVerificado);
     }
 
     const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
+    const fechaMatricula = new Date().toISOString().slice(0, 10);
+    const numComprobante = 'MAT-' + Date.now().toString().slice(-8);
+
     if (!Array.isArray(state.registrations)) state.registrations = [];
     state.registrations.push({
-      id: "reg_" + Date.now(),
+      id: 'reg_' + Date.now(),
       scheduleId: courseId,
       programa: group ? (group.programa || group.nombre) : cursoLabel,
       nombre: student.nombre,
-      email: student.email || "—",
-      telefono: student.telefono || "—",
-      fecha: new Date().toISOString().slice(0, 10),
-      tipo: "matricula",
-      origen: "web_existente",
-      codigoAlumno: _alumnoVerificado,
+      email: student.email || '—',
+      telefono: student.telefono || '—',
+      fecha: fechaMatricula,
+      tipo: 'matricula',
+      origen: 'web_existente',
+      codigoAlumno: window._alumnoVerificado,
       voucher: null,
-      sunat: _inscSunatRecibo,
-      groupId: courseId
+      sunat: window._inscSunatRecibo,
+      groupId: courseId,
+      numComprobante
     });
     if (typeof saveState === 'function') saveState();
     if (typeof renderHorariosTable === 'function') renderHorariosTable();
     if (typeof renderAdminMatriculas === 'function') renderAdminMatriculas();
     if (typeof renderAdminGrupos === 'function') renderAdminGrupos();
 
-    document.getElementById("inscPasoExistente").style.display = "none";
-    const exito = document.getElementById("inscExito");
-    if (exito) {
-      const p = exito.querySelector("p");
-      if (p) p.innerHTML = "Tu matrícula al curso <strong>" + cursoLabel + "</strong> fue registrada correctamente.<br>Ya figuras en el aula abierta. La escuela se contactará contigo si es necesario.";
-      exito.style.display = "block";
-    }
+    // ── Cerrar el modal de inscripción y abrir comprobante ──
+    document.getElementById('modalInscripcion')?.classList.remove('visible');
+    mostrarComprobanteMatricula({
+      student,
+      group,
+      cursoLabel,
+      fechaMatricula,
+      numComprobante,
+      estadoInfo: { estado, rc }
+    });
   }
 
-  // ─── Reemplazar botones (idempotente) ───
+  // ══════════════════════════════════════════════════════════
+  // 10) MODAL COMPROBANTE DE MATRÍCULA
+  // ══════════════════════════════════════════════════════════
+  function buildComprobanteHTML(data) {
+    const { student, group, cursoLabel, fechaMatricula, numComprobante, estadoInfo } = data;
+    const teacher = group && group.teacherCode ? state.teachers[group.teacherCode] : null;
+    const nivel = group && typeof getNivelInfo === 'function' ? getNivelInfo(group.nivel) : { nombre: group?.nivelTexto || group?.nivel || '—' };
+    const lh = state.letterhead
+      ? `<div style="text-align:center; margin-bottom:14px;"><img src="${state.letterhead}" style="max-height:70px; max-width:100%;"></div>`
+      : '';
+
+    return `${lh}
+      <div style="text-align:center; margin-bottom:18px;">
+        <div style="font-size:3rem; margin-bottom:8px;">🎉</div>
+        <h3 style="color:#004a8f; margin:0 0 6px; font-size:1.35rem;">¡Felicitaciones, ${student.nombre}!</h3>
+        <p style="color:var(--gris); font-size:.92rem; margin:0;">
+          Tu matrícula ha sido registrada correctamente.
+        </p>
+      </div>
+
+      <div style="background:#f0fdf4; border-left:4px solid #10b981; padding:12px 16px; border-radius:8px; margin-bottom:18px; text-align:center;">
+        <p style="margin:0; font-size:.9rem; color:#065f46;">
+          <strong>Comprobante N° ${numComprobante}</strong><br>
+          <small>Fecha de matrícula: ${formatearFecha(fechaMatricula)}</small>
+        </p>
+      </div>
+
+      <h4 style="color:#004a8f; font-size:.95rem; margin:16px 0 10px; font-weight:800;">📋 Datos del alumno</h4>
+      <div style="background:#f8fafc; border-radius:8px; padding:12px 16px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:.88rem; margin-bottom:16px;">
+        <p style="margin:0;"><strong>Nombre:</strong> ${student.nombre}</p>
+        <p style="margin:0;"><strong>Usuario:</strong> ${window._alumnoVerificado}</p>
+        <p style="margin:0;"><strong>DNI:</strong> ${student.dni || '—'}</p>
+        <p style="margin:0;"><strong>Teléfono:</strong> ${student.telefono || '—'}</p>
+      </div>
+
+      <h4 style="color:#004a8f; font-size:.95rem; margin:16px 0 10px; font-weight:800;">📚 Detalle del curso</h4>
+      <div style="background:#f8fafc; border-radius:8px; padding:12px 16px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:.88rem; margin-bottom:16px;">
+        <p style="margin:0;"><strong>Curso:</strong> ${cursoLabel}</p>
+        <p style="margin:0;"><strong>Programa:</strong> ${group?.programa || '—'}</p>
+        <p style="margin:0;"><strong>Nivel:</strong> ${nivel.nombre || '—'}</p>
+        <p style="margin:0;"><strong>Docente:</strong> ${teacher ? teacher.nombre : 'Por asignar'}</p>
+        <p style="margin:0;"><strong>Horario:</strong> ${group?.horario || '—'}</p>
+        <p style="margin:0;"><strong>Frecuencia:</strong> ${group?.frecuencia || '—'}</p>
+      </div>
+
+      <h4 style="color:#004a8f; font-size:.95rem; margin:16px 0 10px; font-weight:800;">🎓 Estado académico</h4>
+      <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:12px 16px; font-size:.88rem; margin-bottom:16px;">
+        <p style="margin:0 0 4px;"><strong>Estado:</strong> <span style="color:#065f46; font-weight:700;">${estadoInfo.estado}</span></p>
+        <p style="margin:0; color:var(--gris); font-size:.82rem;">
+          Según tu último Report Card${estadoInfo.rc ? ' (' + formatearFecha(estadoInfo.rc.date) + ') — promedio ' + estadoInfo.rc.average : ''}.
+        </p>
+      </div>
+
+      <div style="background:#eff6ff; border-left:4px solid #004a8f; padding:12px 16px; border-radius:8px; font-size:.85rem; color:#1e40af; margin-bottom:8px;">
+        ℹ️ <strong>Importante:</strong> Guarda este comprobante. Lo necesitarás para cualquier consulta o trámite en la escuela.
+      </div>
+
+      <p style="text-align:center; color:var(--gris); font-size:.8rem; margin-top:16px;">
+        Escuela de Inglés y Fonética Clínica Jotavalenzuela<br>
+        Por el Prof. Juan Valenzuela M.
+      </p>
+    `;
+  }
+
+  function mostrarComprobanteMatricula(data) {
+    ensureComprobanteModal();
+    const cont = document.getElementById('comprobanteMatriculaContent');
+    if (!cont) return;
+    cont.innerHTML = buildComprobanteHTML(data);
+
+    // Guardar datos para descargar/imprimir
+    window._comprobanteMatriculaData = data;
+
+    document.getElementById('modalComprobanteMatricula')?.classList.add('visible');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 11) DESCARGAR / IMPRIMIR COMPROBANTE
+  // ══════════════════════════════════════════════════════════
+  function buildComprobanteEstilos() {
+    return `<style>
+      body { font-family: 'Segoe UI', sans-serif; padding: 24px; max-width: 800px; margin: 0 auto; color: #1f2937; }
+      h3, h4 { color: #004a8f; }
+      h3 { text-align: center; font-size: 1.5rem; margin-bottom: 8px; }
+      h4 { font-size: 1rem; margin: 16px 0 8px; }
+      p { margin: 4px 0; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      @media print { body { padding: 10px; } }
+    </style>`;
+  }
+
+  function descargarComprobanteHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const data = window._comprobanteMatriculaData;
+    if (!data) { alert('No hay comprobante para descargar.'); return; }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante de Matrícula ${data.numComprobante}</title>${buildComprobanteEstilos()}</head><body>${buildComprobanteHTML(data)}</body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Comprobante_Matricula_${data.numComprobante}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function imprimirComprobanteHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const data = window._comprobanteMatriculaData;
+    if (!data) { alert('No hay comprobante para imprimir.'); return; }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante de Matrícula ${data.numComprobante}</title>${buildComprobanteEstilos()}</head><body>${buildComprobanteHTML(data)}</body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('Permite ventanas emergentes.'); return; }
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (err) {} }, 500);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 12) DELEGACIÓN GLOBAL DE CLICS
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('click', function (e) {
+    const t = e.target.closest('button');
+    if (!t) return;
+
+    switch (t.id) {
+      case 'btnVerificarCodigo':           verificarHandler(e); break;
+      case 'btnDescargarReciboSunat':      descargarSunatHandler(e); break;
+      case 'btnImprimirReciboSunat':       imprimirSunatHandler(e); break;
+      case 'btnMatricularExistente':       matricularHandler(e); break;
+      case 'btnDescargarComprobanteMatricula': descargarComprobanteHandler(e); break;
+      case 'btnImprimirComprobanteMatricula':  imprimirComprobanteHandler(e); break;
+      case 'btnCerrarComprobanteMatricula':
+      case 'btnCerrarComprobanteMatricula2':
+        e.preventDefault();
+        document.getElementById('modalComprobanteMatricula')?.classList.remove('visible');
+        break;
+    }
+  }, true);
+
+  // Checkbox
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'inscReciboCheck') checkHandler();
+  }, true);
+
+  // ══════════════════════════════════════════════════════════
+  // 13) INIT
+  // ══════════════════════════════════════════════════════════
   function init() {
-    const btnV = document.getElementById('btnVerificarCodigo');
-    if (btnV && btnV.dataset.rcOverride !== '1') {
-      const clone = btnV.cloneNode(true);
-      clone.dataset.rcOverride = '1';
-      btnV.parentNode.replaceChild(clone, btnV);
-      clone.addEventListener('click', verificarHandler);
-    }
-    const btnM = document.getElementById('btnMatricularExistente');
-    if (btnM && btnM.dataset.rcOverride !== '1') {
-      const clone = btnM.cloneNode(true);
-      clone.dataset.rcOverride = '1';
-      btnM.parentNode.replaceChild(clone, btnM);
-      clone.addEventListener('click', matricularHandler);
-    }
+    patchReciboBoxHtml();
+    ensureComprobanteModal();
   }
-
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
   setTimeout(init, 500);
   setTimeout(init, 1500);
 
-  console.log('✅ Inscripción por Horarios: estado académico desde el ÚLTIMO Report Card.');
+  console.log('✅ Flujo Inscripción v3 (SUNAT + Comprobante) cargado.');
 })();
 </script>
 </body>
