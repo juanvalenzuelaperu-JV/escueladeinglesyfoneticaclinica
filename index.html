@@ -12895,5 +12895,242 @@ console.log('Planilla lista y visible');
   console.log('✅ Calendarización de clases (v2) cargada.');
 })();
 </script>
+ <!-- ============================================================
+     INSCRIPCIÓN: estado académico desde el ÚLTIMO REPORT CARD
+     Sobrescribe solo los botones de inscripción por Horarios.
+     No toca estadoCurso() global ni otras vistas.
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // ─── Obtener el RC más reciente del alumno ───
+  function getUltimoRC(studentCode) {
+    const rcs = (state.reportCards || [])
+      .filter(rc => rc.studentCode === studentCode)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    return rcs[0] || null;
+  }
+
+  // ─── Determinar estado académico a partir del último RC ───
+  function estadoDesdeUltimoRC(studentCode) {
+    const rc = getUltimoRC(studentCode);
+    if (!rc) return { estado: 'Pendiente', clase: 'pendiente', rc: null };
+    const avg = parseFloat(rc.average);
+    if (isNaN(avg)) return { estado: 'Pendiente', clase: 'pendiente', rc };
+    if (avg >= 14) return { estado: 'Aprobado', clase: 'aprobado', rc };
+    return { estado: 'Desaprobado', clase: 'desaprobado', rc };
+  }
+
+  // ─── Refrescar RCs desde Supabase (por si acaso) ───
+  async function refreshRCsFromCloud() {
+    try {
+      const { data, error } = await supabase.from('app_state')
+        .select('data').eq('id', 'main').maybeSingle();
+      if (error || !data || !data.data) return;
+      const remoto = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+      if (Array.isArray(remoto.reportCards)) state.reportCards = remoto.reportCards;
+    } catch (e) { console.warn('refreshRCs:', e); }
+  }
+
+  // ─── Handler VERIFICAR CÓDIGO ───
+  function verificarHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    const code = (document.getElementById("inscCodigoAlumno").value || '').trim().toUpperCase();
+    const student = state.students[code];
+
+    if (typeof resetInscExistenteUI === 'function') resetInscExistenteUI();
+
+    if (!student) {
+      alert("❌ Código no encontrado.");
+      _alumnoVerificado = null;
+      return;
+    }
+    _alumnoVerificado = code;
+
+    // Refrescar desde Supabase y luego renderizar
+    refreshRCsFromCloud().then(() => {
+      if (_alumnoVerificado !== code) return; // el usuario cambió de código
+      renderVerificacion(code, student);
+    });
+  }
+
+  function renderVerificacion(code, student) {
+    const groups = typeof getStudentGroups === 'function' ? getStudentGroups(code) : [];
+    const ultimoNivel = groups.length
+      ? (typeof getNivelInfo === 'function' ? getNivelInfo(groups[groups.length - 1].nivel).nombre : groups[groups.length - 1].nivel)
+      : "Sin nivel previo";
+
+    const { estado, clase, rc } = estadoDesdeUltimoRC(code);
+    const aprobado = clase === 'aprobado';
+
+    document.getElementById("inscNombreExistente").textContent = student.nombre;
+    document.getElementById("inscNivelExistente").textContent = ultimoNivel;
+
+    const estadoEl = document.getElementById("inscEstadoExistente");
+    estadoEl.textContent = estado;
+    estadoEl.className = "calif-estado " + clase;
+    estadoEl.style.fontSize = ".82rem";
+    estadoEl.style.padding = "4px 12px";
+
+    const datos = document.getElementById("inscDatosAlumno");
+    const msg = document.getElementById("inscEstadoMsg");
+    datos.style.display = "block";
+
+    if (!aprobado) {
+      datos.style.background = "#fef2f2";
+      datos.style.borderColor = "#fecaca";
+      msg.style.color = "#b91c1c";
+      if (!rc) {
+        msg.innerHTML = "📭 No hay ningún <strong>Report Card</strong> registrado en el Historial de Reportes. Contacta a Coordinación Académica.";
+      } else {
+        msg.innerHTML = `⛔ Tu último Report Card (<strong>${formatearFecha(rc.date)}</strong>) indica <strong>${estado}</strong> con promedio <strong>${rc.average}</strong>.<br>Solo alumnos con estado <strong>Aprobado</strong> pueden continuar.`;
+      }
+      return;
+    }
+
+    datos.style.background = "#f0fdf4";
+    datos.style.borderColor = "#86efac";
+    msg.style.color = "#15803d";
+    msg.innerHTML = `✅ Estado <strong>Aprobado</strong> según tu último Report Card (<strong>${formatearFecha(rc.date)}</strong>) — promedio <strong>${rc.average}</strong>. Puedes continuar.`;
+
+    // ─── Flujo SUNAT (igual que antes) ───
+    const courseId = document.getElementById("inscCourseId").value;
+    const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
+    const btnMat = document.getElementById("btnMatricularExistente");
+    if (btnMat) btnMat.textContent = "Matricularme al curso " + cursoLabel;
+
+    _inscSunatRecibo = typeof findStudentSunat === 'function' ? findStudentSunat(code) : null;
+    const reciboBox = document.getElementById("inscReciboBox");
+    if (reciboBox) reciboBox.style.display = "block";
+
+    const noDisp = document.getElementById("inscReciboNoDisponible");
+    const checkLabel = document.getElementById("inscReciboCheckLabel");
+    const btnDl = document.getElementById("btnDescargarReciboSunat");
+
+    if (!_inscSunatRecibo) {
+      if (noDisp) noDisp.style.display = "block";
+      if (checkLabel) checkLabel.style.display = "none";
+      if (btnDl) btnDl.disabled = true;
+      if (btnMat) btnMat.style.display = "none";
+      return;
+    }
+    if (noDisp) noDisp.style.display = "none";
+    if (checkLabel) checkLabel.style.display = "flex";
+    if (btnDl) btnDl.disabled = true;
+
+    const info = document.getElementById("inscReciboInfo");
+    if (info) {
+      info.textContent = "Recibo emitido por la administración" +
+        (_inscSunatRecibo.name ? " · " + _inscSunatRecibo.name : "") +
+        (_inscSunatRecibo.uploadedAt ? " · " + formatearFecha(String(_inscSunatRecibo.uploadedAt).slice(0, 10)) : "") + ".";
+    }
+  }
+
+  // ─── Handler MATRICULAR ───
+  function matricularHandler(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    if (!_alumnoVerificado) { alert("Verifica tu código primero."); return; }
+
+    const { estado, clase, rc } = estadoDesdeUltimoRC(_alumnoVerificado);
+    if (clase !== 'aprobado') {
+      const rcMsg = rc
+        ? `Tu último Report Card (${formatearFecha(rc.date)}) indica ${estado} con promedio ${rc.average}.`
+        : 'No hay ningún Report Card registrado en el Historial.';
+      alert("Solo alumnos con estado Aprobado (según el último Report Card) pueden matricularse.\n\n" + rcMsg);
+      return;
+    }
+
+    if (!_inscSunatRecibo) {
+      alert("No hay recibo SUNAT cargado por administración.");
+      return;
+    }
+    const check = document.getElementById("inscReciboCheck");
+    if (!check || !check.checked) {
+      alert("Debes reconocer que el recibo es tuyo.");
+      return;
+    }
+    if (!_inscReciboDescargado) {
+      alert("Descarga primero tu recibo SUNAT.");
+      return;
+    }
+
+    const courseId = document.getElementById("inscCourseId").value;
+    const student = state.students[_alumnoVerificado];
+    if (!student) { alert("Alumno no encontrado."); return; }
+
+    const group = (state.groups || []).find(g => g.id === courseId);
+    if (group) {
+      if (group.cerrado) {
+        alert("Este grupo ya está cerrado. No se puede matricular.");
+        return;
+      }
+      if (!Array.isArray(group.studentCodes)) group.studentCodes = [];
+      if (group.studentCodes.includes(_alumnoVerificado)) {
+        alert("Ya estás matriculado en este grupo.");
+        return;
+      }
+      group.studentCodes.push(_alumnoVerificado);
+    }
+
+    const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
+    if (!Array.isArray(state.registrations)) state.registrations = [];
+    state.registrations.push({
+      id: "reg_" + Date.now(),
+      scheduleId: courseId,
+      programa: group ? (group.programa || group.nombre) : cursoLabel,
+      nombre: student.nombre,
+      email: student.email || "—",
+      telefono: student.telefono || "—",
+      fecha: new Date().toISOString().slice(0, 10),
+      tipo: "matricula",
+      origen: "web_existente",
+      codigoAlumno: _alumnoVerificado,
+      voucher: null,
+      sunat: _inscSunatRecibo,
+      groupId: courseId
+    });
+    if (typeof saveState === 'function') saveState();
+    if (typeof renderHorariosTable === 'function') renderHorariosTable();
+    if (typeof renderAdminMatriculas === 'function') renderAdminMatriculas();
+    if (typeof renderAdminGrupos === 'function') renderAdminGrupos();
+
+    document.getElementById("inscPasoExistente").style.display = "none";
+    const exito = document.getElementById("inscExito");
+    if (exito) {
+      const p = exito.querySelector("p");
+      if (p) p.innerHTML = "Tu matrícula al curso <strong>" + cursoLabel + "</strong> fue registrada correctamente.<br>Ya figuras en el aula abierta. La escuela se contactará contigo si es necesario.";
+      exito.style.display = "block";
+    }
+  }
+
+  // ─── Reemplazar botones (idempotente) ───
+  function init() {
+    const btnV = document.getElementById('btnVerificarCodigo');
+    if (btnV && btnV.dataset.rcOverride !== '1') {
+      const clone = btnV.cloneNode(true);
+      clone.dataset.rcOverride = '1';
+      btnV.parentNode.replaceChild(clone, btnV);
+      clone.addEventListener('click', verificarHandler);
+    }
+    const btnM = document.getElementById('btnMatricularExistente');
+    if (btnM && btnM.dataset.rcOverride !== '1') {
+      const clone = btnM.cloneNode(true);
+      clone.dataset.rcOverride = '1';
+      btnM.parentNode.replaceChild(clone, btnM);
+      clone.addEventListener('click', matricularHandler);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+  setTimeout(init, 500);
+  setTimeout(init, 1500);
+
+  console.log('✅ Inscripción por Horarios: estado académico desde el ÚLTIMO Report Card.');
+})();
+</script>
 </body>
 </html>
