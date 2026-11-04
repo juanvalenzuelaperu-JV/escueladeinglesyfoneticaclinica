@@ -11895,5 +11895,493 @@ console.log('Planilla lista y visible');
   }, true); // 👈 captura: corre antes que cualquier otro handler
 })();
 </script>
+ <!-- ============================================================
+     MÓDULO DE CICLOS EN CALENDARIZACIÓN
+     Permite definir un ciclo (nombre + inicio + fin) por grupo.
+     Cruza meses sin problemas. Cada evento lleva cicloId.
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const MESES_CORTO = ['ene','feb','mar','abr','may','jun',
+                       'jul','ago','sep','oct','nov','dic'];
+
+  // ══════════════════════════════════════════════════════════
+  // STATE HELPERS
+  // ══════════════════════════════════════════════════════════
+  function ensureState() {
+    if (!state.ciclosPorGrupo) state.ciclosPorGrupo = {};
+    if (typeof state._verSoloCiclo === 'undefined') state._verSoloCiclo = false;
+  }
+
+  function getCicloActivo(gid) {
+    ensureState();
+    return state.ciclosPorGrupo[gid] || null;
+  }
+
+  function setCicloActivo(gid, ciclo) {
+    ensureState();
+    state.ciclosPorGrupo[gid] = ciclo;
+    saveState();
+  }
+
+  function borrarCicloActivo(gid) {
+    ensureState();
+    delete state.ciclosPorGrupo[gid];
+    saveState();
+  }
+
+  function contarEventosCiclo(gid, cicloId) {
+    let n = 0;
+    Object.values(state.calendarEvents || {}).forEach(arr => {
+      (arr || []).forEach(ev => {
+        if (ev.grupoId === gid && ev.cicloId === cicloId) n++;
+      });
+    });
+    return n;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SUGERENCIAS DE NOMBRE
+  // ══════════════════════════════════════════════════════════
+  function generarSugerenciasNombre(inicioISO, finISO) {
+    if (!inicioISO || !finISO) return [];
+    if (inicioISO > finISO) return [];
+    const i = new Date(inicioISO + 'T12:00:00');
+    const f = new Date(finISO + 'T12:00:00');
+    const mismoMes = i.getMonth() === f.getMonth() && i.getFullYear() === f.getFullYear();
+    const mismoAnio = i.getFullYear() === f.getFullYear();
+
+    const out = [];
+    if (mismoMes) {
+      out.push(`${MESES[i.getMonth()]} ${i.getFullYear()}`);
+    } else if (mismoAnio) {
+      out.push(`${MESES[i.getMonth()]}-${MESES[f.getMonth()]} ${i.getFullYear()}`);
+    } else {
+      out.push(`${MESES[i.getMonth()]} ${i.getFullYear()} → ${MESES[f.getMonth()]} ${f.getFullYear()}`);
+    }
+    out.push(`${i.getDate()} ${MESES_CORTO[i.getMonth()]} → ${f.getDate()} ${MESES_CORTO[f.getMonth()]} ${f.getFullYear()}`);
+    return [...new Set(out)];
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // UI: INYECTAR EL PANEL DE CICLO
+  // ══════════════════════════════════════════════════════════
+  function ensureCicloUI() {
+    if (document.getElementById('cicloPanel')) return;
+
+    const panel = document.getElementById('adm-panel-calendarizacion');
+    if (!panel) return;
+    const filtrosActuales = panel.querySelector('.tform.admin-form');
+    if (!filtrosActuales) return;
+
+    const div = document.createElement('div');
+    div.className = 'tform admin-form';
+    div.id = 'cicloPanel';
+    div.style.marginBottom = '18px';
+    div.innerHTML = `
+      <h4 style="margin:0 0 12px;">🗓️ Ciclo activo del grupo</h4>
+      <div class="tform-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div class="campo" style="margin:0;">
+          <label>Nombre del ciclo <span class="req">*</span></label>
+          <input type="text" id="cicloNombre" placeholder="Ej: Nov-Dic 2026, Ciclo Verano, B1 Refuerzo" autocomplete="off">
+        </div>
+        <div class="campo" style="margin:0;">
+          <label>Inicio <span class="req">*</span></label>
+          <input type="date" id="cicloInicio">
+        </div>
+        <div class="campo" style="margin:0;">
+          <label>Fin <span class="req">*</span></label>
+          <input type="date" id="cicloFin">
+        </div>
+      </div>
+      <div id="cicloSugerencias" style="margin-top:8px;font-size:.82rem;color:var(--gris);display:flex;flex-wrap:wrap;gap:6px;align-items:center;"></div>
+      <div class="tform-acciones" style="margin-top:12px;flex-wrap:wrap;gap:8px;align-items:center;">
+        <button type="button" class="btn btn-verde btn-mini" id="btnAplicarCiclo">✨ Aplicar ciclo</button>
+        <button type="button" class="btn btn-rojo btn-mini" id="btnEliminarCiclo">🗑️ Eliminar ciclo</button>
+        <label style="margin-left:12px;font-size:.85rem;display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="chkVerSoloCiclo" style="width:16px;height:16px;">
+          Ver solo eventos del ciclo activo
+        </label>
+      </div>
+      <div id="cicloActivoInfo" style="margin-top:12px;"></div>`;
+
+    filtrosActuales.parentNode.insertBefore(div, filtrosActuales);
+
+    // Listeners propios del panel de ciclo
+    document.getElementById('btnAplicarCiclo')?.addEventListener('click', aplicarCiclo);
+    document.getElementById('btnEliminarCiclo')?.addEventListener('click', eliminarCiclo);
+    document.getElementById('cicloInicio')?.addEventListener('change', renderSugerencias);
+    document.getElementById('cicloFin')?.addEventListener('change', renderSugerencias);
+    document.getElementById('chkVerSoloCiclo')?.addEventListener('change', (e) => {
+      state._verSoloCiclo = e.target.checked;
+      if (typeof window.renderCalendarizacion === 'function') window.renderCalendarizacion();
+    });
+
+    document.getElementById('cicloSugerencias')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-sugerencia]');
+      if (!btn) return;
+      const inp = document.getElementById('cicloNombre');
+      if (inp) inp.value = btn.dataset.sugerencia;
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ACTUALIZAR LA UI SEGÚN EL GRUPO SELECCIONADO
+  // ══════════════════════════════════════════════════════════
+  function actualizarUICiclo() {
+    ensureCicloUI();
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const ciclo = getCicloActivo(gid);
+
+    const nombreInp = document.getElementById('cicloNombre');
+    const inicioInp = document.getElementById('cicloInicio');
+    const finInp = document.getElementById('cicloFin');
+    const info = document.getElementById('cicloActivoInfo');
+    const chk = document.getElementById('chkVerSoloCiclo');
+
+    if (chk) chk.checked = !!state._verSoloCiclo;
+
+    if (ciclo) {
+      if (nombreInp) nombreInp.value = ciclo.nombre;
+      if (inicioInp) inicioInp.value = ciclo.inicio;
+      if (finInp) finInp.value = ciclo.fin;
+
+      const dias = Math.round((new Date(ciclo.fin + 'T12:00:00') - new Date(ciclo.inicio + 'T12:00:00')) / (1000*60*60*24)) + 1;
+      const eventos = contarEventosCiclo(gid, ciclo.cicloId);
+
+      if (info) {
+        info.innerHTML = `
+          <div style="background:#ecfdf5;border-left:4px solid #10b981;padding:10px 14px;border-radius:8px;font-size:.88rem;">
+            🟢 <strong>Ciclo activo:</strong> ${ciclo.nombre}<br>
+            <small style="color:var(--gris);">
+              ${formatearFecha(ciclo.inicio)} → ${formatearFecha(ciclo.fin)}
+              · ${dias} día(s)
+              · ${eventos} evento(s) marcado(s)
+            </small>
+          </div>`;
+      }
+      renderSugerencias();
+    } else {
+      if (nombreInp) nombreInp.value = '';
+      if (inicioInp) inicioInp.value = '';
+      if (finInp) finInp.value = '';
+      if (info) info.innerHTML = gid
+        ? '<div style="background:#f1f5f9;border-left:4px solid #94a3b8;padding:8px 14px;border-radius:8px;font-size:.85rem;color:var(--gris);">Sin ciclo definido para este grupo. Completa los campos y pulsa <strong>Aplicar ciclo</strong>.</div>'
+        : '';
+      const sug = document.getElementById('cicloSugerencias');
+      if (sug) sug.innerHTML = '';
+    }
+  }
+
+  function renderSugerencias() {
+    const ini = document.getElementById('cicloInicio')?.value;
+    const fin = document.getElementById('cicloFin')?.value;
+    const cont = document.getElementById('cicloSugerencias');
+    if (!cont) return;
+    const sug = generarSugerenciasNombre(ini, fin);
+    if (!sug.length) { cont.innerHTML = ''; return; }
+    cont.innerHTML = `<span style="font-weight:600;">Sugerencias:</span>` +
+      sug.map(s => `<button type="button" class="btn btn-mini btn-slate" data-sugerencia="${s.replace(/"/g,'&quot;')}" style="font-size:.75rem;">${s}</button>`).join('');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // BADGES SOBRE EL GRID (día inicio/fin)
+  // ══════════════════════════════════════════════════════════
+  function aplicarBadgesCiclo() {
+    const grid = document.getElementById('calGrid');
+    if (!grid) return;
+    // Limpiar badges previos
+    grid.querySelectorAll('.badge-ciclo').forEach(b => b.remove());
+
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const ciclo = getCicloActivo(gid);
+    if (!ciclo) return;
+
+    const iniCell = grid.querySelector(`[data-cal-day="${ciclo.inicio}"]`);
+    const finCell = grid.querySelector(`[data-cal-day="${ciclo.fin}"]`);
+    if (iniCell && !iniCell.querySelector('.badge-ciclo')) {
+      const b = document.createElement('div');
+      b.className = 'badge-ciclo';
+      b.style.cssText = 'position:absolute;top:2px;right:2px;background:#10b981;color:#fff;font-size:.6rem;font-weight:800;padding:2px 5px;border-radius:6px;pointer-events:none;';
+      b.textContent = 'INICIO';
+      iniCell.style.position = 'relative';
+      iniCell.appendChild(b);
+    }
+    if (finCell && !finCell.querySelector('.badge-ciclo')) {
+      const b = document.createElement('div');
+      b.className = 'badge-ciclo';
+      b.style.cssText = 'position:absolute;top:2px;right:2px;background:#dc2626;color:#fff;font-size:.6rem;font-weight:800;padding:2px 5px;border-radius:6px;pointer-events:none;';
+      b.textContent = 'FIN';
+      finCell.style.position = 'relative';
+      finCell.appendChild(b);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // INFO DEL CICLO EN EL PANEL LATERAL
+  // ══════════════════════════════════════════════════════════
+  function actualizarInfoCicloEnPanel() {
+    const panel = document.getElementById('calEventPanel');
+    if (!panel) return;
+
+    // Remover caja previa
+    panel.querySelectorAll('.ciclo-info-panel').forEach(el => el.remove());
+
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const ciclo = getCicloActivo(gid);
+    if (!ciclo) return;
+
+    const fecha = panel.dataset.fecha;
+    if (!fecha) return;
+
+    const estaEnRango = fecha >= ciclo.inicio && fecha <= ciclo.fin;
+    const color = estaEnRango ? '#10b981' : '#f59e0b';
+    const bgColor = estaEnRango ? '#ecfdf5' : '#fef3c7';
+
+    const box = document.createElement('div');
+    box.className = 'ciclo-info-panel';
+    box.style.cssText = `background:${bgColor};border-left:3px solid ${color};padding:8px 12px;border-radius:8px;font-size:.82rem;margin-bottom:12px;`;
+    box.innerHTML = `🗓️ <strong>${ciclo.nombre}</strong><br>
+      <small>${formatearFecha(ciclo.inicio)} → ${formatearFecha(ciclo.fin)} ${estaEnRango ? '· ✓ Dentro del ciclo' : '· ⚠️ Fuera del ciclo'}</small>`;
+
+    // Insertar después del h5 (título del día)
+    const titulo = panel.querySelector('h5');
+    if (titulo && titulo.parentNode) {
+      titulo.parentNode.insertBefore(box, titulo.nextSibling);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // HANDLERS: APLICAR / ELIMINAR CICLO
+  // ══════════════════════════════════════════════════════════
+  function aplicarCiclo() {
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const nombre = (document.getElementById('cicloNombre')?.value || '').trim();
+    const inicio = document.getElementById('cicloInicio')?.value;
+    const fin = document.getElementById('cicloFin')?.value;
+
+    if (!gid) { alert('Selecciona primero un grupo en el filtro superior.'); return; }
+    if (!nombre) {
+      alert('Ponle un nombre al ciclo.\nEj: "Nov-Dic 2026", "Ciclo Verano", "Reforzamiento B1".');
+      document.getElementById('cicloNombre')?.focus();
+      return;
+    }
+    if (!inicio || !fin) { alert('Indica fecha de inicio y fin.'); return; }
+    if (inicio > fin) { alert('La fecha de inicio no puede ser posterior al fin.'); return; }
+
+    const dias = Math.round((new Date(fin + 'T12:00:00') - new Date(inicio + 'T12:00:00')) / (1000*60*60*24)) + 1;
+    if (dias > 180) { alert('El ciclo no puede durar más de 180 días.'); return; }
+
+    const cicloPrev = getCicloActivo(gid);
+    if (cicloPrev && cicloPrev.cicloId !== undefined) {
+      if (!confirm(`Ya hay un ciclo activo ("${cicloPrev.nombre}"). ¿Reemplazarlo? Los eventos existentes en el nuevo rango se reasignarán al nuevo ciclo.`)) return;
+    }
+
+    const cicloId = 'cic_' + Date.now();
+    setCicloActivo(gid, {
+      cicloId,
+      nombre,
+      inicio,
+      fin,
+      creadoEn: new Date().toISOString()
+    });
+
+    // Marcar los eventos existentes que estén dentro del rango y del grupo
+    let marcados = 0;
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      if (fecha < inicio || fecha > fin) return;
+      (state.calendarEvents[fecha] || []).forEach(ev => {
+        if (ev.grupoId === gid && !ev.cicloId) {
+          ev.cicloId = cicloId;
+          marcados++;
+        }
+      });
+    });
+
+    saveState();
+
+    // Activar filtro "ver solo ciclo" por defecto
+    state._verSoloCiclo = true;
+    document.getElementById('chkVerSoloCiclo').checked = true;
+
+    // Navegar al mes del inicio
+    const mesInp = document.getElementById('calMesSelect');
+    if (mesInp) mesInp.value = inicio.slice(0, 7);
+
+    if (typeof window.renderCalendarizacion === 'function') window.renderCalendarizacion();
+
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:14px 24px;border-radius:50px;font-weight:700;box-shadow:0 8px 24px rgba(16,185,129,.35);z-index:999999;font-size:.9rem;text-align:center;';
+    toast.innerHTML = `✅ Ciclo "${nombre}" aplicado.${marcados ? '<br><small>' + marcados + ' evento(s) existente(s) marcados.</small>' : ''}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  function eliminarCiclo() {
+    const gid = document.getElementById('calFiltroGrupo')?.value || '';
+    const ciclo = getCicloActivo(gid);
+    if (!ciclo) { alert('Este grupo no tiene un ciclo activo.'); return; }
+
+    const n = contarEventosCiclo(gid, ciclo.cicloId);
+    const msg = `¿Eliminar el ciclo "${ciclo.nombre}"?\n\n` +
+                `• ${n} evento(s) del calendario se eliminarán\n` +
+                `• Las notas ya guardadas en "Registro de notas" se conservan\n` +
+                `• Las asignaciones creadas manualmente también se conservan\n\n` +
+                `⛔ Esta acción no se puede deshacer.`;
+    if (!confirm(msg)) return;
+
+    // Eliminar eventos con ese cicloId
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      state.calendarEvents[fecha] = (state.calendarEvents[fecha] || []).filter(ev => ev.cicloId !== ciclo.cicloId);
+      if (!state.calendarEvents[fecha].length) delete state.calendarEvents[fecha];
+    });
+
+    borrarCicloActivo(gid);
+    state._verSoloCiclo = false;
+    const chk = document.getElementById('chkVerSoloCiclo');
+    if (chk) chk.checked = false;
+
+    if (typeof window.renderCalendarizacion === 'function') window.renderCalendarizacion();
+
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:14px 24px;border-radius:50px;font-weight:700;box-shadow:0 8px 24px rgba(220,38,38,.35);z-index:999999;font-size:.9rem;';
+    toast.textContent = `🗑️ Ciclo "${ciclo.nombre}" eliminado (${n} evento(s)).`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // HOOKS (para no romper nada de lo que ya existe)
+  // ══════════════════════════════════════════════════════════
+  function hookRender() {
+    const orig = window.renderCalendarizacion;
+    if (typeof orig !== 'function') return;
+    window.renderCalendarizacion = function () {
+      const result = orig.apply(this, arguments);
+      try {
+        ensureCicloUI();
+        actualizarUICiclo();
+        aplicarBadgesCiclo();
+      } catch (e) { console.warn('Hook render ciclo:', e); }
+      return result;
+    };
+  }
+
+  function hookOpenCalDay() {
+    const orig = window.openCalDay;
+    if (typeof orig !== 'function') return;
+    window.openCalDay = function () {
+      const result = orig.apply(this, arguments);
+      try { actualizarInfoCicloEnPanel(); } catch (e) {}
+      return result;
+    };
+  }
+
+  function hookGetEventos() {
+    const orig = window.getEventosFiltrados;
+    if (typeof orig !== 'function') return;
+    window.getEventosFiltrados = function (fecha) {
+      let evs = orig.apply(this, arguments);
+      if (!state._verSoloCiclo) return evs;
+      const gid = document.getElementById('calFiltroGrupo')?.value || '';
+      const ciclo = getCicloActivo(gid);
+      if (!ciclo) return evs;
+      return (evs || []).filter(ev => ev.cicloId === ciclo.cicloId);
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // DELEGACIÓN: marcar nuevos eventos con cicloId
+  // ══════════════════════════════════════════════════════════
+  function hookNewEvents() {
+    document.addEventListener('click', (e) => {
+      if (!e.target || e.target.id !== 'btnAddCalEvent') return;
+      const gid = document.getElementById('calFiltroGrupo')?.value || '';
+      const ciclo = getCicloActivo(gid);
+      if (!ciclo) return;
+
+      // Snapshot de IDs actuales
+      const antes = new Set();
+      Object.values(state.calendarEvents || {}).forEach(arr => {
+        (arr || []).forEach(ev => antes.add(ev.id));
+      });
+
+      // Esperar a que el handler original cree el evento
+      setTimeout(() => {
+        let marcados = 0;
+        Object.keys(state.calendarEvents || {}).forEach(fecha => {
+          (state.calendarEvents[fecha] || []).forEach(ev => {
+            if (!antes.has(ev.id) && ev.grupoId === gid && !ev.cicloId) {
+              ev.cicloId = ciclo.cicloId;
+              marcados++;
+            }
+          });
+        });
+        if (marcados > 0) {
+          saveState();
+          if (typeof window.renderCalendarizacion === 'function') window.renderCalendarizacion();
+        }
+      }, 50);
+    }, true);
+  }
+
+  // Actualizar UI cuando cambia el grupo
+  function hookGroupChange() {
+    const sel = document.getElementById('calFiltroGrupo');
+    if (!sel) return;
+    sel.addEventListener('change', () => {
+      setTimeout(() => {
+        actualizarUICiclo();
+        // Si el grupo tiene ciclo, navegar al mes de inicio
+        const gid = sel.value;
+        const ciclo = getCicloActivo(gid);
+        if (ciclo) {
+          const mesInp = document.getElementById('calMesSelect');
+          if (mesInp && ciclo.inicio) mesInp.value = ciclo.inicio.slice(0, 7);
+        }
+        if (typeof window.renderCalendarizacion === 'function') window.renderCalendarizacion();
+      }, 40);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // INIT
+  // ══════════════════════════════════════════════════════════
+  function init() {
+    ensureState();
+    hookRender();
+    hookOpenCalDay();
+    hookGetEventos();
+    hookNewEvents();
+    hookGroupChange();
+
+    // Asegurar que la UI existe al entrar al tab
+    document.querySelectorAll('#tal-panel-admin [data-admtab="calendarizacion"]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        setTimeout(() => {
+          ensureCicloUI();
+          actualizarUICiclo();
+        }, 120);
+      });
+    });
+
+    // Si ya está abierto el panel, rellenar
+    setTimeout(() => {
+      if (document.getElementById('adm-panel-calendarizacion')?.classList.contains('activo')) {
+        ensureCicloUI();
+        actualizarUICiclo();
+      }
+    }, 600);
+
+    console.log('✅ Módulo de Ciclos cargado (híbrido: input manual + sugerencias).');
+  }
+
+  init();
+})();
+</script>
 </body>
 </html>
