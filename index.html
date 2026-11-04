@@ -11787,5 +11787,113 @@ console.log('Planilla lista y visible');
   console.log('✅ Dropdowns de padres en el modal Editar cargados.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: handler del formulario "Crear grupo"
+     Evita que el submit nativo recargue y mande al inicio
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Fix submit grupo cargado.');
+
+  // ─── Normalizar texto de nivel a id válido ───
+  function normalizarNivel(txt) {
+    const t = String(txt || '').toLowerCase().trim();
+    if (!t) return 'basico';
+    if (t.includes('basic') || t.includes('básic') || t.includes('b1') || t.includes('a1') || t.includes('a2')) return 'basico';
+    if (t.includes('intermedi') || t.includes('b2') || t.includes('c1')) return 'intermedio';
+    if (t.includes('teen') || t.includes('adolesc') || t.includes('junior')) return 'teens';
+    return t;
+  }
+
+  // ─── Handler único, en fase de CAPTURA para que corra primero ───
+  document.addEventListener('submit', function (e) {
+    const form = e.target;
+    if (!form || form.id !== 'admNewGroupForm') return;
+
+    // ⛔ Evitar recarga
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      // ── Validar periodo (Paso 1) ──
+      const anio = document.getElementById('admGroupAnio')?.value || '';
+      const mes  = document.getElementById('admGroupMes')?.value  || '';
+      if (!anio || !mes) {
+        alert('Primero selecciona Año y Mes en el paso 1.');
+        if (typeof mostrarPasoGrupo === 'function') mostrarPasoGrupo(1);
+        return;
+      }
+
+      // ── Leer campos del Paso 2 ──
+      const programa    = (document.getElementById('admGroupPrograma')?.value    || '').trim();
+      const nivelRaw    = (document.getElementById('admGroupNivel')?.value       || '').trim();
+      const frecuencia  = (document.getElementById('admGroupFrecuencia')?.value  || '').trim();
+      const horario     = (document.getElementById('admGroupHorario')?.value     || '').trim();
+      const nombre      = (document.getElementById('admGroupNombre')?.value      || '').trim();
+      const totalHoras  = parseInt(document.getElementById('admGroupTotalHoras')?.value, 10) || 0;
+      const teacherCode = document.getElementById('admGroupTeacher')?.value      || '';
+
+      if (!programa || !nivelRaw || !frecuencia || !horario || !nombre || !teacherCode) {
+        alert('Completa todos los campos obligatorios del grupo.');
+        return;
+      }
+      if (!state.teachers || !state.teachers[teacherCode]) {
+        alert('El docente seleccionado no existe. Refresca la página.');
+        return;
+      }
+
+      // ── Verificar duplicado ──
+      const existe = (state.groups || []).some(g =>
+        (g.nombre || '').toLowerCase() === nombre.toLowerCase() &&
+        String(g.anio || '') === String(anio) &&
+        String(g.mes  || '').padStart(2, '0') === String(mes).padStart(2, '0')
+      );
+      if (existe) {
+        alert(`Ya existe un grupo llamado "${nombre}" en ${mes}/${anio}.`);
+        return;
+      }
+
+      // ── Crear grupo ──
+      if (!state.groups) state.groups = [];
+      const nuevoGrupo = {
+        id: 'grp_' + Date.now(),
+        nombre,
+        programa,
+        nivel: normalizarNivel(nivelRaw),
+        nivelTexto: nivelRaw,
+        frecuencia,
+        horario,
+        totalHoras,
+        teacherCode,
+        studentCodes: [],
+        anio: String(anio),
+        mes: String(mes).padStart(2, '0'),
+        cerrado: false
+      };
+      state.groups.push(nuevoGrupo);
+
+      if (typeof saveState === 'function') saveState();
+
+      // ── Reset UI ──
+      form.reset();
+      const totalInp = document.getElementById('admGroupTotalHoras');
+      if (totalInp) totalInp.value = '40';
+      if (typeof mostrarPasoGrupo === 'function') mostrarPasoGrupo(1);
+      if (typeof renderAdminGrupos === 'function') renderAdminGrupos();
+
+      // ── Toast de éxito ──
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:14px 26px;border-radius:50px;font-weight:700;box-shadow:0 8px 24px rgba(16,185,129,.35);z-index:999999;font-family:inherit;font-size:.95rem;';
+      toast.textContent = `✅ Grupo "${nombre}" creado correctamente.`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3200);
+    } catch (err) {
+      console.error('❌ Error creando grupo:', err);
+      alert('Ocurrió un error: ' + (err.message || err));
+    }
+  }, true); // 👈 captura: corre antes que cualquier otro handler
+})();
+</script>
 </body>
 </html>
