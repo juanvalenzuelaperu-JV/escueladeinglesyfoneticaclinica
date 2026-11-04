@@ -13516,5 +13516,169 @@ console.log('Planilla lista y visible');
   console.log('✅ Flujo Inscripción v3 (SUNAT + Comprobante) cargado.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: Botones Descargar / Imprimir comprobante
+     · Guarda los datos ANTES de construir el HTML
+     · Re-engancha listeners directos al modal (no depende del delegado)
+     · Fallback de HTML si buildComprobanteHTML falla
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Fix comprobante matrícula iniciando...');
+
+  // ─── Envolver mostrarComprobanteMatricula para guardar datos PRIMERO ───
+  const origMostrar = window.mostrarComprobanteMatricula;
+  if (typeof origMostrar === 'function') {
+    window.mostrarComprobanteMatricula = function (data) {
+      window._comprobanteMatriculaData = data;   // ⚠️ primero
+      try {
+        return origMostrar.call(this, data);
+      } catch (err) {
+        console.error('❌ Error mostrando comprobante:', err);
+        // Fallback: mostrar el modal a mano
+        try {
+          const modal = document.getElementById('modalComprobanteMatricula');
+          const cont = document.getElementById('comprobanteMatriculaContent');
+          if (cont) cont.innerHTML = buildFallbackHTML(data);
+          if (modal) modal.classList.add('visible');
+        } catch (e2) {
+          alert('No se pudo abrir el comprobante: ' + err.message);
+        }
+      }
+    };
+  }
+
+  // ─── Re-enganchar botones cuando el modal se abre ───
+  function reattach() {
+    const modal = document.getElementById('modalComprobanteMatricula');
+    if (!modal || !modal.classList.contains('visible')) return;
+
+    const bd = document.getElementById('btnDescargarComprobanteMatricula');
+    const bi = document.getElementById('btnImprimirComprobanteMatricula');
+    const bc = document.getElementById('btnCerrarComprobanteMatricula');
+    const bc2 = document.getElementById('btnCerrarComprobanteMatricula2');
+
+    if (bd && bd.dataset.fixAttached !== '1') {
+      bd.dataset.fixAttached = '1';
+      bd.addEventListener('click', handleDescargar, true);
+    }
+    if (bi && bi.dataset.fixAttached !== '1') {
+      bi.dataset.fixAttached = '1';
+      bi.addEventListener('click', handleImprimir, true);
+    }
+    [bc, bc2].forEach(b => {
+      if (b && b.dataset.fixAttached !== '1') {
+        b.dataset.fixAttached = '1';
+        b.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          modal.classList.remove('visible');
+        }, true);
+      }
+    });
+  }
+
+  // ─── Handlers robustos ───
+  function handleDescargar(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const data = window._comprobanteMatriculaData;
+    console.log('⬇️ Descargar clickeado. Datos:', data);
+    if (!data) { alert('Datos del comprobante no disponibles. Cierra y vuelve a intentar.'); return; }
+
+    try {
+      const html = buildExportHTML(data);
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Comprobante_Matricula_${data.numComprobante || 'alumno'}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (err) {
+      console.error('❌ Error descargando:', err);
+      alert('Error al descargar: ' + err.message);
+    }
+  }
+
+  function handleImprimir(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const data = window._comprobanteMatriculaData;
+    console.log('🖨️ Imprimir clickeado. Datos:', data);
+    if (!data) { alert('Datos del comprobante no disponibles. Cierra y vuelve a intentar.'); return; }
+
+    try {
+      const html = buildExportHTML(data);
+      const w = window.open('', '_blank');
+      if (!w) { alert('Permite ventanas emergentes para imprimir.'); return; }
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { try { w.focus(); w.print(); } catch (err) {} }, 500);
+    } catch (err) {
+      console.error('❌ Error imprimiendo:', err);
+      alert('Error al imprimir: ' + err.message);
+    }
+  }
+
+  // ─── Intentar buildComprobanteHTML original, fallback si falla ───
+  function buildExportHTML(data) {
+    const estilos = `<style>
+      body { font-family: 'Segoe UI', sans-serif; padding: 24px; max-width: 800px; margin: 0 auto; color: #1f2937; }
+      h3, h4 { color: #004a8f; } h3 { text-align: center; font-size: 1.5rem; }
+      h4 { font-size: 1rem; margin: 16px 0 8px; }
+      p { margin: 4px 0; }
+      @media print { body { padding: 10px; } }
+    </style>`;
+
+    if (typeof buildComprobanteHTML === 'function') {
+      try {
+        const contenido = buildComprobanteHTML(data);
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante ${data.numComprobante || ''}</title>${estilos}</head><body>${contenido}</body></html>`;
+      } catch (err) {
+        console.warn('⚠️ buildComprobanteHTML falló, usando fallback:', err);
+      }
+    }
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprobante</title>${estilos}</head><body>${buildFallbackHTML(data)}</body></html>`;
+  }
+
+  function buildFallbackHTML(data) {
+    const s = (data && data.student) || {};
+    const g = (data && data.group) || {};
+    return `
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="font-size:3rem;">🎉</div>
+        <h3>¡Felicitaciones, ${s.nombre || 'alumno'}!</h3>
+        <p style="color:#6b7280;font-size:.92rem;">Tu matrícula ha sido registrada correctamente.</p>
+      </div>
+      <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:12px;border-radius:8px;text-align:center;margin-bottom:16px;">
+        <p style="margin:0;"><strong>Comprobante N° ${data?.numComprobante || '—'}</strong></p>
+        <p style="margin:4px 0 0;font-size:.85rem;color:#6b7280;">Fecha: ${data?.fechaMatricula || '—'}</p>
+      </div>
+      <h4>📋 Datos del alumno</h4>
+      <p><strong>Nombre:</strong> ${s.nombre || '—'}</p>
+      <p><strong>DNI:</strong> ${s.dni || '—'}</p>
+      <p><strong>Teléfono:</strong> ${s.telefono || '—'}</p>
+      <h4>📚 Detalle del curso</h4>
+      <p><strong>Curso:</strong> ${data?.cursoLabel || '—'}</p>
+      <p><strong>Programa:</strong> ${g.programa || '—'}</p>
+      <p><strong>Horario:</strong> ${g.horario || '—'}</p>
+      <p style="text-align:center;color:#6b7280;font-size:.8rem;margin-top:20px;">
+        Escuela de Inglés y Fonética Clínica Jotavalenzuela
+      </p>`;
+  }
+
+  // ─── Observer: cuando el modal se abre, re-enganchar botones ───
+  const obs = new MutationObserver(() => reattach());
+  obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+  // Intento inicial
+  setTimeout(reattach, 800);
+  setTimeout(reattach, 2000);
+
+  console.log('✅ Fix comprobante listo. Botones re-enganchados con listener directo + fallback HTML.');
+})();
+</script>
 </body>
 </html>
