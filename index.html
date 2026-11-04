@@ -5536,7 +5536,6 @@ document.getElementById("formEditar").addEventListener("submit", (e) => {
   }
 
   try { saveState(); } catch (err) { console.error(err); }
-  try { saveState(); } catch (err) { console.error(err); }
   // Forzar refresco inmediato de tablas admin
   try { if (typeof renderAdminDocentes === "function") renderAdminDocentes(); } catch (err) {}
   try { if (typeof renderAdminAlumnos === "function") renderAdminAlumnos(); } catch (err) {}
