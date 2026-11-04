@@ -12622,5 +12622,241 @@ console.log('Planilla lista y visible');
   console.log('✅ Flechas laterales agregadas a los 4 calendarios.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: Promedio General ignora grupos cerrados
+     Si el alumno no tiene ningún grupo activo → muestra "—"
+     Solo cuenta asignaciones de sus grupos NO cerrados
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // ─── Helper: IDs de grupos ACTIVOS (no cerrados) del alumno ───
+  function getActiveGroupIds(code) {
+    const groups = typeof getStudentGroups === 'function' ? getStudentGroups(code) : [];
+    return groups.filter(g => !g.cerrado).map(g => g.id);
+  }
+
+  // ─── Promedio por criterio (reemplaza la versión original) ───
+  window.promedioCriterio = function (code, criterioId) {
+    const grades = (state.grades && state.grades[code]) || {};
+    const activeGroupIds = getActiveGroupIds(code);
+
+    // Sin grupos activos → null (no participa del promedio general)
+    if (activeGroupIds.length === 0) return null;
+
+    // Filtrar asignaciones: solo del criterio, y solo de grupos activos (o globales)
+    const asgs = (state.assignments || []).filter(a => {
+      const matchCriterio = a.criterio === criterioId ||
+        (criterioId === 'online_homework' && a.criterio === 'online_workbook');
+      if (!matchCriterio) return false;
+      // Sin grupo (global) → cuenta
+      if (!a.grupoId) return true;
+      // Con grupo → solo si es uno de los activos del alumno
+      return activeGroupIds.includes(a.grupoId);
+    });
+
+    const valores = asgs
+      .map(a => grades[a.id])
+      .filter(v => v !== null && v !== undefined && !isNaN(v));
+
+    if (!valores.length) return null;
+    return +(valores.reduce((s, v) => s + v, 0) / valores.length).toFixed(2);
+  };
+
+  // ─── Promedio general (reemplaza la versión original) ───
+  window.promedioGeneral = function (code) {
+    if (!state.grades || !state.grades[code]) return null;
+
+    // Sin grupos activos → NO mostrar promedio
+    if (getActiveGroupIds(code).length === 0) return null;
+
+    let sum = 0, cnt = 0;
+    const criterios = window.CRITERIOS || (typeof CRITERIOS !== 'undefined' ? CRITERIOS : []);
+
+    criterios.forEach(c => {
+      const promC = window.promedioCriterio(code, c.id);
+      if (promC !== null) { sum += promC; cnt++; }
+    });
+
+    if (cnt === 0) return null;
+    return +(sum / cnt).toFixed(2);
+  };
+
+  // ─── Refrescar si hay un alumno logueado ───
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    if (typeof refreshStudentView === 'function') {
+      setTimeout(() => { try { refreshStudentView(); } catch (e) {} }, 100);
+    }
+  }
+
+  console.log('✅ Promedio General ahora ignora grupos cerrados.');
+})();
+</script>
+ <!-- ============================================================
+     FIX: Matrícula del alumno usa GRUPOS reales + vincula al alumno
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  window.renderStudentMatriculaCursos = function () {
+    const cont = document.getElementById("studentMatriculaCursos");
+    if (!cont) return;
+    cont.innerHTML = "";
+
+    if (!currentStudent) {
+      cont.innerHTML = '<div class="empty-state">No hay sesión activa.</div>';
+      return;
+    }
+
+    // Grupos abiertos y donde el alumno NO esté ya matriculado
+    const disponibles = (state.groups || []).filter(g =>
+      !g.cerrado &&
+      g.teacherCode &&
+      state.teachers[g.teacherCode] &&
+      !(g.studentCodes || []).includes(currentStudentCode)
+    );
+
+    if (!disponibles.length) {
+      cont.innerHTML = `<div class="empty-state">📚 No hay grupos disponibles para matricularse.<br><small style="color:var(--gris);margin-top:8px;display:block;">Verifica que Coordinación Académica haya creado grupos abiertos y que no estés ya en todos.</small></div>`;
+      return;
+    }
+
+    disponibles.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+    disponibles.forEach(g => {
+      const t = state.teachers[g.teacherCode];
+      const nivel = getNivelInfo(g.nivel);
+      const yaEnOtro = getStudentGroups(currentStudentCode).length > 0;
+
+      const card = document.createElement("div");
+      card.className = "group-card";
+      card.innerHTML = `
+        <div class="group-card-head">
+          <div class="group-info">
+            <span class="group-nivel ${nivel.clase}">${g.nivelTexto || nivel.nombre}</span>
+            <strong>${g.nombre || g.programa}</strong>
+            <small>Programa: ${g.programa || '—'} · Docente: ${t.nombre}</small>
+            <small>📅 ${g.frecuencia || '—'} · ⏰ ${g.horario || '—'} · 👥 ${(g.studentCodes || []).length} alumno(s)</small>
+          </div>
+          <div class="asg-actions">
+            <button class="btn btn-mini btn-azul" data-matricular-curso="${g.id}">Matricularme ahora</button>
+          </div>
+        </div>
+        <div class="group-card-body" data-matricular-body="${g.id}" style="display:none;">
+          ${yaEnOtro ? `<div style="background:#fef3c7;color:#b45309;padding:8px 12px;border-radius:8px;font-size:.85rem;margin-bottom:10px;">⚠️ Ya estás en otro grupo activo. Confirma con Coordinación antes de matricularte también aquí.</div>` : ''}
+          <div class="campo">
+            <label>Subir voucher de pago <span class="req">*</span></label>
+            <input type="file" accept="image/*,.pdf" data-matriculo-voucher="${g.id}">
+          </div>
+          <div class="tform-acciones">
+            <button class="btn btn-verde btn-mini" data-confirmar-matricula="${g.id}">✅ Confirmar matrícula</button>
+            <button class="btn btn-slate btn-mini" data-cancelar-matricula="${g.id}">Cancelar</button>
+          </div>
+        </div>`;
+      cont.appendChild(card);
+    });
+
+    // Toggle voucher
+    cont.querySelectorAll("[data-matricular-curso]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const body = cont.querySelector(`[data-matricular-body="${btn.dataset.matricularCurso}"]`);
+        if (body) body.style.display = body.style.display === "none" ? "block" : "none";
+      });
+    });
+
+    // Cancelar
+    cont.querySelectorAll("[data-cancelar-matricula]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const body = cont.querySelector(`[data-matricular-body="${btn.dataset.cancelarMatricula}"]`);
+        if (body) body.style.display = "none";
+      });
+    });
+
+    // Confirmar → VINCULA al grupo
+    cont.querySelectorAll("[data-confirmar-matricula]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const groupId = btn.dataset.confirmarMatricula;
+        const group = (state.groups || []).find(g => g.id === groupId);
+        if (!group) { alert("Grupo no encontrado."); return; }
+        if (group.cerrado) { alert("Este grupo ya está cerrado."); return; }
+
+        const fileInput = cont.querySelector(`[data-matriculo-voucher="${groupId}"]`);
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+          alert("Sube tu voucher de pago primero.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "⏳ Procesando...";
+
+        try {
+          let voucherUrl = null;
+          try {
+            if (typeof procesarArchivo === "function") voucherUrl = await procesarArchivo(fileInput.files[0], "vouchers");
+            else if (typeof procesarImagen === "function") voucherUrl = await procesarImagen(fileInput.files[0], "vouchers");
+            else voucherUrl = await fileToBase64(fileInput.files[0]);
+          } catch (e) { console.warn("Voucher:", e); }
+
+          // 🔑 VINCULAR al grupo (esto es lo que faltaba)
+          if (!Array.isArray(group.studentCodes)) group.studentCodes = [];
+          if (!group.studentCodes.includes(currentStudentCode)) {
+            group.studentCodes.push(currentStudentCode);
+          }
+
+          // Registrar la matrícula
+          if (!Array.isArray(state.registrations)) state.registrations = [];
+          state.registrations.push({
+            id: "reg_alum_" + Date.now(),
+            scheduleId: groupId,
+            groupId: groupId,
+            programa: group.programa || group.nombre,
+            nombre: currentStudent.nombre,
+            email: currentStudent.email || "—",
+            telefono: currentStudent.telefono || "—",
+            fecha: new Date().toISOString().slice(0, 10),
+            tipo: "matricula",
+            origen: "portal_alumno",
+            codigoAlumno: currentStudentCode,
+            voucher: voucherUrl
+          });
+
+          saveState();
+
+          if (typeof refreshStudentView === "function") refreshStudentView();
+          if (typeof renderStudentGroups === "function") renderStudentGroups();
+          if (typeof renderHorariosTable === "function") renderHorariosTable();
+          if (typeof renderAdminGrupos === "function") renderAdminGrupos();
+          if (typeof renderAdminMatriculas === "function") renderAdminMatriculas();
+
+          alert(`✅ ¡Matrícula registrada!\n\nTe has matriculado en "${group.nombre || group.programa}".\nLa escuela revisará tu voucher y se contactará si es necesario.`);
+
+          const ini = document.getElementById("matriculaInicio");
+          const ctn = document.getElementById("matriculaContenido");
+          if (ini) ini.style.display = "block";
+          if (ctn) ctn.style.display = "none";
+        } catch (err) {
+          console.error("Error matriculando:", err);
+          alert("Error al procesar la matrícula: " + (err.message || err));
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "✅ Confirmar matrícula";
+        }
+      });
+    });
+  };
+
+  // Refrescar si el alumno ya está en la pestaña Matrícula
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    const panel = document.getElementById("panel-matricula");
+    if (panel && panel.classList.contains("activo")) {
+      setTimeout(() => { try { window.renderStudentMatriculaCursos(); } catch(e) {} }, 200);
+    }
+  }
+
+  console.log('✅ Fix: matrícula del alumno ahora usa grupos reales y vincula.');
+})();
+</script>
 </body>
 </html>
