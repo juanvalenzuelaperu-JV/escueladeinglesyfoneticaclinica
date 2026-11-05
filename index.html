@@ -14931,12 +14931,12 @@ console.log('Planilla lista y visible');
 })();
 </script>
 <!-- ============================================================
-     PERMISO EXTEMPORÁNEO v5 — Eliminación directa del DOM
+     PERMISO EXTEMPORÁNEO v6 — Checkbox bloqueado automáticamente
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log('🔧 Permiso Extemporáneo v5 iniciando...');
+  console.log('🔧 Permiso Extemporáneo v6 (Checkbox bloqueado) iniciando...');
 
   // ══════════════════════════════════════════════════════════
   // 1) OPCIÓN EN DROPDOWN DE COBROS
@@ -14985,7 +14985,7 @@ console.log('Planilla lista y visible');
   }
 
   // ══════════════════════════════════════════════════════════
-  // 3) APLICAR PERMISO → Borrar DOM del SUNAT e inyectar caja
+  // 3) BLOQUEAR CHECKBOX Y ADAPTAR VISTA
   // ══════════════════════════════════════════════════════════
   function aplicarPermisoSiCorresponde() {
     const code = window._alumnoVerificado;
@@ -14998,159 +14998,78 @@ console.log('Planilla lista y visible');
     const estadoEl = document.getElementById('inscEstadoExistente');
     if (!estadoEl || !estadoEl.textContent.includes('Aprobado')) return;
 
-    if (document.getElementById('inscPermisoBox')) return;
+    const check = document.getElementById('inscReciboCheck');
+    const label = document.getElementById('inscReciboCheckLabel');
 
-    const reciboBox = document.getElementById('inscReciboBox');
-    if (!reciboBox) return;
-    reciboBox.style.display = 'block';
+    if (check && label) {
+      // 1. Marcar y bloquear el checkbox
+      check.checked = true;
+      check.disabled = true; 
+      check.style.opacity = '0.7';
 
-    // 🔥 LA SOLUCIÓN DEFINITIVA: Borrar del DOM cualquier rastro de SUNAT
-    // Buscamos el div que contiene la caja gris con el texto de SUNAT y lo eliminamos.
-    const divs = Array.from(reciboBox.children);
-    divs.forEach(div => {
-      if (div.tagName === 'DIV' && (div.textContent.includes('Tu recibo de pago') || div.innerHTML.includes('inscReciboCheckLabel'))) {
-        div.remove(); // Eliminado físicamente
-      }
-    });
+      // 2. Cambiar el diseño y texto de la caja para que se vea oficial
+      label.innerHTML = `
+        <input type="checkbox" id="inscReciboCheck" checked disabled style="margin-top:3px; width:18px; height:18px; accent-color:#b45309; flex-shrink:0; opacity:0.7;">
+        <span style="color:#92400e; font-weight:600; font-size:0.92rem;">
+          ⚠️ <strong>Permiso Extemporáneo activo.</strong><br>
+          No se requiere recibo SUNAT para completar tu matrícula.
+        </span>
+      `;
+      label.style.background = '#fef3c7';
+      label.style.borderColor = '#fcd34d';
 
-    // Ocultar botón original (pero mantenerlo en el DOM, lo necesitamos al final)
-    const btnMat = document.getElementById('btnMatricularExistente');
-    if (btnMat) btnMat.style.display = 'none';
+      // 3. Ocultar el preview del SUNAT para que no se vea un cuadro en blanco
+      const preview = document.getElementById('inscReciboPreview');
+      if (preview) preview.style.display = 'none';
+      
+      const info = document.getElementById('inscReciboInfo');
+      if (info) info.textContent = "Recibo SUNAT no requerido por contar con Permiso Extemporáneo.";
+      
+      const noDisp = document.getElementById('inscReciboNoDisponible');
+      if (noDisp) noDisp.style.display = 'none';
 
-    const hint = document.getElementById('inscReciboHint');
-    if (hint) hint.style.display = 'none';
+      // 4. Ocultar los botones de descargar/imprimir SUNAT (no tienen sentido aquí)
+      const acciones = document.getElementById('inscReciboAcciones');
+      if (acciones) acciones.style.display = 'none';
 
-    // Insertar la caja de Permiso
-    const box = document.createElement('div');
-    box.id = 'inscPermisoBox';
-    box.style.cssText = 'background:#fef3c7;border:2px solid #fcd34d;border-radius:14px;padding:22px 20px;margin-bottom:14px;text-align:center;';
-    box.innerHTML = `
-      <div style="font-size:2.8rem;margin-bottom:10px;">⚠️</div>
-      <h4 style="color:#92400e;margin:0 0 10px;font-size:1.15rem;font-weight:800;">
-        Recibo SUNAT aún no disponible
-      </h4>
-      <p style="color:#78350f;font-size:.92rem;line-height:1.55;margin:0 0 18px;">
-        Tu recibo aún no ha sido cargado por administración.<br>
-        Sin embargo, cuentas con <strong>permiso extemporáneo</strong> para matricularte ahora y regularizar el pago después.
-      </p>
-      <button type="button" class="btn btn-verde" id="btnAceptarPermisoExt" style="width:100%; padding:14px 20px; font-size:1rem; font-weight:800; box-shadow:0 4px 12px rgba(76,175,80,.4);">
-        ✅ Aceptar permiso y continuar
-      </button>
-      <p style="font-size:.78rem;color:#92400e;margin-top:12px;font-style:italic;">
-        Al continuar, te comprometes a regularizar tu pago a la brevedad.
-      </p>
-    `;
-    
-    // Insertamos nuestra caja al principio
-    reciboBox.insertBefore(box, reciboBox.firstChild);
-
-    // 🔥 RESTAURAR CHECKBOX OCULTO: El script original (v3) busca este ID al final.
-    // Si no lo encuentra, puede fallar. Lo inyectamos oculto para que todo fluya.
-    const checkHidden = document.createElement('input');
-    checkHidden.type = 'checkbox';
-    checkHidden.id = 'inscReciboCheck';
-    checkHidden.style.display = 'none';
-    checkHidden.checked = true;
-    box.appendChild(checkHidden);
-
-    // Bind del botón verde
-    document.getElementById('btnAceptarPermisoExt').addEventListener('click', function () {
-      window._inscPermisoAceptado = true;
-      mostrarTodoListo();
-    });
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // 4) PANTALLA "¡TODO LISTO!"
-  // ══════════════════════════════════════════════════════════
-  function mostrarTodoListo() {
-    const pasoExistente = document.getElementById('inscPasoExistente');
-    let step = document.getElementById('inscPasoConfirmarMatricula');
-    if (pasoExistente) pasoExistente.style.display = 'none';
-
-    if (!step) {
-      step = document.createElement('div');
-      step.id = 'inscPasoConfirmarMatricula';
-      pasoExistente?.parentNode?.insertBefore(step, pasoExistente.nextSibling);
-    }
-
-    const courseId = document.getElementById('inscCourseId')?.value;
-    const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
-
-    step.style.display = 'block';
-    step.innerHTML = `
-      <div style="text-align:center; padding: 20px 0;">
-        <div style="font-size:3.5rem; margin-bottom:16px;">🎓</div>
-        <h3 style="color:var(--azul); margin-bottom:10px; font-size:1.3rem;">¡Todo listo!</h3>
-        <p style="color:var(--gris); font-size:.95rem; margin-bottom:24px;">
-          Has aceptado el permiso extemporáneo.<br>Ahora puedes confirmar tu matrícula.
-        </p>
-        <button type="button" class="btn btn-verde" id="btnMatricularFinal" style="width:100%; padding:15px 20px; font-size:1.1rem; font-weight:800; box-shadow:0 4px 12px rgba(76,175,80,.4); margin-bottom:12px;">
-          ✅ Matricularme ahora a ${cursoLabel}
-        </button>
-        <button type="button" class="btn btn-slate btn-mini" id="btnVolverDeConfirmacion" style="margin-top:16px;">
-          ← Volver
-        </button>
-      </div>
-    `;
-
-    document.getElementById('btnMatricularFinal')?.addEventListener('click', () => {
-      window._inscPermisoAceptado = true;
+      // 5. Simular variables para que el sistema original no falle
+      window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
       window._inscReciboDescargado = true;
-      if (!window._inscSunatRecibo) {
-        window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
+
+      // 6. Mostrar el botón de "Matricularme" directamente
+      const btnMat = document.getElementById('btnMatricularExistente');
+      if (btnMat) {
+        btnMat.style.display = 'block';
+        btnMat.disabled = false;
+        btnMat.textContent = '✅ Matricularme (Permiso Extemporáneo)';
       }
       
-      // Forzamos el check oculto (que creamos antes)
-      const sunatCheck = document.getElementById('inscReciboCheck');
-      if (sunatCheck) sunatCheck.checked = true;
-      
-      const btn = document.getElementById('btnMatricularExistente');
-      if (btn) { btn.disabled = false; btn.click(); }
-    });
-
-    document.getElementById('btnVolverDeConfirmacion')?.addEventListener('click', () => {
-      step.style.display = 'none';
-      if (pasoExistente) pasoExistente.style.display = 'block';
-      window._inscPermisoAceptado = false;
-    });
+      const hint = document.getElementById('inscReciboHint');
+      if (hint) hint.style.display = 'none';
+    }
   }
 
   // ══════════════════════════════════════════════════════════
-  // 5) HOOKS
+  // 4) HOOKS
   // ══════════════════════════════════════════════════════════
   document.addEventListener('click', function (e) {
     if (e.target && e.target.id === 'btnVerificarCodigo') {
-      // Limpiar rastro si verifica otro código
-      const oldBox = document.getElementById('inscPermisoBox');
-      if (oldBox) oldBox.remove();
-      
       setTimeout(aplicarPermisoSiCorresponde, 600);
       setTimeout(aplicarPermisoSiCorresponde, 1200);
       setTimeout(aplicarPermisoSiCorresponde, 2000);
     }
   }, true);
 
+  // Al dar clic en matricular, forzamos el check por si acaso
   document.addEventListener('click', function (e) {
     if (!e.target || e.target.id !== 'btnMatricularExistente') return;
-    if (!window._inscPermisoAceptado) return;
-    if (!window._inscSunatRecibo) {
-      window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
-    }
-    window._inscReciboDescargado = true;
+    if (!tienePermisoExtemporaneo(window._alumnoVerificado)) return;
+    
     const sunatCheck = document.getElementById('inscReciboCheck');
     if (sunatCheck) sunatCheck.checked = true;
   }, true);
 
-  document.addEventListener('click', function (e) {
-    if (e.target && e.target.id === 'btnCerrarInscripcion') {
-      window._inscPermisoAceptado = false;
-      const box = document.getElementById('inscPermisoBox');
-      if (box) box.remove();
-    }
-  }, true);
-
-  console.log('✅ Permiso Extemporáneo v5: DOM SUNAT eliminado correctamente.');
+  console.log('✅ Permiso Extemporáneo v6: Checkbox bloqueado y flujo adaptado.');
 })();
 </script>
 </body>
