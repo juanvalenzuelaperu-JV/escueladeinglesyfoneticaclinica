@@ -14269,5 +14269,158 @@ console.log('Planilla lista y visible');
   console.log('✅ Flujo de confirmación (Pantalla extra) cargado.');
 })();
 </script>
+ <!-- ============================================================
+     MEJORAS: Pantalla de confirmación + Checkbox vistoso
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // ─── 1. Inyectar estilos para la caja vistosa ───
+  if (!document.getElementById('stylesReciboVistozo')) {
+    const style = document.createElement('style');
+    style.id = 'stylesReciboVistozo';
+    style.innerHTML = `
+      /* Caja de reconocimiento vistosa */
+      #inscReciboCheckLabel {
+        background: #f8fafc !important;
+        border: 2px dashed #cbd5e1 !important;
+        border-radius: 14px !important;
+        padding: 16px 18px !important;
+        transition: all 0.25s ease !important;
+        font-size: 0.95rem !important;
+        color: #1e293b !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        margin-top: 14px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        cursor: pointer;
+      }
+      #inscReciboCheckLabel:hover {
+        background: #f0f9ff !important;
+        border-color: #38bdf8 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.15);
+      }
+      #inscReciboCheck {
+        width: 22px !important;
+        height: 22px !important;
+        cursor: pointer !important;
+        accent-color: #004a8f !important;
+        flex-shrink: 0;
+        margin: 0 !important;
+      }
+      /* Cuando está marcado, el texto se pone verde */
+      #inscReciboCheck:checked + span {
+        color: #15803d !important;
+        font-weight: 700 !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ─── 2. Lógica de la pantalla de confirmación ───
+  document.addEventListener('change', function (e) {
+    if (!e.target || e.target.id !== 'inscReciboCheck') return;
+
+    const isChecked = e.target.checked;
+    const pasoExistente = document.getElementById('inscPasoExistente');
+    let step = document.getElementById('inscPasoConfirmarMatricula');
+
+    if (isChecked) {
+      // Ocultar el recibo y mostrar confirmación
+      if (pasoExistente) pasoExistente.style.display = 'none';
+
+      const courseId = document.getElementById('inscCourseId')?.value;
+      const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
+
+      if (!step) {
+        step = document.createElement('div');
+        step.id = 'inscPasoConfirmarMatricula';
+        if (pasoExistente && pasoExistente.parentNode) {
+          pasoExistente.parentNode.insertBefore(step, pasoExistente.nextSibling);
+        } else {
+          document.getElementById('modalInscripcion')?.querySelector('.modal-box')?.appendChild(step);
+        }
+      }
+
+      step.style.display = 'block';
+      step.innerHTML = `
+        <div style="text-align:center; padding: 20px 0;">
+          <div style="font-size:3.5rem; margin-bottom:16px; animation: modalIn 0.5s ease;">🎓</div>
+          <h3 style="color:var(--azul); margin-bottom:10px; font-size:1.3rem;">¡Todo listo!</h3>
+          <p style="color:var(--gris); font-size:.95rem; margin-bottom:24px;">
+            Has reconocido tu recibo SUNAT.<br>Ahora puedes confirmar tu matrícula.
+          </p>
+          
+          <button type="button" class="btn btn-verde" id="btnMatricularFinal" style="width:100%; padding:15px 20px; font-size:1.1rem; font-weight:800; box-shadow:0 4px 12px rgba(76,175,80,.4); margin-bottom: 12px;">
+            ✅ Matricularme ahora a ${cursoLabel}
+          </button>
+          
+          <button type="button" class="btn btn-azul btn-mini" id="btnImprimirDescargarSunatFinal" style="width:100%; padding:12px; font-size:0.95rem;">
+            🖨️ Imprimir / Descargar SUNAT
+          </button>
+          <p style="font-size:0.75rem; color:var(--gris); margin-top:6px;">
+            Se abrirá el visor de impresión para que imprimas o guardes como PDF.
+          </p>
+
+          <button type="button" class="btn btn-slate btn-mini" id="btnVolverDeConfirmacion" style="margin-top:24px;">
+            ← Volver a ver mi recibo
+          </button>
+        </div>
+      `;
+
+      // ── Eventos de los botones ──
+      
+      // Botón principal: Matricular (simula el flujo original)
+      document.getElementById('btnMatricularFinal').addEventListener('click', () => {
+        window._inscReciboDescargado = true;
+        const btnOriginal = document.getElementById('btnMatricularExistente');
+        if (btnOriginal) {
+          btnOriginal.disabled = false;
+          btnOriginal.click();
+        }
+      });
+
+      // Botón unificado: Imprimir/Descargar (dispara el handler original de impresión)
+      document.getElementById('btnImprimirDescargarSunatFinal').addEventListener('click', () => {
+        document.getElementById('btnImprimirReciboSunat')?.click();
+      });
+
+      // Botón Volver (funcional)
+      document.getElementById('btnVolverDeConfirmacion').addEventListener('click', () => {
+        const check = document.getElementById('inscReciboCheck');
+        if (check) {
+          check.checked = false;
+          // Forzamos el evento change para restaurar la UI original
+          check.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+
+    } else {
+      // Si se desmarca, restaurar la ventana del recibo
+      if (step) step.style.display = 'none';
+      if (pasoExistente) pasoExistente.style.display = 'block';
+      
+      // Ocultar el hint verde si estaba visible
+      const hint = document.getElementById('inscReciboHint');
+      if (hint) hint.style.display = 'none';
+    }
+  }, true); // Captura: corre antes que el código original
+
+  // Resetear al cerrar el modal
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'btnCerrarInscripcion') {
+      const step = document.getElementById('inscPasoConfirmarMatricula');
+      if (step) step.style.display = 'none';
+      const pasoExistente = document.getElementById('inscPasoExistente');
+      if (pasoExistente) pasoExistente.style.display = 'block';
+    }
+  }, true);
+
+  console.log('✅ Flujo mejorado: Botón unificado, Volver funcional y Checkbox vistoso.');
+})();
+</script>
 </body>
 </html>
