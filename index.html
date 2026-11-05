@@ -13754,5 +13754,180 @@ console.log('Planilla lista y visible');
   console.log('✅ Fix SUNAT: los botones se habilitan al marcar el checkbox.');
 })();
 </script>
+ <!-- ============================================================
+     MATRÍCULA DE HIJOS DESDE CUENTA DE PADRE/MADRE
+     · Agrega opción "Soy padre/madre" en el modal de inscripción
+     · Permite verificar el código del padre y listar sus hijos
+     · Al seleccionar un hijo, simula el código del alumno y
+       ejecuta el flujo existente (estado, SUNAT y matrícula)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Módulo matrícula padres iniciando...');
+
+  // ─── 1. Agregar el botón "Soy padre/madre" en el paso 1 ───
+  function injectBotonPadre() {
+    const paso1 = document.getElementById('inscPaso1');
+    if (!paso1) return;
+    if (document.getElementById('btnInscPadre')) return;
+
+    const optDiv = paso1.querySelector('.insc-options');
+    if (!optDiv) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'insc-option-btn';
+    btn.id = 'btnInscPadre';
+    btn.innerHTML = `
+      <strong>👨‍👩‍👧 Soy padre/madre</strong>
+      <small>Ingresa con tu código para matricular a tu hijo(a).</small>
+    `;
+    optDiv.appendChild(btn);
+  }
+
+  // ─── 2. Agregar el contenedor del paso padre ───
+  function injectPasoPadre() {
+    if (document.getElementById('inscPasoPadre')) return;
+
+    const ref = document.getElementById('inscPasoExistente');
+    if (!ref) return;
+
+    const div = document.createElement('div');
+    div.id = 'inscPasoPadre';
+    div.style.display = 'none';
+    div.style.textAlign = 'left';
+    div.innerHTML = `
+      <div class="campo">
+        <label>Código de padre/madre <span class="req">*</span></label>
+        <div class="input-with-btn">
+          <input type="text" id="inscCodigoPadre" placeholder="Ej: 45513532">
+          <button type="button" class="btn-icon" id="btnVerificarCodigoPadre">🔍 Verificar</button>
+        </div>
+      </div>
+      <div id="inscDatosPadre" style="display:none; margin-top:14px;">
+        <h4 style="color:var(--azul); font-size:.95rem; margin-bottom:10px;">Selecciona al hijo(a) a matricular:</h4>
+        <div id="inscHijosLista"></div>
+      </div>
+      <button type="button" class="btn btn-slate btn-mini" id="btnVolverDePadre" style="margin-top:14px;">← Volver</button>
+    `;
+    ref.parentNode.insertBefore(div, ref.nextSibling);
+  }
+
+  // ─── 3. Lógica de eventos ───
+  function bindEvents() {
+    // Abrir paso padre
+    document.getElementById('btnInscPadre')?.addEventListener('click', () => {
+      document.getElementById('inscPaso1').style.display = 'none';
+      document.getElementById('inscPasoExistente').style.display = 'none';
+      document.getElementById('inscPasoNuevo').style.display = 'none';
+      document.getElementById('inscPasoPadre').style.display = 'block';
+      document.getElementById('inscCodigoPadre').value = '';
+      document.getElementById('inscDatosPadre').style.display = 'none';
+    });
+
+    // Volver al paso 1
+    document.getElementById('btnVolverDePadre')?.addEventListener('click', () => {
+      document.getElementById('inscPasoPadre').style.display = 'none';
+      document.getElementById('inscPaso1').style.display = 'block';
+    });
+
+    // Verificar código del padre
+    document.getElementById('btnVerificarCodigoPadre')?.addEventListener('click', () => {
+      const code = (document.getElementById('inscCodigoPadre').value || '').trim().toUpperCase();
+      if (!code) { alert('Ingresa tu código de padre/madre.'); return; }
+
+      const padres = state.padres || {};
+      const padre = padres[code] || Object.values(padres).find(p => p.dni === code);
+      
+      if (!padre) {
+        alert('❌ Código de padre/madre no encontrado.');
+        return;
+      }
+
+      const hijos = padre.hijos || [];
+      if (!hijos.length) {
+        alert('Esta cuenta no tiene hijos registrados.');
+        return;
+      }
+
+      const courseId = document.getElementById('inscCourseId').value;
+      const group = (state.groups || []).find(g => g.id === courseId);
+
+      const listaDiv = document.getElementById('inscHijosLista');
+      listaDiv.innerHTML = '';
+      document.getElementById('inscDatosPadre').style.display = 'block';
+
+      hijos.forEach(childCode => {
+        const student = state.students[childCode];
+        if (!student) return;
+
+        const yaMatriculado = group && Array.isArray(group.studentCodes) && group.studentCodes.includes(childCode);
+
+        const btnHijo = document.createElement('button');
+        btnHijo.type = 'button';
+        btnHijo.className = 'exam-link-card';
+        btnHijo.style.width = '100%';
+        btnHijo.style.textAlign = 'left';
+        btnHijo.style.cursor = yaMatriculado ? 'not-allowed' : 'pointer';
+        btnHijo.style.opacity = yaMatriculado ? '0.6' : '1';
+        btnHijo.innerHTML = `
+          <div class="exam-link-info" style="flex:1;">
+            <h4>${student.nombre}</h4>
+            <p>Código: ${childCode} · Programa: ${student.programa || '—'}</p>
+            ${yaMatriculado 
+              ? '<small style="color:#15803d;font-weight:700;">✅ Ya matriculado en este grupo</small>' 
+              : '<small style="color:var(--azul);font-weight:700;">👉 Hacer clic para matricular</small>'}
+          </div>
+        `;
+
+        if (!yaMatriculado) {
+          btnHijo.addEventListener('click', () => {
+            // Ocultar paso padre
+            document.getElementById('inscPasoPadre').style.display = 'none';
+            // Mostrar paso alumno
+            document.getElementById('inscPasoExistente').style.display = 'block';
+
+            // Poner el código del hijo en el input y ejecutar la verificación
+            const inputAlumno = document.getElementById('inscCodigoAlumno');
+            if (inputAlumno) inputAlumno.value = childCode;
+            
+            const btnVer = document.getElementById('btnVerificarCodigo');
+            if (btnVer) btnVer.click();
+          });
+        }
+
+        listaDiv.appendChild(btnHijo);
+      });
+    });
+  }
+
+  // ─── 4. Observar cuando se abra el modal para reinyectar por si acaso ───
+  function tryInit() {
+    injectBotonPadre();
+    injectPasoPadre();
+    bindEvents();
+  }
+
+  // Ejecutar al cargar
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInit);
+  } else {
+    tryInit();
+  }
+
+  // Re-intentar cuando se abra el modal de inscripción (por si se resetea)
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.classList.contains('btn-inscribirse-grupo')) {
+      setTimeout(tryInit, 150);
+    }
+  }, true);
+
+  setTimeout(tryInit, 1000);
+  setTimeout(tryInit, 2000);
+
+  console.log('✅ Módulo matrícula padres cargado.');
+})();
+</script>
 </body>
 </html>
