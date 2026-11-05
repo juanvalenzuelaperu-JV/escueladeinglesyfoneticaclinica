@@ -13929,5 +13929,345 @@ console.log('Planilla lista y visible');
   console.log('✅ Módulo matrícula padres cargado.');
 })();
 </script>
+ <!-- ============================================================
+     DASHBOARD DE MATRÍCULA POR CICLO (VERSIÓN FINAL)
+     · Muestra solo el ciclo actual (si no hay historial)
+     · Muestra desplegable solo si hay más de 1 ciclo
+     · Límite de 2 grupos por ciclo
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Módulo Dashboard Matrícula (Final) iniciando...');
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // ─── Obtener historial de matrículas por ciclo ───
+  function getStudentEnrollmentHistory(studentCode) {
+    if (!studentCode) return [];
+    const groups = typeof getStudentGroups === 'function' ? getStudentGroups(studentCode) : [];
+    const history = [];
+    
+    groups.forEach(g => {
+      let anio = g.anio;
+      let mes = g.mes;
+      
+      // Fallback 1: buscar en registros de matrícula
+      if (!anio || !mes) {
+        const reg = (state.registrations || []).find(r => 
+          r.codigoAlumno === studentCode && (r.groupId === g.id || r.scheduleId === g.id)
+        );
+        if (reg && reg.fecha) {
+          const parts = reg.fecha.split('-');
+          anio = parts[0];
+          mes = parts[1];
+        }
+      }
+      
+      // Fallback 2: extraer fecha del ID del grupo (grp_timestamp)
+      if (!anio || !mes) {
+        const match = /grp_(\d+)/.exec(g.id || '');
+        if (match) {
+          const d = new Date(parseInt(match[1]));
+          anio = d.getFullYear();
+          mes = String(d.getMonth() + 1).padStart(2, '0');
+        } else {
+          anio = new Date().getFullYear();
+          mes = String(new Date().getMonth() + 1).padStart(2, '0');
+        }
+      }
+      
+      mes = String(mes).padStart(2, '0');
+      const cicloKey = `${anio}-${mes}`;
+      
+      history.push({
+        group: g,
+        cicloKey,
+        anio: String(anio),
+        mes: mes
+      });
+    });
+    
+    return history;
+  }
+
+  // ─── Renderizar la tarjeta del ciclo seleccionado ───
+  function renderResumenCiclo(cicloKey, ciclosList) {
+    const cont = document.getElementById('resumenCicloMatricula');
+    if (!cont) return;
+    
+    const ciclo = ciclosList.find(c => c.cicloKey === cicloKey);
+    if (!ciclo) {
+      cont.innerHTML = '<div class="empty-state" style="padding:12px;">No hay matrículas para este ciclo.</div>';
+      return;
+    }
+
+    // 🔹 LÍMITE: Mostrar máximo 2 grupos
+    const gruposAMostrar = ciclo.grupos.slice(0, 2);
+    
+    let html = '';
+    gruposAMostrar.forEach(g => {
+      const t = state.teachers[g.teacherCode];
+      const nivel = typeof getNivelInfo === 'function' ? getNivelInfo(g.nivel) : { nombre: g.nivel, clase: '' };
+      
+      const reg = (state.registrations || []).find(r => 
+        r.codigoAlumno === currentStudentCode && (r.groupId === g.id || r.scheduleId === g.id)
+      );
+      
+      html += `
+        <div class="group-card" style="margin-bottom:12px; border-left: 4px solid #10b981; box-shadow: none;">
+          <div class="group-card-head" style="padding:12px 16px; background:#f0fdf4; border-bottom: none;">
+            <div class="group-info">
+              <span class="group-nivel ${nivel.clase}">${nivel.nombre}</span>
+              <strong>${g.nombre || g.programa}</strong>
+              <small>Programa: ${g.programa || '—'} · Docente: ${t ? t.nombre : '—'}</small>
+              <small>📅 ${g.frecuencia || '—'} · ⏰ ${g.horario || '—'}</small>
+            </div>
+            <div class="asg-actions">
+               <span class="estado estado-present" style="font-size:.75rem;">✅ Matriculado</span>
+            </div>
+          </div>
+          <div class="group-card-body" style="padding:12px 16px; border-top: 1px solid #dcfce7;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:.85rem;">
+              <p style="margin:0; color:var(--gris);">
+                <strong style="color:var(--texto);">Fecha:</strong> ${reg ? formatearFecha(reg.fecha) : '—'}
+              </p>
+              <p style="margin:0; color:var(--gris);">
+                <strong style="color:var(--texto);">Comprobante:</strong> ${reg && reg.numComprobante ? reg.numComprobante : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    if (ciclo.grupos.length > 2) {
+      html += `<div style="font-size:.8rem; color:var(--gris); text-align:center; margin-top:8px;">* Mostrando los 2 primeros grupos de este ciclo.</div>`;
+    }
+
+    cont.innerHTML = html;
+  }
+
+  // ─── Función principal ───
+  window.renderMatriculaDashboard = function () {
+    const container = document.getElementById('matriculaInicio');
+    if (!container || !currentStudentCode) return;
+
+    const history = getStudentEnrollmentHistory(currentStudentCode);
+    
+    // Agrupar matrículas por ciclo
+    const ciclos = {};
+    history.forEach(item => {
+      if (!ciclos[item.cicloKey]) {
+        ciclos[item.cicloKey] = {
+          cicloKey: item.cicloKey,
+          anio: item.anio,
+          mes: item.mes,
+          grupos: []
+        };
+      }
+      ciclos[item.cicloKey].grupos.push(item.group);
+    });
+
+    // Ordenar ciclos (más reciente primero)
+    const sortedCiclos = Object.values(ciclos).sort((a, b) => b.cicloKey.localeCompare(a.cicloKey));
+    
+    // 🔹 Límite del desplegable: 3 ciclos máximo
+    const visibleCiclos = sortedCiclos.slice(0, 3);
+    const totalCiclos = visibleCiclos.length;
+
+    let html = '';
+    
+    if (totalCiclos === 0) {
+      // Caso: Sin matrículas
+      html += `
+        <div class="empty-state" style="padding: 30px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+          🎓 Aún no registras matrículas en tu historial.<br>
+          <small style="color:var(--gris); margin-top: 8px; display: block;">Si deseas matricularte, dirígete a la sección pública de <b>Horarios disponibles</b>.</small>
+        </div>
+      `;
+    } else if (totalCiclos === 1) {
+      // Caso: Solo el ciclo actual (sin historial)
+      const cicloActual = visibleCiclos[0];
+      html += `
+        <div class="tform" style="margin-bottom:20px; background: #fff; border-color: #e5e7eb; padding: 20px;">
+          <h4 style="color:var(--azul); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+            📋 Mi Matrícula Actual
+          </h4>
+          <div id="resumenCicloMatricula">
+            <!-- Se llena dinámicamente -->
+          </div>
+        </div>
+      `;
+      
+      // Llenar el resumen después de inyectar el HTML
+      setTimeout(() => renderResumenCiclo(cicloActual.cicloKey, visibleCiclos), 10);
+      
+    } else {
+      // Caso: Historial de 2 o más ciclos
+      html += `
+        <div class="tform" style="margin-bottom:20px; background: #fff; border-color: #e5e7eb; padding: 20px;">
+          <h4 style="color:var(--azul); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+            📋 Historial de Matrículas
+          </h4>
+          <div class="campo">
+            <label style="font-weight:600; color:var(--slate);">Selecciona el ciclo para ver tu resumen</label>
+            <select id="selectCicloMatricula" style="font-weight: 700; color: var(--azul); background: #f8fafc; cursor: pointer; border: 2px solid #bfdbfe; padding: 12px 15px; border-radius: 10px;">
+              ${visibleCiclos.map((c, i) => {
+                const mesNombre = MESES[parseInt(c.mes, 10) - 1];
+                const etiquetaActual = i === 0 ? ' (Actual)' : '';
+                return `<option value="${c.cicloKey}">${mesNombre} ${c.anio}${etiquetaActual}</option>`;
+              }).join('')}
+            </select>
+          </div>
+          <div id="resumenCicloMatricula" style="margin-top:16px;">
+            <!-- Se llena dinámicamente -->
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    // Bind del Select (solo si existe el desplegable)
+    const sel = document.getElementById('selectCicloMatricula');
+    if (sel) {
+      sel.addEventListener('change', () => renderResumenCiclo(sel.value, visibleCiclos));
+      renderResumenCiclo(sel.value, visibleCiclos); // Render inicial
+    }
+  };
+
+  // ─── Hooks para integrarlo al flujo ───
+  document.querySelectorAll('#dashboardAlumno [data-atab="matricula"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(window.renderMatriculaDashboard, 60));
+  });
+
+  // Forzar render si el panel ya está activo
+  setTimeout(() => {
+    if (document.getElementById('panel-matricula')?.classList.contains('activo')) {
+      window.renderMatriculaDashboard();
+    }
+  }, 1000);
+
+  // Patch al botón "Volver" para que el dashboard no quede en blanco al regresar
+  const btnVolver = document.getElementById('btnCancelarMatriculaAlumno');
+  if (btnVolver) {
+    btnVolver.addEventListener('click', () => {
+      setTimeout(window.renderMatriculaDashboard, 50);
+    });
+  }
+
+  console.log('✅ Dashboard Matrícula (Final) cargado.');
+})();
+</script>
+ <!-- ============================================================
+     NUEVO FLUJO: Pantalla de confirmación al marcar el checkbox
+     · Oculta la vista del recibo al marcar "Reconozco..."
+     · Muestra un botón grande: "Matricularme ahora a [Grupo]"
+     · Mantiene opciones para descargar/imprimir o volver atrás
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  document.addEventListener('change', function (e) {
+    if (!e.target || e.target.id !== 'inscReciboCheck') return;
+
+    const isChecked = e.target.checked;
+    const pasoExistente = document.getElementById('inscPasoExistente');
+    let step = document.getElementById('inscPasoConfirmarMatricula');
+
+    if (isChecked) {
+      // 1. Ocultar el paso actual (recibo SUNAT)
+      if (pasoExistente) pasoExistente.style.display = 'none';
+
+      // 2. Obtener el nombre del grupo
+      const courseId = document.getElementById('inscCourseId')?.value;
+      const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
+
+      // 3. Crear el contenedor de la nueva pantalla si no existe
+      if (!step) {
+        step = document.createElement('div');
+        step.id = 'inscPasoConfirmarMatricula';
+        if (pasoExistente && pasoExistente.parentNode) {
+          pasoExistente.parentNode.insertBefore(step, pasoExistente.nextSibling);
+        } else {
+          document.getElementById('modalInscripcion')?.querySelector('.modal-box')?.appendChild(step);
+        }
+      }
+
+      // 4. Inyectar el HTML de la nueva pantalla
+      step.style.display = 'block';
+      step.innerHTML = `
+        <div style="text-align:center; padding: 20px 0;">
+          <div style="font-size:3.5rem; margin-bottom:16px;">🎓</div>
+          <h3 style="color:var(--azul); margin-bottom:10px; font-size:1.3rem;">¡Todo listo!</h3>
+          <p style="color:var(--gris); font-size:.95rem; margin-bottom:24px;">
+            Has reconocido tu recibo SUNAT.<br>Ahora puedes confirmar tu matrícula.
+          </p>
+          
+          <button type="button" class="btn btn-verde" id="btnMatricularFinal" style="width:100%; padding:15px 20px; font-size:1.1rem; font-weight:800; box-shadow:0 4px 12px rgba(76,175,80,.4);">
+            ✅ Matricularme ahora a ${cursoLabel}
+          </button>
+          
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="button" class="btn btn-azul btn-mini" id="btnDescargarSunatFinal" style="flex:1;">⬇️ Descargar SUNAT</button>
+            <button type="button" class="btn btn-slate btn-mini" id="btnImprimirSunatFinal" style="flex:1;">🖨️ Imprimir SUNAT</button>
+          </div>
+
+          <button type="button" class="btn btn-slate btn-mini" id="btnVolverDeConfirmacion" style="margin-top:20px;">
+            ← Volver a ver mi recibo
+          </button>
+        </div>
+      `;
+
+      // 5. Eventos de los botones de la nueva pantalla
+      
+      // Botón principal: Matricular
+      document.getElementById('btnMatricularFinal').addEventListener('click', () => {
+        // Forzamos la variable de validación para que el código v3 nos deje pasar
+        window._inscReciboDescargado = true;
+        
+        // Buscamos el botón original oculto, lo habilitamos y le hacemos clic
+        const btnOriginal = document.getElementById('btnMatricularExistente');
+        if (btnOriginal) {
+          btnOriginal.disabled = false;
+          btnOriginal.click();
+        }
+      });
+
+      // Botones secundarios: Descargar / Imprimir
+      document.getElementById('btnDescargarSunatFinal').addEventListener('click', () => {
+        document.getElementById('btnDescargarReciboSunat')?.click();
+      });
+      document.getElementById('btnImprimirSunatFinal').addEventListener('click', () => {
+        document.getElementById('btnImprimirReciboSunat')?.click();
+      });
+
+      // Botón de volver atrás
+      document.getElementById('btnVolverDeConfirmacion').addEventListener('click', () => {
+        // Al desmarcar por código, el flujo regresa al paso 1 automáticamente
+        document.getElementById('inscReciboCheck').checked = false;
+      });
+
+    } else {
+      // Si el usuario desmarca (o vuelve atrás), restauramos la vista
+      if (step) step.style.display = 'none';
+      if (pasoExistente) pasoExistente.style.display = 'block';
+    }
+  }, true); // 👈 el 'true' hace que se ejecute antes que el código de v3
+
+  // Asegurarnos de que al cerrar el modal, la pantalla extra se oculte
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'btnCerrarInscripcion') {
+      const step = document.getElementById('inscPasoConfirmarMatricula');
+      if (step) step.style.display = 'none';
+    }
+  }, true);
+
+  console.log('✅ Flujo de confirmación (Pantalla extra) cargado.');
+})();
+</script>
 </body>
 </html>
