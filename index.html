@@ -14422,5 +14422,313 @@ console.log('Planilla lista y visible');
   console.log('✅ Flujo mejorado: Botón unificado, Volver funcional y Checkbox vistoso.');
 })();
 </script>
+ <!-- ============================================================
+     FIX UI: Botón "Guardar" en el tab Cobro (Contabilidad)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  function inyectarBotonGuardar() {
+    // Si ya existe, no hacer nada
+    if (document.getElementById('btnGuardarCobro')) return;
+    
+    // Buscar el panel de cobro
+    const panel = document.getElementById('cont-subpanel-cobro');
+    if (!panel) return;
+    
+    // Buscar la tabla (contenedor)
+    const tableWrap = panel.querySelector('.tabla-wrap');
+    if (!tableWrap) return;
+    
+    // Crear el contenedor del botón
+    const btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'margin-top:16px; display:flex; justify-content:flex-end; align-items:center; gap:12px;';
+    
+    btnWrap.innerHTML = `
+      <span style="font-size:0.8rem; color:var(--gris);">
+        ℹ️ Los cambios se guardan automáticamente, pero puedes forzar el guardado aquí.
+      </span>
+      <button type="button" class="btn btn-verde" id="btnGuardarCobro" style="box-shadow:0 4px 12px rgba(76,175,80,.3); padding: 12px 24px; font-weight: 700;">
+        💾 Guardar Cambios de Cobro
+      </button>
+    `;
+    
+    // Insertar justo después de la tabla, antes de "Resumen de caja"
+    tableWrap.parentNode.insertBefore(btnWrap, tableWrap.nextSibling);
+    
+    // Lógica del botón
+    document.getElementById('btnGuardarCobro').addEventListener('click', function() {
+      // 1. Forzar guardado en Supabase/LocalStorage
+      if (typeof saveState === 'function') {
+        saveState();
+      }
+      
+      // 2. Mostrar notificación (Toast)
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:14px 26px;border-radius:50px;font-weight:700;box-shadow:0 8px 24px rgba(16,185,129,.35);z-index:999999;font-size:.95rem;';
+      toast.textContent = '✅ Cambios de cobro guardados correctamente.';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+      
+      // 3. Refrescar el resumen visualmente por si acaso
+      const select = document.getElementById('cobroGroupSelect');
+      if (select) {
+        // Forzamos el re-render disparando el evento change
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
+
+  // Ejecutar al cargar la página
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inyectarBotonGuardar);
+  } else {
+    inyectarBotonGuardar();
+  }
+  
+  // Volver a ejecutar cuando se entra al tab de Cobro
+  document.querySelectorAll('[data-cont-subtab="cobro"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(inyectarBotonGuardar, 100));
+  });
+  
+  // Respaldo por si el tab ya estaba abierto
+  setTimeout(inyectarBotonGuardar, 1000);
+  setTimeout(inyectarBotonGuardar, 2500);
+  
+  console.log('✅ Botón Guardar inyectado en el tab de Cobros.');
+})();
+</script>
+ <!-- ============================================================
+     PERMISO EXTEMPORÁNEO — Cobro + Flujo de Inscripción
+     · Agrega "Permiso Extemporáneo" al desplegable de cobro
+     · En inscripción, si el alumno tiene este permiso, muestra
+       tarjeta "Permiso Extemporáneo" con checkbox en vez de SUNAT
+     · Al aceptar → pantalla "¡Todo listo!" → matrícula normal
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Permiso Extemporáneo iniciando...');
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 1: Agregar opción al desplegable de Cobros
+  // ══════════════════════════════════════════════════════════
+  function addOptionToCobroDropdowns() {
+    document.querySelectorAll('#cobroTbody select[data-cobro-field="estado"]').forEach(sel => {
+      const studentCode = sel.dataset.student;
+      const rowId = sel.dataset.rowId;
+
+      // Leer estado real desde state (por si el HTML lo perdió)
+      let currentState = null;
+      if (state && state.cobros && state.cobros.byStudent && studentCode) {
+        const bucket = state.cobros.byStudent[studentCode];
+        if (bucket && Array.isArray(bucket.rows)) {
+          const row = bucket.rows.find(r => r.id === rowId);
+          if (row) currentState = row.estado;
+        }
+      }
+
+      // Agregar la opción si no existe
+      if (!sel.querySelector('option[value="permiso_extemporaneo"]')) {
+        const opt = document.createElement('option');
+        opt.value = 'permiso_extemporaneo';
+        opt.textContent = '⚠️ Permiso Extemporáneo';
+        sel.appendChild(opt);
+      }
+
+      // Corregir selección si el estado es permiso
+      if (currentState === 'permiso_extemporaneo') {
+        sel.value = 'permiso_extemporaneo';
+      }
+    });
+  }
+
+  // Observar re-render de la tabla de cobros
+  const cobroTbody = document.getElementById('cobroTbody');
+  if (cobroTbody) {
+    new MutationObserver(() => setTimeout(addOptionToCobroDropdowns, 50))
+      .observe(cobroTbody, { childList: true, subtree: true });
+  }
+
+  // Re-aplicar en varios escenarios
+  setTimeout(addOptionToCobroDropdowns, 800);
+  document.getElementById('cobroRefresh')?.addEventListener('click', () => setTimeout(addOptionToCobroDropdowns, 150));
+  document.getElementById('cobroGroupSelect')?.addEventListener('change', () => setTimeout(addOptionToCobroDropdowns, 150));
+  document.querySelectorAll('[data-cont-subtab="cobro"]').forEach(t => {
+    t.addEventListener('click', () => setTimeout(addOptionToCobroDropdowns, 200));
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 2: Helper ¿tiene permiso extemporáneo?
+  // ══════════════════════════════════════════════════════════
+  function tienePermisoExtemporaneo(code) {
+    if (!state || !state.cobros || !state.cobros.byStudent) return false;
+    const bucket = state.cobros.byStudent[code];
+    if (!bucket || !Array.isArray(bucket.rows)) return false;
+    return bucket.rows.some(r => r && r.estado === 'permiso_extemporaneo');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 3: Reemplazar la vista del SUNAT por "Permiso"
+  // ══════════════════════════════════════════════════════════
+  function aplicarPermisoSiCorresponde() {
+    const code = window._alumnoVerificado;
+    if (!code) return;
+    if (!tienePermisoExtemporaneo(code)) return;
+
+    // Solo aplicamos cuando la verificación ya mostró los datos
+    const datos = document.getElementById('inscDatosAlumno');
+    if (!datos || datos.style.display === 'none') return;
+
+    const estadoEl = document.getElementById('inscEstadoExistente');
+    if (!estadoEl || !estadoEl.textContent.includes('Aprobado')) return;
+
+    // Idempotente: ya está mostrado
+    if (document.getElementById('inscPermisoBox')) return;
+
+    const reciboBox = document.getElementById('inscReciboBox');
+    if (!reciboBox) return;
+    reciboBox.style.display = 'block';
+
+    // Ocultar todo lo relacionado al SUNAT
+    ['inscReciboPreview', 'inscReciboCheckLabel', 'inscReciboAcciones', 'inscReciboInfo', 'inscReciboNoDisponible'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // Insertar la caja de permiso
+    const box = document.createElement('div');
+    box.id = 'inscPermisoBox';
+    box.style.cssText = 'background:#fef3c7;border:2px solid #fcd34d;border-radius:14px;padding:20px;margin-bottom:14px;';
+    box.innerHTML = `
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="font-size:2.5rem;margin-bottom:8px;">⚠️</div>
+        <h4 style="color:#92400e;margin:0;font-size:1.1rem;font-weight:800;">Permiso Extemporáneo</h4>
+      </div>
+      <p style="color:#78350f;font-size:.9rem;line-height:1.5;margin-bottom:14px;text-align:center;">
+        La administración te otorgó <strong>permiso extemporáneo</strong> para matricularte antes de completar el pago. Al continuar, aceptas matricularte bajo esta condición y regularizar tu pago a la brevedad.
+      </p>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.92rem;color:#78350f;background:#fff;border:1.5px solid #fcd34d;padding:12px 14px;border-radius:10px;">
+        <input type="checkbox" id="inscPermisoCheck" style="margin-top:3px;width:20px;height:20px;accent-color:#f59e0b;flex-shrink:0;">
+        <span>Acepto el <strong>permiso extemporáneo</strong> y me comprometo a regularizar el pago.</span>
+      </label>
+    `;
+    reciboBox.insertBefore(box, reciboBox.firstChild);
+
+    // Bind del check
+    document.getElementById('inscPermisoCheck').addEventListener('change', function (e) {
+      if (!e.target.checked) return;
+      window._inscPermisoAceptado = true;
+      mostrarTodoListo();
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 4: Pantalla "¡Todo listo!"
+  // ══════════════════════════════════════════════════════════
+  function mostrarTodoListo() {
+    const pasoExistente = document.getElementById('inscPasoExistente');
+    let step = document.getElementById('inscPasoConfirmarMatricula');
+
+    if (pasoExistente) pasoExistente.style.display = 'none';
+
+    if (!step) {
+      step = document.createElement('div');
+      step.id = 'inscPasoConfirmarMatricula';
+      pasoExistente?.parentNode?.insertBefore(step, pasoExistente.nextSibling);
+    }
+
+    const courseId = document.getElementById('inscCourseId')?.value;
+    const cursoLabel = typeof getInscCourseLabel === 'function' ? getInscCourseLabel(courseId) : 'el curso';
+
+    step.style.display = 'block';
+    step.innerHTML = `
+      <div style="text-align:center; padding: 20px 0;">
+        <div style="font-size:3.5rem; margin-bottom:16px;">🎓</div>
+        <h3 style="color:var(--azul); margin-bottom:10px; font-size:1.3rem;">¡Todo listo!</h3>
+        <p style="color:var(--gris); font-size:.95rem; margin-bottom:24px;">
+          Has aceptado el permiso extemporáneo.<br>Ahora puedes confirmar tu matrícula.
+        </p>
+        <button type="button" class="btn btn-verde" id="btnMatricularFinal" style="width:100%; padding:15px 20px; font-size:1.1rem; font-weight:800; box-shadow:0 4px 12px rgba(76,175,80,.4); margin-bottom:12px;">
+          ✅ Matricularme ahora a ${cursoLabel}
+        </button>
+        <button type="button" class="btn btn-slate btn-mini" id="btnVolverDeConfirmacion" style="margin-top:16px;">
+          ← Volver
+        </button>
+      </div>
+    `;
+
+    document.getElementById('btnMatricularFinal')?.addEventListener('click', () => {
+      // Bypass de validaciones: simulamos un SUNAT reconocido
+      window._inscPermisoAceptado = true;
+      window._inscReciboDescargado = true;
+      if (!window._inscSunatRecibo) {
+        window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
+      }
+
+      // Marcar el checkbox original del SUNAT (sin disparar change)
+      const sunatCheck = document.getElementById('inscReciboCheck');
+      if (sunatCheck) sunatCheck.checked = true;
+
+      // Disparar el botón original que tiene toda la lógica de matrícula
+      const btn = document.getElementById('btnMatricularExistente');
+      if (btn) {
+        btn.disabled = false;
+        btn.click();
+      }
+    });
+
+    document.getElementById('btnVolverDeConfirmacion')?.addEventListener('click', () => {
+      step.style.display = 'none';
+      if (pasoExistente) pasoExistente.style.display = 'block';
+      const checkPermiso = document.getElementById('inscPermisoCheck');
+      if (checkPermiso) checkPermiso.checked = false;
+      window._inscPermisoAceptado = false;
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 5: Hook al verificar código
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'btnVerificarCodigo') {
+      // Múltiples delays porque la verificación es async (consulta Supabase)
+      setTimeout(aplicarPermisoSiCorresponde, 600);
+      setTimeout(aplicarPermisoSiCorresponde, 1200);
+      setTimeout(aplicarPermisoSiCorresponde, 2000);
+    }
+  }, true);
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 6: Bypass de validaciones en matricularHandler
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('click', function (e) {
+    if (!e.target || e.target.id !== 'btnMatricularExistente') return;
+    if (!window._inscPermisoAceptado) return;
+
+    if (!window._inscSunatRecibo) {
+      window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
+    }
+    window._inscReciboDescargado = true;
+
+    const sunatCheck = document.getElementById('inscReciboCheck');
+    if (sunatCheck) sunatCheck.checked = true;
+  }, true);
+
+  // ══════════════════════════════════════════════════════════
+  // PARTE 7: Reset al cerrar el modal
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'btnCerrarInscripcion') {
+      window._inscPermisoAceptado = false;
+      const box = document.getElementById('inscPermisoBox');
+      if (box) box.remove();
+    }
+  }, true);
+
+  console.log('✅ Permiso Extemporáneo: dropdown + flujo de inscripción cargados.');
+})();
+</script>
 </body>
 </html>
