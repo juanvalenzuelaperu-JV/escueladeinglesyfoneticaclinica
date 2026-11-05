@@ -15036,14 +15036,7 @@ console.log('Planilla lista y visible');
       window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
       window._inscReciboDescargado = true;
 
-      // 6. Mostrar el botón de "Matricularme" directamente
-      const btnMat = document.getElementById('btnMatricularExistente');
-      if (btnMat) {
-        btnMat.style.display = 'block';
-        btnMat.disabled = false;
-        btnMat.textContent = '✅ Matricularme (Permiso Extemporáneo)';
-      }
-      
+        
       const hint = document.getElementById('inscReciboHint');
       if (hint) hint.style.display = 'none';
     }
