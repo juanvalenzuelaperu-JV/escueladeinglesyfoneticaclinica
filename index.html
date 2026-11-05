@@ -57,11 +57,30 @@
   .logo small { display: block; font-size: .68rem; font-weight: 600; color: var(--acento); letter-spacing: .04em; text-transform: uppercase; }
   .logo-icono { width: 42px; height: 42px; flex-shrink: 0; background: linear-gradient(135deg, var(--azul-medio), var(--azul)); color: #fff; border-radius: 10px; display: grid; place-items: center; font-size: 1.05rem; font-weight: 800; overflow: hidden; }
   .logo-icono img { width: 100%; height: 100%; object-fit: contain; }
-  .nav-links { display: flex; align-items: center; gap: 24px; }
+   .nav-links { display: flex; align-items: center; gap: 22px; }
+  .nav-links li:last-child { margin-left: 8px; }
   .nav-links a { font-weight: 500; font-size: .92rem; color: #374151; transition: color .2s; }
-  .nav-links a:hover { color: var(--azul-medio); }
-  .nav-links .destacado { background: var(--azul); color: #fff; padding: 9px 18px; border-radius: 50px; font-weight: 700; font-size: .85rem; }
-  .nav-links .destacado:hover { background: var(--azul-medio); }
+  .nav-links a:not(.destacado):hover { color: var(--azul-medio); }
+
+  /* CTA rojo "Matricularme" — estilo botón moderno */
+  .nav-links .destacado {
+    background: #E63946;
+    color: #fff;
+    padding: 12px 26px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: .92rem;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 14px rgba(230, 57, 70, .35);
+    transition: all .2s ease;
+  }
+  .nav-links .destacado:hover {
+    background: #C42F3D;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(230, 57, 70, .5);
+    color: #fff;
+  }
   .menu-btn { display: none; background: none; border: none; font-size: 1.6rem; cursor: pointer; color: var(--azul); line-height: 1; }
 
   .hero { background: linear-gradient(135deg, #004A8F 0%, #0066CC 55%, #3388DD 100%); color: #fff; padding: 90px 0 100px; position: relative; overflow: hidden; }
@@ -523,6 +542,13 @@
     .nav-links { position: absolute; top: 72px; left: 0; right: 0; background: #fff; flex-direction: column; align-items: stretch; gap: 0; padding: 10px 20px 20px; border-bottom: 1px solid var(--borde); box-shadow: 0 12px 24px rgba(15,23,42,.08); display: none; }
     .nav-links.abierto { display: flex; }
     .nav-links a { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+     .nav-links .destacado {
+      margin: 10px 0 0 0;
+      text-align: center;
+      border-bottom: none;
+      padding: 14px 20px;
+    }
+    .nav-links li:last-child { margin-left: 0; }
     .nav-links a:last-child { border-bottom: none; }
     .hero { padding: 64px 0 70px; }
     .hero-stats { gap: 28px; margin-top: 44px; }
@@ -613,12 +639,12 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         <span class="logo-icono" id="logoIconoHeader">JV</span>
         <span>Escuela de Inglés y Fonética Clínica<small>Jotavalenzuela</small></span>
       </a>
-      <ul class="nav-links" id="navLinks">
+          <ul class="nav-links" id="navLinks">
+        <li><a href="#cursos">Programas</a></li>
         <li><a href="#fundador">Fundador</a></li>
         <li><a href="#galeria">Galería</a></li>
-        <li><a href="#cursos">Programas</a></li>
-        <li><a href="#horarios">Horarios</a></li>
-        <li><a href="#portal" class="destacado">Portales</a></li>
+        <li><a href="#portal">Portales</a></li>
+        <li><a href="#horarios" class="destacado">Matricularme</a></li>
       </ul>
       <button class="menu-btn" id="menuBtn" aria-label="Abrir menú">☰</button>
     </nav>
