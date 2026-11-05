@@ -14931,37 +14931,12 @@ console.log('Planilla lista y visible');
 })();
 </script>
 <!-- ============================================================
-     PERMISO EXTEMPORÁNEO v4 — Ocultamiento forzado por CSS
+     PERMISO EXTEMPORÁNEO v5 — Eliminación directa del DOM
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log('🔧 Permiso Extemporáneo v4 iniciando...');
-
-  // ══════════════════════════════════════════════════════════
-  // 0) CSS FORZADO PARA OCULTAR EL BLOQUE SUNAT
-  // ══════════════════════════════════════════════════════════
-  if (!document.getElementById('stylesPermisoExtemporaneo')) {
-    const style = document.createElement('style');
-    style.id = 'stylesPermisoExtemporaneo';
-    style.innerHTML = `
-      /* Cuando el modal tiene la clase de permiso, ocultamos el SUNAT de forma agresiva */
-      .modo-permiso-extemporaneo #inscReciboBox > div:first-child {
-        display: none !important;
-      }
-      .modo-permiso-extemporaneo #btnMatricularExistente {
-        display: none !important;
-      }
-      .modo-permiso-extemporaneo #inscReciboHint {
-        display: none !important;
-      }
-      /* Nos aseguramos de que nuestro bloque de permiso sí se vea */
-      .modo-permiso-extemporaneo #inscPermisoBox {
-        display: block !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
+  console.log('🔧 Permiso Extemporáneo v5 iniciando...');
 
   // ══════════════════════════════════════════════════════════
   // 1) OPCIÓN EN DROPDOWN DE COBROS
@@ -14987,7 +14962,6 @@ console.log('Planilla lista y visible');
       if (currentState === 'permiso_extemporaneo') sel.value = 'permiso_extemporaneo';
     });
   }
-  
   const cobroTbody = document.getElementById('cobroTbody');
   if (cobroTbody) {
     new MutationObserver(() => setTimeout(addOptionToCobroDropdowns, 50))
@@ -15011,7 +14985,7 @@ console.log('Planilla lista y visible');
   }
 
   // ══════════════════════════════════════════════════════════
-  // 3) APLICAR PERMISO → Inyectar caja y activar CSS
+  // 3) APLICAR PERMISO → Borrar DOM del SUNAT e inyectar caja
   // ══════════════════════════════════════════════════════════
   function aplicarPermisoSiCorresponde() {
     const code = window._alumnoVerificado;
@@ -15030,11 +15004,23 @@ console.log('Planilla lista y visible');
     if (!reciboBox) return;
     reciboBox.style.display = 'block';
 
-    // 🔥 LA MAGIA: Activar la clase CSS en el modal principal
-    const modal = document.getElementById('modalInscripcion');
-    if (modal) modal.classList.add('modo-permiso-extemporaneo');
+    // 🔥 LA SOLUCIÓN DEFINITIVA: Borrar del DOM cualquier rastro de SUNAT
+    // Buscamos el div que contiene la caja gris con el texto de SUNAT y lo eliminamos.
+    const divs = Array.from(reciboBox.children);
+    divs.forEach(div => {
+      if (div.tagName === 'DIV' && (div.textContent.includes('Tu recibo de pago') || div.innerHTML.includes('inscReciboCheckLabel'))) {
+        div.remove(); // Eliminado físicamente
+      }
+    });
 
-    // Insertar la caja de "Recibo no disponible" (Permiso)
+    // Ocultar botón original (pero mantenerlo en el DOM, lo necesitamos al final)
+    const btnMat = document.getElementById('btnMatricularExistente');
+    if (btnMat) btnMat.style.display = 'none';
+
+    const hint = document.getElementById('inscReciboHint');
+    if (hint) hint.style.display = 'none';
+
+    // Insertar la caja de Permiso
     const box = document.createElement('div');
     box.id = 'inscPermisoBox';
     box.style.cssText = 'background:#fef3c7;border:2px solid #fcd34d;border-radius:14px;padding:22px 20px;margin-bottom:14px;text-align:center;';
@@ -15054,9 +15040,20 @@ console.log('Planilla lista y visible');
         Al continuar, te comprometes a regularizar tu pago a la brevedad.
       </p>
     `;
+    
+    // Insertamos nuestra caja al principio
     reciboBox.insertBefore(box, reciboBox.firstChild);
 
-    // Bind del botón
+    // 🔥 RESTAURAR CHECKBOX OCULTO: El script original (v3) busca este ID al final.
+    // Si no lo encuentra, puede fallar. Lo inyectamos oculto para que todo fluya.
+    const checkHidden = document.createElement('input');
+    checkHidden.type = 'checkbox';
+    checkHidden.id = 'inscReciboCheck';
+    checkHidden.style.display = 'none';
+    checkHidden.checked = true;
+    box.appendChild(checkHidden);
+
+    // Bind del botón verde
     document.getElementById('btnAceptarPermisoExt').addEventListener('click', function () {
       window._inscPermisoAceptado = true;
       mostrarTodoListo();
@@ -15103,8 +15100,11 @@ console.log('Planilla lista y visible');
       if (!window._inscSunatRecibo) {
         window._inscSunatRecibo = { tipo: 'permiso_extemporaneo', name: 'Permiso Extemporáneo' };
       }
+      
+      // Forzamos el check oculto (que creamos antes)
       const sunatCheck = document.getElementById('inscReciboCheck');
       if (sunatCheck) sunatCheck.checked = true;
+      
       const btn = document.getElementById('btnMatricularExistente');
       if (btn) { btn.disabled = false; btn.click(); }
     });
@@ -15117,12 +15117,11 @@ console.log('Planilla lista y visible');
   }
 
   // ══════════════════════════════════════════════════════════
-  // 5) HOOKS Y LIMPIEZA
+  // 5) HOOKS
   // ══════════════════════════════════════════════════════════
   document.addEventListener('click', function (e) {
     if (e.target && e.target.id === 'btnVerificarCodigo') {
-      // Limpiamos cualquier clase previa si el usuario verifica otro código
-      document.getElementById('modalInscripcion')?.classList.remove('modo-permiso-extemporaneo');
+      // Limpiar rastro si verifica otro código
       const oldBox = document.getElementById('inscPermisoBox');
       if (oldBox) oldBox.remove();
       
@@ -15146,13 +15145,12 @@ console.log('Planilla lista y visible');
   document.addEventListener('click', function (e) {
     if (e.target && e.target.id === 'btnCerrarInscripcion') {
       window._inscPermisoAceptado = false;
-      document.getElementById('modalInscripcion')?.classList.remove('modo-permiso-extemporaneo');
       const box = document.getElementById('inscPermisoBox');
       if (box) box.remove();
     }
   }, true);
 
-  console.log('✅ Permiso Extemporáneo v4: CSS forzado cargado.');
+  console.log('✅ Permiso Extemporáneo v5: DOM SUNAT eliminado correctamente.');
 })();
 </script>
 </body>
