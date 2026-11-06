@@ -15309,5 +15309,83 @@ console.log('Planilla lista y visible');
   });
 })();
 </script>
+ <!-- ============================================================
+     FIX DEFINITIVO: Forzar descarga de libros como PDF
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Fix definitivo de descarga de libros iniciando...');
+
+  // Función para limpiar el nombre del archivo
+  function obtenerNombreLimpio(nombreOriginal, url) {
+    // 1. Si el nombre ya termina en .pdf o .docx, lo usamos
+    if (nombreOriginal && nombreOriginal.toLowerCase().match(/\.(pdf|doc|docx|ppt|pptx)$/)) {
+      return nombreOriginal;
+    }
+
+    // 2. Si no, intentamos limpiar el nombre original (quitando los números del inicio)
+    if (nombreOriginal) {
+      // Elimina prefijos como "1793987154673_y5j5qk_"
+      let limpio = nombreOriginal.replace(/^\d+_[a-zA-Z0-9]+_/, '');
+      // Si aun así no tiene extensión, le ponemos .pdf
+      if (!limpio.includes('.')) limpio += '.pdf';
+      return limpio;
+    }
+
+    // 3. Si todo falla, le ponemos un nombre genérico
+    return 'Libro_' + Date.now() + '.pdf';
+  }
+
+  document.addEventListener('click', async function (e) {
+    // Buscar los botones de descarga en las tarjetas de libros
+    const btn = e.target.closest('a.btn-verde');
+    
+    // Si no es un botón de descarga, ignorar
+    if (!btn || !btn.textContent.includes('Descargar')) return;
+
+    e.preventDefault(); 
+    e.stopPropagation();
+
+    const url = btn.getAttribute('href');
+    if (!url || url === '#') return;
+
+    // Obtener el nombre del atributo download o del texto del botón
+    const nombreAtributo = btn.getAttribute('download');
+    const filename = obtenerNombreLimpio(nombreAtributo, url);
+
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Descargando...';
+    btn.style.opacity = '0.7';
+
+    try {
+      // Descargar el archivo real
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Error de red');
+      const blob = await response.blob();
+
+      // Crear enlace de descarga
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename; // Forzamos el nombre con .pdf
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(blobUrl);
+
+    } catch (error) {
+      console.error('Error descargando:', error);
+      // Si el servidor bloquea la descarga directa por seguridad (CORS), 
+      // abrimos en una nueva pestaña donde el usuario podrá guardarlo
+      window.open(url, '_blank');
+    } finally {
+      btn.innerHTML = textoOriginal;
+      btn.style.opacity = '1';
+    }
+  });
+})();
+</script>
 </body>
 </html>
