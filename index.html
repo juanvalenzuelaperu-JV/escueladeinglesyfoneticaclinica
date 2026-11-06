@@ -15387,5 +15387,35 @@ console.log('Planilla lista y visible');
   });
 })();
 </script>
+<!-- ============================================================
+     LÍMITE DE SUBIDA A 10 MB (Guardaespaldas Global)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  const MAX_SIZE_MB = 10;
+  const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+  // Escuchar cuando el usuario selecciona un archivo en cualquier input de tipo "file"
+  document.addEventListener('change', function (e) {
+    if (!e.target || e.target.type !== 'file') return;
+    
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Si el archivo pesa más de 10 MB, bloqueamos la subida
+    if (file.size > MAX_BYTES) {
+      const pesoReal = (file.size / 1024 / 1024).toFixed(1);
+      alert(`⚠️ El archivo pesa ${pesoReal} MB.\nEl límite permitido es de ${MAX_SIZE_MB} MB para no perder calidad ni saturar el servidor.\n\nPor favor, comprime el archivo o elige uno más pequeño.`);
+      
+      // Limpiamos el input para que el archivo no se suba
+      e.target.value = ''; 
+      e.stopPropagation();
+    }
+  }, true); // El 'true' hace que se ejecute antes que tu código original
+
+  console.log('✅ Guardaespaldas de 10 MB activado para todas las subidas.');
+})();
+</script>
 </body>
 </html>
