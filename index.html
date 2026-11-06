@@ -1209,7 +1209,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad docente</button>
             <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
             <span class="tab-group-label">Evaluación</span>
-            <button class="dash-tab" data-admtab="asignaciones">📋 Gestor de asignaciones</button>
             <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
             <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos</button>
            <button class="dash-tab" data-admtab="historial_rc">📄 Historial de reportes de notas</button>
@@ -1550,44 +1549,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <div id="admCamposLista"></div>
           </div>
 
-          
-          <div class="panel" id="adm-panel-asignaciones">
-            <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Gestor de asignaciones</h4>
-            <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Programa las evaluaciones del ciclo. Los docentes solo podrán calificar; no crear nuevas desde su portal.</p>
-            <div class="tform admin-form">
-              <h4>🧩 Crear criterio nuevo</h4>
-              <div class="tform-grid">
-                <div class="campo"><label>Nombre del criterio nuevo</label><input type="text" id="admNuevoCriterioNombre" placeholder="Ej: Project Work"></div>
-                <div class="campo" style="display:flex;align-items:flex-end;"><button type="button" class="btn btn-azul btn-mini" id="btnCrearCriterio">➕ Crear criterio</button></div>
-              </div>
-            </div>
-            <div class="tform admin-form">
-              <h4>➕ Nueva evaluación</h4>
-              <form id="admNewAsgForm" class="tform-grid">
-                <div class="campo">
-                  <label>Criterio <span class="req">*</span></label>
-                  <select id="admAsgCriterio" required>
-                    <option value="">Selecciona...</option>
-                    <option value="class_participation">Class Participation</option>
-                    <option value="writing">Writing</option>
-                    <option value="online_homework">Online Homework</option>
-                    <option value="speaking">Speaking</option>
-                    <option value="readers">Readers</option>
-                    <option value="intl_exam">Internacional examination</option>
-                    <option value="final_exam">Final Exam</option>
-                  </select>
-                </div>
-                <div class="campo"><label>Fecha inicio <span class="req">*</span></label><input type="date" id="admAsgInicio" required></div>
-                <div class="campo"><label>Fecha fin / caducidad <span class="req">*</span></label><input type="date" id="admAsgFin" required></div>
-                <div class="campo"><label>Grupo (opcional)</label><select id="admAsgGrupo"><option value="">Todos los grupos</option></select></div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">Crear evaluación</button></div></div>
-              </form>
-            </div>
-            <h4 style="color:var(--slate);margin:18px 0 12px;font-size:1rem;font-weight:800;">Evaluaciones programadas</h4>
-            <div id="admAsignacionesLista"></div>
-          </div>
-
-          
+                  
           <div class="panel" id="adm-panel-historial_cursos">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📚 Historial de cursos dictados</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Registro de cada curso cerrado por los docentes, con la descripción entregada a Coordinación Académica.</p>
