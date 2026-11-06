@@ -15247,5 +15247,67 @@ console.log('Planilla lista y visible');
   console.log('✅ "Mis Libros" ahora solo muestra libros del ciclo actual y evita vacíos.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: Forzar descarga correcta de libros (PDF, DOCX, etc.)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Fix de descarga de libros iniciando...');
+
+  // Escuchar los clics en los botones de descarga
+  document.addEventListener('click', async function (e) {
+    const btn = e.target.closest('a.btn-verde');
+    
+    // Si no es un botón de descarga o no tiene el texto "Descargar", ignorar
+    if (!btn || !btn.textContent.includes('Descargar')) return;
+
+    e.preventDefault(); // Detener el comportamiento por defecto del navegador
+    e.stopPropagation();
+
+    const url = btn.getAttribute('href');
+    let filename = btn.getAttribute('download') || 'libro.pdf';
+
+    // Validar que el nombre termine en .pdf o tenga alguna extensión
+    if (!filename.includes('.')) {
+      filename += '.pdf';
+    }
+
+    // Guardar el texto original y mostrar estado de carga
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Descargando...';
+    btn.style.opacity = '0.7';
+
+    try {
+      // 1. Descargar el archivo como "Blob" (objeto binario)
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Error al descargar');
+      
+      const blob = await response.blob();
+
+      // 2. Crear un enlace temporal para forzar la descarga
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename; // Aquí forzamos el nombre y el .pdf
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // 3. Limpiar la memoria
+      window.URL.revokeObjectURL(blobUrl);
+
+    } catch (error) {
+      console.error('Error descargando el libro:', error);
+      // Si falla (por temas de CORS), abrimos en una pestaña nueva
+      window.open(url, '_blank');
+    } finally {
+      // Restaurar el botón
+      btn.innerHTML = textoOriginal;
+      btn.style.opacity = '1';
+    }
+  });
+})();
+</script>
 </body>
 </html>
