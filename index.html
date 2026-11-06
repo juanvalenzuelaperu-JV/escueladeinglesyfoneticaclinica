@@ -15110,5 +15110,34 @@ console.log('Planilla lista y visible');
   console.log('✅ Fix de vinculación de menores cargado.');
 })();
 </script>
+ <!-- ============================================================
+     OCULTAR TAB DE EXÁMENES (Sin romper el HTML)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Ocultando tab de Exámenes de forma segura...');
+
+  // 1. Ocultar el botón del menú
+  const btnExamenes = document.querySelector('[data-admtab="examenes"]');
+  if (btnExamenes) {
+    btnExamenes.style.display = 'none';
+  }
+
+  // 2. Ocultar el panel de contenido
+  const panelExamenes = document.getElementById('adm-panel-examenes');
+  if (panelExamenes) {
+    panelExamenes.style.display = 'none';
+  }
+
+  // 3. (Opcional) Evitar que los exámenes viejos aparezcan en otras vistas
+  // Si quieres que los exámenes ni siquiera se cuenten en el resumen:
+  if (window.state && window.state.exams) {
+      window.state.exams = []; 
+  }
+  
+  console.log('✅ Tab de Exámenes oculto con éxito.');
+})();
+</script>
 </body>
 </html>
