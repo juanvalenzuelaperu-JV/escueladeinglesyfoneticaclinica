@@ -15483,5 +15483,152 @@ console.log('Planilla lista y visible');
 
 })();
 </script>
+<!-- ============================================================
+     UI: Panel de Eventos Flotante a la Derecha (Alumnos y Docentes)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Panel de eventos laterales iniciando...');
+
+  // Inyectar estilos CSS para el panel flotante
+  if (!document.getElementById('stylesPanelLateral')) {
+    const style = document.createElement('style');
+    style.id = 'stylesPanelLateral';
+    style.innerHTML = `
+      /* Estilo para las ventanas flotantes de eventos */
+      .panel-eventos-flotante {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        width: 340px;
+        max-height: calc(100vh - 120px);
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.15);
+        z-index: 9999;
+        overflow-y: auto;
+        border: 1px solid var(--borde);
+        animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      
+      @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+
+      /* En móviles, que ocupe casi toda la pantalla */
+      @media (max-width: 768px) {
+        .panel-eventos-flotante {
+          top: 50%;
+          left: 50%;
+          right: auto;
+          transform: translate(-50%, -50%);
+          width: 90%;
+          max-height: 80vh;
+          animation: fadeInModal 0.3s ease;
+        }
+        @keyframes fadeInModal {
+          from { opacity: 0; transform: translate(-50%, -45%); }
+          to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+      }
+
+      /* Fondo oscuro semi-transparente para móviles */
+      .panel-overlay-movil {
+        display: none;
+      }
+      @media (max-width: 768px) {
+        .panel-overlay-movil {
+          display: block;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.5);
+          backdrop-filter: blur(2px);
+          z-index: 9998;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Función que mueve el panel al lado derecho
+  function moverPanelALaDerecha(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    // Si ya está flotando, lo restauramos al flujo normal si es necesario
+    if (panel.classList.contains('panel-eventos-flotante')) return;
+
+    // Aplicar clases CSS para flotarlo
+    panel.classList.add('panel-eventos-flotante');
+
+    // Agregar un botón "X" más grande si no lo tiene
+    const titulo = panel.querySelector('h5');
+    if (titulo && !panel.querySelector('.btn-cerrar-flotante')) {
+      const btnCerrar = document.createElement('button');
+      btnCerrar.className = 'btn-cerrar-flotante';
+      btnCerrar.innerHTML = '✕';
+      btnCerrar.style.cssText = 'position:absolute; top:12px; right:12px; background:#f1f5f9; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; display:grid; place-items:center; font-weight:bold; color:#64748b; z-index:10;';
+      
+      // Al hacer clic, ocultamos el panel
+      btnCerrar.onclick = () => {
+        panel.style.display = 'none';
+        const overlay = document.querySelector('.panel-overlay-movil');
+        if (overlay) overlay.remove();
+      };
+      
+      panel.appendChild(btnCerrar);
+      titulo.style.paddingRight = '30px'; // Evitar que el título choque con la X
+    }
+
+    // En móviles, añadir el fondo oscuro
+    if (window.innerWidth <= 768) {
+      const overlay = document.createElement('div');
+      overlay.className = 'panel-overlay-movil';
+      overlay.onclick = () => {
+        panel.style.display = 'none';
+        overlay.remove();
+      };
+      document.body.appendChild(overlay);
+    }
+  }
+
+  // ─── 1. Interceptar el calendario del ALUMNO ───
+  const origOpenStudentCalDay = window.openStudentCalDay;
+  if (typeof origOpenStudentCalDay === 'function') {
+    window.openStudentCalDay = function(key) {
+      // Ejecutamos la función original (que llena los datos)
+      origOpenStudentCalDay(key);
+      // Movemos el panel a la derecha
+      moverPanelALaDerecha('alumnoCalDiaPanel');
+    };
+  }
+
+  // ─── 2. Interceptar el calendario del DOCENTE ───
+  const origOpenTeacherCalDay = window.openTeacherCalDay;
+  if (typeof origOpenTeacherCalDay === 'function') {
+    window.openTeacherCalDay = function(key) {
+      origOpenTeacherCalDay(key);
+      moverPanelALaDerecha('dCalDiaPanel');
+    };
+  }
+
+  // ─── 3. Limpieza cuando se cierra el calendario o se cambia de pestaña ───
+  document.querySelectorAll('#dashboardAlumno .dash-tab, #dashboardDocente .dash-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Ocultar los paneles si estaban abiertos
+      const p1 = document.getElementById('alumnoCalDiaPanel');
+      const p2 = document.getElementById('dCalDiaPanel');
+      if (p1) p1.style.display = 'none';
+      if (p2) p2.style.display = 'none';
+      // Limpiar overlay
+      document.querySelectorAll('.panel-overlay-movil').forEach(el => el.remove());
+    });
+  });
+
+  console.log('✅ Panel de eventos ahora aparece a la derecha (estilo Google Calendar).');
+})();
+</script>
 </body>
 </html>
