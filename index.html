@@ -1209,7 +1209,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <button class="dash-tab" data-admtab="disp_docentes">🗓️ Disponibilidad docente</button>
             <button class="dash-tab" data-admtab="estados_grupos">📁 Estados de grupos</button>
             <span class="tab-group-label">Evaluación</span>
-            <button class="dash-tab" data-admtab="examenes">📝 Exámenes</button>
             <button class="dash-tab" data-admtab="historial_cursos">📚 Historial de cursos</button>
            <button class="dash-tab" data-admtab="historial_rc">📄 Historial de reportes de notas</button>
             <span class="tab-group-label">Cierre</span>
@@ -1407,30 +1406,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <div id="admCoursesList" class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"></div>
           </div>
 
-          <div class="panel" id="adm-panel-examenes">
-            <div class="tform admin-form">
-              <h4>➕ Crear nuevo examen</h4>
-              <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
-              <form id="admNewExamForm" class="tform-grid">
-                <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
-                <div class="campo"><label>Grupo destino <span class="req">*</span></label><select id="admExamGroup" required><option value="">Selecciona grupo</option></select></div>
-                <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
-                <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
-                <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
-                <div class="campo completo">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
-                    <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
-                    <button type="button" class="btn btn-mini btn-azul" id="admBtnAddPregunta">+ Agregar pregunta</button>
-                  </div>
-                  <div id="admExamPreguntas"></div>
-                </div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
-              </form>
-              <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
-            <div id="admExamsLista"></div>
-          </div>
 
           <div class="panel" id="adm-panel-asistencia">
             <div class="tform admin-form">
