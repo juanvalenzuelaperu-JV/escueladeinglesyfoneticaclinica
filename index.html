@@ -15139,5 +15139,113 @@ console.log('Planilla lista y visible');
   console.log('✅ Tab de Exámenes oculto con éxito.');
 })();
 </script>
+          <!-- ============================================================
+     FIX: Mis Libros (Solo ciclo actual y solo libros subidos)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Módulo "Mis Libros" optimizado iniciando...');
+
+  // ─── Helper: Obtener IDs de los grupos del ciclo actual ───
+  function getGruposCicloActual(studentCode) {
+    if (!studentCode) return [];
+    const d = new Date();
+    const anioActual = String(d.getFullYear());
+    const mesActual = String(d.getMonth() + 1).padStart(2, '0');
+
+    const todosLosGrupos = typeof getStudentGroups === 'function' ? getStudentGroups(studentCode) : [];
+    
+    return todosLosGrupos.filter(g => {
+      // Si el grupo no tiene fecha, asumimos que es actual
+      if (!g.anio && !g.mes) return true;
+
+      const gAnio = String(g.anio || '');
+      const gMes = String(g.mes || '').padStart(2, '0');
+
+      // Validar que coincida con el ciclo en curso
+      return (gAnio === anioActual || gAnio === '') && 
+             (gMes === mesActual || gMes === '');
+    });
+  }
+
+  // ─── Sobrescribir la función principal ───
+  window.renderStudentLibros = function () {
+    const cont = document.getElementById('studentLibrosLista');
+    const tab = document.querySelector('[data-atab="libros"]');
+    if (!cont || !currentStudentCode) return;
+
+    // 1. Obtener solo los grupos del ciclo actual
+    const gruposActuales = getGruposCicloActual(currentStudentCode);
+
+    // 2. Validar estado de la pestaña (si no está en ningún grupo, bloquear)
+    const matriculado = gruposActuales.length > 0;
+    if (tab) {
+      tab.disabled = !matriculado;
+      tab.style.opacity = matriculado ? '1' : '.45';
+      tab.style.cursor = matriculado ? 'pointer' : 'not-allowed';
+      tab.title = matriculado ? '' : 'Debes estar matriculado en un grupo del ciclo actual para ver tus libros.';
+    }
+
+    if (!matriculado) {
+      cont.innerHTML = '<div class="empty-state">🔒 Aún no estás matriculado en el ciclo actual. Los libros aparecerán cuando te asignen a un grupo.</div>';
+      return;
+    }
+
+    // 3. Construir la lista de libros
+    let html = '';
+    let librosEncontrados = 0;
+
+    gruposActuales.forEach(g => {
+      const libros = typeof getLibrosMes === 'function' ? getLibrosMes(g.id) : {};
+      const tipos = typeof LIBROS_TIPOS !== 'undefined' ? LIBROS_TIPOS : [];
+      
+      // Verificar si este grupo tiene al menos un libro cargado
+      const tieneLibros = tipos.some(t => libros[t.id] && libros[t.id].url);
+
+      if (tieneLibros) {
+        librosEncontrados++;
+        html += `<h5 style="color:var(--azul);margin:20px 0 10px;font-size:1rem;">📚 ${g.nombre || g.programa || 'Grupo'}</h5>`;
+
+        tipos.forEach(t => {
+          const libro = libros[t.id];
+          // FILTRO CLAVE: Solo mostrar si el libro existe Y tiene URL
+          if (!libro || !libro.url) return; 
+
+          html += `
+            <div class="libro-card">
+              <div class="libro-info">
+                <span style="font-size:1.2rem; margin-right:6px;">${t.emoji}</span> 
+                <strong>${t.nombre}</strong>: ${libro.nombre}
+              </div>
+              <div class="libro-actions">
+                <a href="${libro.url}" target="_blank" rel="noopener" class="btn btn-mini btn-azul">👁️ Vista previa</a>
+                <a href="${libro.url}" download="${libro.nombre}" class="btn btn-mini btn-verde">⬇️ Descargar</a>
+                <button type="button" class="btn btn-mini btn-slate" onclick="window.open('${libro.url}','_blank')">🖨️ Imprimir</button>
+              </div>
+            </div>`;
+        });
+      }
+    });
+
+    // 4. Resultado final
+    if (librosEncontrados === 0) {
+      cont.innerHTML = '<div class="empty-state" style="padding:30px; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">📚 Aún no hay libros cargados para tus grupos de este ciclo. Vuelve a revisar pronto.</div>';
+    } else {
+      cont.innerHTML = html;
+    }
+  };
+
+  // Si el alumno ya está en la pestaña de libros, forzar el re-render
+  setTimeout(() => {
+    const panel = document.getElementById('panel-libros');
+    if (panel && panel.classList.contains('activo')) {
+      window.renderStudentLibros();
+    }
+  }, 500);
+
+  console.log('✅ "Mis Libros" ahora solo muestra libros del ciclo actual y evita vacíos.');
+})();
+</script>
 </body>
 </html>
