@@ -15417,5 +15417,71 @@ console.log('Planilla lista y visible');
   console.log('✅ Guardaespaldas de 10 MB activado para todas las subidas.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: Permitir subir archivos de hasta 10 MB
+     Sobrescribe la validación antigua de 5 MB
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Aumentando límite de subida a 10 MB...');
+
+  // 1. Cambiamos la constante global que usa el sistema (si existe)
+  // Muchos códigos usan MAX_AUDIO_SIZE o MAX_IMG_SIZE
+  if (typeof MAX_AUDIO_SIZE !== 'undefined') {
+    window.MAX_AUDIO_SIZE = 10 * 1024 * 1024;
+  }
+  if (typeof MAX_IMG_SIZE !== 'undefined') {
+    window.MAX_IMG_SIZE = 10 * 1024 * 1024;
+  }
+
+  // 2. Interceptar la función que sube los libros (procesarArchivo)
+  const originalProcesarArchivo = window.procesarArchivo;
+  
+  if (typeof originalProcesarArchivo === 'function') {
+    window.procesarArchivo = async function (file, carpeta = "general") {
+      // Validamos nosotros mismos con un límite de 10 MB
+      const MAX_10_MB = 10 * 1024 * 1024;
+      
+      if (file.size > MAX_10_MB) {
+        throw new Error(`Archivo demasiado grande (${(file.size/1024/1024).toFixed(1)} MB). Máximo permitido: 10 MB.`);
+      }
+
+      // Intentar subir a Supabase directamente
+      try {
+        const ts = Date.now(); 
+        const rnd = Math.random().toString(36).substring(2, 8);
+        const limpio = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").substring(0, 40);
+        const path = `${carpeta}/${ts}_${rnd}_${limpio}`;
+        
+        const { error } = await supabase.storage.from('evidencias').upload(path, file, { cacheControl: '3600', upsert: false });
+        if (error) throw error;
+        
+        const { data } = supabase.storage.from('evidencias').getPublicUrl(path);
+        return data.publicUrl;
+      } catch (e) {
+        console.warn("Storage falló, usando base64 como fallback:", e);
+        // Si falla Supabase (por CORS o red), lo convertimos a Base64 para no perder el archivo
+        return await fileToBase64(file);
+      }
+    };
+    console.log('✅ Función procesarArchivo actualizada a 10 MB.');
+  }
+
+  // 3. Interceptar también la función de imágenes (por si acaso)
+  const originalProcesarImagen = window.procesarImagen;
+  if (typeof originalProcesarImagen === 'function') {
+    window.procesarImagen = async function (file, carpeta = "general") {
+      const MAX_10_MB = 10 * 1024 * 1024;
+      if (file.size > MAX_10_MB) {
+        throw new Error(`Archivo demasiado grande (${(file.size/1024/1024).toFixed(1)} MB). Máximo permitido: 10 MB.`);
+      }
+      // Llamamos a la función original (que ya tiene el código para subir a Supabase)
+      return await originalProcesarImagen.call(this, file, carpeta);
+    };
+  }
+
+})();
+</script>
 </body>
 </html>
