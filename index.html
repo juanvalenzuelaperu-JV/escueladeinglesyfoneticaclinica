@@ -1705,8 +1705,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           </div>
           </div>
 
-          <!-- REPORTE DEL DÍA -->
-                   <!-- CALENDARIZACIÓN DE CLASES -->
+                 <!-- CALENDARIZACIÓN DE CLASES -->
           <div class="panel" id="adm-panel-calendarizacion_clases">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📅 Calendarización de clases</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">
@@ -1740,13 +1739,14 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             </div>
 
             <div id="ccGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
-
             <div id="ccResumenMes"></div>
           </div>
-          <!-- FIN CALENDARIZACIÓN DE CLASES -->
+
+          <!-- REPORTE DEL DÍA -->
           <div class="panel" id="adm-panel-reporte_dia">
             <h4 style="color:var(--slate);margin-bottom:10px;font-size:1rem;font-weight:800;">📋 Reporte del día</h4>
             <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Monitorea hasta medianoche las tareas del día: asistencia guardada por docentes, registros de notas y eventos calendarizados. Marca cumplido / no cumplido por grupo.</p>
+            
             <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px;">
               <div class="campo" style="margin:0;min-width:180px;"><label>Fecha del reporte</label><input type="date" id="reporteDiaFecha"></div>
               <div class="campo" style="margin:0;min-width:200px;"><label>Filtrar docente</label>
@@ -1756,24 +1756,27 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
               <button type="button" class="btn btn-azul btn-mini" id="btnReporteRefresh">🔄 Actualizar</button>
               <button type="button" class="btn btn-verde btn-mini" id="btnReporteExportar">⬇️ Exportar / PDF</button>
             </div>
+            
             <div class="resumen-grid" id="reporteDiaResumen" style="margin-bottom:20px;">
               <div class="resumen-card verde"><div class="et">Asistencias cumplidas</div><div class="val" id="repStatAsisOk">0</div></div>
               <div class="resumen-card amarillo"><div class="et">Asistencias pendientes</div><div class="val" id="repStatAsisPend">0</div></div>
               <div class="resumen-card morado"><div class="et">Registros de notas</div><div class="val" id="repStatNotas">0</div></div>
               <div class="resumen-card azul"><div class="et">Eventos del día</div><div class="val" id="repStatEventos">0</div></div>
             </div>
+            
             <div id="reporteDiaDeadline" class="aviso-tiempo-real" style="margin-bottom:16px;"></div>
+            
             <div class="dash-tabs sub-tabs" style="margin-bottom:16px;">
               <button type="button" class="dash-tab activo" data-rep-tab="asistencia">📅 Asistencia</button>
               <button type="button" class="dash-tab" data-rep-tab="notas">📊 Registro de notas</button>
               <button type="button" class="dash-tab" data-rep-tab="eventos">📌 Eventos calendarizados</button>
               <button type="button" class="dash-tab" data-rep-tab="detalle">🔍 Detalle expandido</button>
             </div>
+            
             <div id="reporteDiaLista"></div>
             <div id="reporteDiaDetalle" style="display:none;margin-top:16px;"></div>
           </div>
         </div>
-
         <!-- SUBPORTAL CONTABILIDAD Y FINANZAS -->
         <div class="panel" id="tal-panel-contabilidad">
           <div class="subportal-tabs">
