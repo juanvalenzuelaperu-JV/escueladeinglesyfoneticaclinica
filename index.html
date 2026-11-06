@@ -15065,5 +15065,81 @@ console.log('Planilla lista y visible');
   console.log('✅ Permiso Extemporáneo v6: Checkbox bloqueado y flujo adaptado.');
 })();
 </script>
+ <!-- ============================================================
+     FIX: Vincular menores de edad a los grupos desde el portal Padres
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Fix de vinculación de menores iniciando...');
+
+  // ─── 1. Interceptar la matrícula del padre (Captura temprana) ───
+  document.addEventListener('click', function(e) {
+    const btnMat = e.target.closest('#btnMatricularExistente');
+    if (!btnMat) return;
+
+    const code = window._alumnoVerificado;
+    const courseId = document.getElementById('inscCourseId')?.value;
+
+    if (code && courseId) {
+      const group = state.groups.find(g => g.id === courseId);
+      
+      if (group) {
+        if (!Array.isArray(group.studentCodes)) group.studentCodes = [];
+        
+        // Validar que el alumno realmente exista en el sistema
+        if (state.students[code]) {
+          // Si el alumno no está en el grupo, lo agregamos a la fuerza
+          if (!group.studentCodes.includes(code)) {
+            group.studentCodes.push(code);
+            
+            // Forzamos el guardado en Supabase y la actualización visual
+            if (typeof saveState === 'function') saveState();
+            
+            console.log('✅ Menor vinculado al grupo exitosamente:', code, '->', group.nombre);
+          }
+        } else {
+          console.warn('⚠️ El código del alumno no existe en el sistema:', code);
+        }
+      }
+    }
+  }, true); // El 'true' garantiza que esto se ejecute ANTES de que el sistema cierre el modal
+
+  // ─── 2. Corregir el selector de hijos del padre ───
+  document.addEventListener('click', function(e) {
+    // Buscar si el padre hizo clic en la tarjeta de un hijo
+    const btnHijo = e.target.closest('#inscHijosLista button');
+    if (!btnHijo) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Extraer el código exacto desde el HTML de la tarjeta (ej. "Código: JV2026")
+    const p = btnHijo.querySelector('p');
+    let actualCode = '';
+    
+    if (p) {
+      const text = p.textContent;
+      const match = text.match(/Código:\s*([^\s·]+)/);
+      if (match) actualCode = match[1].trim();
+    }
+
+    if (actualCode) {
+      // Ocultar ventana del padre y mostrar la del alumno
+      document.getElementById('inscPasoPadre').style.display = 'none';
+      document.getElementById('inscPasoExistente').style.display = 'block';
+      
+      const inputAlumno = document.getElementById('inscCodigoAlumno');
+      if (inputAlumno) inputAlumno.value = actualCode;
+      
+      // Disparar el botón de verificar para que cargue el estado académico y SUNAT del menor
+      const btnVer = document.getElementById('btnVerificarCodigo');
+      if (btnVer) btnVer.click();
+    }
+  }, true);
+
+  console.log('✅ Fix de vinculación de menores cargado.');
+})();
+</script>
 </body>
 </html>
