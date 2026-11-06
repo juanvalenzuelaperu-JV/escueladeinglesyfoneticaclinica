@@ -10033,13 +10033,14 @@ console.log('Planilla lista y visible');
         <span>${getGroupPeriodLabel(key)}</span>
         <span style="display:flex;align-items:center;gap:10px;font-size:.78rem;font-weight:600;color:var(--gris);">
           <span>${lista.length} grupo(s)</span>
-          <span data-chevron style="font-size:1rem;">▾</span>
+          <span data-chevron style="font-size:1rem;">▸</span>
         </span>`;
       cont.appendChild(header);
 
       // Contenedor de cards
       const box = document.createElement('div');
       box.id = boxId;
+     box.style.display = 'none';
       cont.appendChild(box);
 
       // Toggle del header
