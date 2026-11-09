@@ -616,6 +616,65 @@
     70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
     100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
   }
+ /* Contexto / lectura previa a la pregunta */
+.q-context-section {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.q-context-label {
+  display: block;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--slate);
+  margin-bottom: 6px;
+}
+.q-contexto {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: .9rem;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+.q-contexto:focus { outline: none; border-color: var(--azul-medio); }
+.q-context-img-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.q-context-img-row input[type="file"] { font-size: .82rem; flex: 1; min-width: 180px; }
+
+/* Vista del alumno: contexto arriba de la pregunta */
+.pregunta-contexto {
+  background: #eff6ff;
+  border-left: 4px solid var(--azul-medio);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.pregunta-contexto .contexto-texto {
+  font-size: .95rem;
+  color: var(--texto);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.pregunta-contexto .contexto-imagen {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-top: 10px;
+  border: 1px solid var(--borde);
+  background: #fff;
+}
 /* ===== SLIDER DE SECCIONES ===== */
 body { overflow-x: hidden; }
 .slide { display: none; min-height: calc(100vh - 72px); }
@@ -4113,12 +4172,36 @@ function iniciarExamen(examId) {
   document.getElementById("runnerTituloA").textContent = exam.nombre;
   document.getElementById("runnerProgresoA").textContent = exam.preguntas.length + " preguntas";
   const cont = document.getElementById("runnerPreguntasA"); cont.innerHTML = "";
+
+  // Helper para escapar texto (evita inyección)
+  const esc = (s) => String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
   exam.preguntas.forEach((p, i) => {
     const div = document.createElement("div"); div.className = "pregunta";
-    div.innerHTML = `<p class="enunciado"><span class="num">${i + 1}</span>${p.enunciado}</p>`;
+
+    // 🆕 Bloque de contexto (texto + imagen) antes del enunciado
+    let contextoHTML = "";
+    if (p.contexto || p.contextoImagen) {
+      contextoHTML = `<div class="pregunta-contexto">`;
+      if (p.contexto) {
+        contextoHTML += `<div class="contexto-texto">${esc(p.contexto).replace(/\n/g, "<br>")}</div>`;
+      }
+      if (p.contextoImagen) {
+        contextoHTML += `<img src="${p.contextoImagen}" alt="Contexto" class="contexto-imagen" loading="lazy">`;
+      }
+      contextoHTML += `</div>`;
+    }
+
+    div.innerHTML = `${contextoHTML}<p class="enunciado"><span class="num">${i + 1}</span>${p.enunciado}</p>`;
     const ops = document.createElement("div"); ops.className = "opciones";
-    p.opciones.forEach((op, j) => { const label = document.createElement("label"); label.className = "opcion"; label.innerHTML = `<input type="radio" name="rp${i}" value="${j}"><span>${op}</span>`; ops.appendChild(label); });
-    div.appendChild(ops); cont.appendChild(div);
+    p.opciones.forEach((op, j) => {
+      const label = document.createElement("label");
+      label.className = "opcion";
+      label.innerHTML = `<input type="radio" name="rp${i}" value="${j}"><span>${op}</span>`;
+      ops.appendChild(label);
+    });
+    div.appendChild(ops);
+    cont.appendChild(div);
   });
   document.getElementById("studentExamRunner").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -5436,23 +5519,151 @@ document.getElementById("btnSaveFounder")?.addEventListener("click", async () =>
   } catch (e) { alert("Error."); }
 });
 document.getElementById("admBtnAddPregunta")?.addEventListener("click", () => {
-  const cont = document.getElementById("admExamPreguntas"); const div = document.createElement("div"); div.className = "qblock";
-  div.innerHTML = `<div class="qblock-head"><strong>Pregunta</strong><button type="button" class="btn btn-mini btn-rojo btn-remove-q">✕</button></div><div class="campo"><label>Enunciado</label><input type="text" class="q-enunciado"></div><div class="opciones-inputs"><input type="text" class="q-op" placeholder="A"><input type="text" class="q-op" placeholder="B"><input type="text" class="q-op" placeholder="C"><input type="text" class="q-op" placeholder="D"></div><div class="campo"><label>Correcta</label><select class="q-correcta"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>`;
+  const cont = document.getElementById("admExamPreguntas");
+  const div = document.createElement("div");
+  div.className = "qblock";
+  div.innerHTML = `
+    <div class="qblock-head">
+      <strong>Pregunta</strong>
+      <button type="button" class="btn btn-mini btn-rojo btn-remove-q">✕</button>
+    </div>
+
+    <!-- 🆕 CONTEXTO: texto + imagen -->
+    <div class="q-context-section">
+      <label class="q-context-label">📎 Contexto / Lectura (opcional)</label>
+      <textarea class="q-contexto" placeholder="Escribe aquí el texto, lectura o instrucción que el alumno verá antes de la pregunta..." rows="3"></textarea>
+      <div class="q-context-img-row">
+        <input type="file" class="q-contexto-img" accept="image/*">
+        <button type="button" class="btn btn-mini btn-slate q-remove-img" style="display:none;">🗑️ Quitar imagen</button>
+      </div>
+      <div class="q-contexto-img-preview" style="display:none;"></div>
+    </div>
+
+    <div class="campo"><label>Enunciado de la pregunta</label><input type="text" class="q-enunciado"></div>
+    <div class="opciones-inputs">
+      <input type="text" class="q-op" placeholder="A">
+      <input type="text" class="q-op" placeholder="B">
+      <input type="text" class="q-op" placeholder="C">
+      <input type="text" class="q-op" placeholder="D">
+    </div>
+    <div class="campo"><label>Correcta</label>
+      <select class="q-correcta">
+        <option value="0">A</option>
+        <option value="1">B</option>
+        <option value="2">C</option>
+        <option value="3">D</option>
+      </select>
+    </div>
+  `;
+
+  // Eliminar pregunta
   div.querySelector(".btn-remove-q").addEventListener("click", () => div.remove());
+
+  // 🆕 Preview de la imagen del contexto
+  const fileInput = div.querySelector(".q-contexto-img");
+  const preview   = div.querySelector(".q-contexto-img-preview");
+  const btnRemove = div.querySelector(".q-remove-img");
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) { preview.style.display = "none"; btnRemove.style.display = "none"; return; }
+    if (!f.type.startsWith("image/")) { alert("Selecciona una imagen válida."); fileInput.value = ""; return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      preview.innerHTML = `<img src="${ev.target.result}" alt="Contexto" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--borde);display:block;margin-top:6px;">`;
+      preview.style.display = "block";
+      btnRemove.style.display = "inline-block";
+    };
+    reader.readAsDataURL(f);
+  });
+  btnRemove.addEventListener("click", () => {
+    fileInput.value = "";
+    preview.innerHTML = "";
+    preview.style.display = "none";
+    btnRemove.style.display = "none";
+  });
+
   cont.appendChild(div);
 });
-document.getElementById("admNewExamForm").addEventListener("submit", (e) => {
+document.getElementById("admNewExamForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const nombre = document.getElementById("admExamNombre").value.trim(); const grupoId = document.getElementById("admExamGroup").value;
+  const btnSubmit = e.target.querySelector('button[type="submit"]');
+  const nombre = document.getElementById("admExamNombre").value.trim();
+  const grupoId = document.getElementById("admExamGroup").value;
   if (!nombre || !grupoId) { alert("Completa nombre y grupo."); return; }
-  const blocks = [...document.querySelectorAll("#admExamPreguntas .qblock")]; if (!blocks.length) { alert("Agrega preguntas."); return; }
-  const preguntas = blocks.map(b => ({ enunciado: b.querySelector(".q-enunciado").value.trim(), opciones: [...b.querySelectorAll(".q-op")].map(i => i.value.trim()), correcta: Number(b.querySelector(".q-correcta").value) }));
-  if (preguntas.some(p => !p.enunciado || p.opciones.some(o => !o))) { alert("Completa todas las preguntas."); return; }
-  const examId = "exam_" + Date.now(); const asgId = "asg_exam_" + Date.now();
-  state.exams.push({ id: examId, nombre, grupoId, assignmentId: asgId, fechaPublicacion: new Date().toISOString().slice(0, 10), preguntas });
-  state.assignments.push({ id: asgId, criterio: "final_exam", nombre: "📝 " + nombre, fechaInicio: new Date().toISOString().slice(0, 10), esExamen: true, examId });
-  if (!state.examResults) state.examResults = {}; state.examResults[examId] = {};
-  saveState(); e.target.reset(); document.getElementById("admExamPreguntas").innerHTML = "";
+
+  const blocks = [...document.querySelectorAll("#admExamPreguntas .qblock")];
+  if (!blocks.length) { alert("Agrega preguntas."); return; }
+
+  // 1) Validar primero (sin imágenes) para no subir nada si hay errores
+  const pendientes = blocks.map(b => ({
+    enunciado: b.querySelector(".q-enunciado").value.trim(),
+    opciones: [...b.querySelectorAll(".q-op")].map(i => i.value.trim()),
+    correcta: Number(b.querySelector(".q-correcta").value),
+    contexto: (b.querySelector(".q-contexto")?.value || "").trim() || null,
+    _imgFile: b.querySelector(".q-contexto-img")?.files?.[0] || null
+  }));
+
+  if (pendientes.some(p => !p.enunciado || p.opciones.some(o => !o))) {
+    alert("Completa el enunciado y las 4 opciones de todas las preguntas.");
+    return;
+  }
+
+  // 2) Procesar imágenes (sube a Storage o base64 si falla)
+  if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = "⏳ Publicando..."; }
+  try {
+    const preguntas = [];
+    for (const p of pendientes) {
+      let contextoImagen = null;
+      if (p._imgFile) {
+        try {
+          contextoImagen = await procesarImagen(p._imgFile, "examenes-contexto");
+        } catch (err) {
+          alert(`No se pudo subir una imagen de contexto: ${err.message || err}`);
+          if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
+          return;
+        }
+      }
+      preguntas.push({
+        enunciado: p.enunciado,
+        opciones: p.opciones,
+        correcta: p.correcta,
+        contexto: p.contexto || null,
+        contextoImagen: contextoImagen || null
+      });
+    }
+
+    const examId = "exam_" + Date.now();
+    const asgId  = "asg_exam_" + Date.now();
+
+    state.exams.push({
+      id: examId,
+      nombre,
+      grupoId,
+      assignmentId: asgId,
+      fechaPublicacion: new Date().toISOString().slice(0, 10),
+      preguntas
+    });
+
+    state.assignments.push({
+      id: asgId,
+      criterio: "final_exam",
+      nombre: "📝 " + nombre,
+      fechaInicio: new Date().toISOString().slice(0, 10),
+      esExamen: true,
+      examId
+    });
+
+    if (!state.examResults) state.examResults = {};
+    state.examResults[examId] = {};
+
+    saveState();
+    e.target.reset();
+    document.getElementById("admExamPreguntas").innerHTML = "";
+    document.getElementById("admExamMsg")?.classList.add("visible");
+    setTimeout(() => document.getElementById("admExamMsg")?.classList.remove("visible"), 3000);
+  } finally {
+    if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
+  }
 });
 function renderAdminCourses() {
   const cont = document.getElementById("admCoursesList");
@@ -6183,6 +6394,7 @@ document.getElementById('admPagoDescargar')?.addEventListener('click', () => {
   a.wa-float:hover {
     background: #20BD5A !important;
   }
+
 
 </style></head><body>${buildBoletaPagoHTML(tc)}
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;">
