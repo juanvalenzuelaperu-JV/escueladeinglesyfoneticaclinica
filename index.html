@@ -1501,6 +1501,13 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
                 <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
                 <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
                 <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
+               <div class="campo">
+  <label>Intentos permitidos <span class="req">*</span></label>
+  <select id="admExamIntentos" required>
+    <option value="1">1 intento (sin repetición)</option>
+    <option value="2">2 intentos (permite reintento)</option>
+  </select>
+</div>
                 <div class="campo completo">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
                     <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
@@ -4148,22 +4155,65 @@ document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () =
   document.querySelectorAll('#alumnoCalGrid [data-alumno-cal-day]').forEach(el => { el.style.outline = 'none'; });
 });
 
-function renderStudentExams() {
-  const cont = document.getElementById("studentExamsLista"); cont.innerHTML = ""; cont.style.display = "block";
+ function renderStudentExams() {
+  const cont = document.getElementById("studentExamsLista");
+  cont.innerHTML = "";
+  cont.style.display = "block";
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
   const exams = (state.exams || []).filter(ex => !ex.grupoId || myGroups.includes(ex.grupoId));
-  if (!exams.length) { cont.innerHTML = `<div class="empty-state">📭 No hay exámenes disponibles.</div>`; return; }
+  if (!exams.length) {
+    cont.innerHTML = `<div class="empty-state">📭 No hay exámenes disponibles.</div>`;
+    return;
+  }
   [...exams].sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
-    const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode]; const completado = !!result;
+    const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+    const completado = !!result;
+    const maxIntentos = ex.intentosPermitidos || 1;
+    const realizados = result?.intentos || (completado ? 1 : 0);
+    const puedeReintentar = completado && realizados < maxIntentos;
     const grupoNombre = state.groups.find(g => g.id === ex.grupoId)?.nombre || "Todos";
-    const card = document.createElement("div"); card.className = "exam-link-card";
-    card.innerHTML = `<div class="exam-link-info"><h4>📝 ${ex.nombre}</h4><p>${ex.descripcion || "Sin descripción"}</p><small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong></small></div><div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">${completado ? `<div style="text-align:right;"><div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div><div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div><button class="btn btn-mini btn-azul" data-retake-exam="${ex.id}">🔄 Reintentar</button></div>` : `<button class="btn btn-mini btn-verde" data-start-exam="${ex.id}">▶️ Iniciar examen</button>`}</div>`;
+
+    let accionesHtml = "";
+    if (!completado) {
+      accionesHtml = `<button class="btn btn-mini btn-verde" data-start-exam="${ex.id}">▶️ Iniciar examen</button>`;
+    } else if (puedeReintentar) {
+      accionesHtml = `
+        <div style="text-align:right;">
+          <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div>
+          <div style="font-size:.72rem;color:var(--gris);margin-top:2px;">Intento ${realizados} de ${maxIntentos}</div>
+          <button class="btn btn-mini btn-azul" data-retake-exam="${ex.id}">🔄 Reintentar</button>
+        </div>`;
+    } else {
+      accionesHtml = `
+        <div style="text-align:right;">
+          <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div>
+          <div style="font-size:.72rem;color:var(--gris);margin-top:2px;">Intento ${realizados} de ${maxIntentos}</div>
+          <div style="font-size:.72rem;color:var(--rojo);font-weight:700;margin-top:4px;">🔒 Sin intentos restantes</div>
+        </div>`;
+    }
+
+    const card = document.createElement("div");
+    card.className = "exam-link-card";
+    card.innerHTML = `
+      <div class="exam-link-info">
+        <h4>📝 ${ex.nombre}</h4>
+        <p>${ex.descripcion || "Sin descripción"}</p>
+        <small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Grupo: <strong>${grupoNombre}</strong> · Intentos: ${maxIntentos}</small>
+      </div>
+      <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">${accionesHtml}</div>`;
     cont.appendChild(card);
   });
-  cont.querySelectorAll("[data-start-exam]").forEach(btn => btn.addEventListener("click", () => iniciarExamen(btn.dataset.startExam)));
-  cont.querySelectorAll("[data-retake-exam]").forEach(btn => btn.addEventListener("click", () => { if (confirm("¿Reintentar?")) iniciarExamen(btn.dataset.retakeExam); }));
+  cont.querySelectorAll("[data-start-exam]").forEach(btn =>
+    btn.addEventListener("click", () => iniciarExamen(btn.dataset.startExam))
+  );
+  cont.querySelectorAll("[data-retake-exam]").forEach(btn =>
+    btn.addEventListener("click", () => { if (confirm("¿Reintentar?")) iniciarExamen(btn.dataset.retakeExam); })
+  );
 }
-function iniciarExamen(examId) {
+
+ function iniciarExamen(examId) {
   const exam = state.exams.find(e => e.id === examId); if (!exam) return;
   testActual = exam;
   document.getElementById("studentExamsLista").style.display = "none";
@@ -4227,7 +4277,15 @@ document.getElementById("runnerFormA").addEventListener("submit", (e) => {
   if (testActual.assignmentId) state.grades[currentStudentCode][testActual.assignmentId] = nota;
   if (!state.examResults) state.examResults = {};
   if (!state.examResults[testActual.id]) state.examResults[testActual.id] = {};
-  state.examResults[testActual.id][currentStudentCode] = { nota, correctas, total, sinResp, fecha: new Date().toISOString().slice(0, 10) };
+  const _prev = state.examResults[testActual.id][currentStudentCode];
+const _intentos = (_prev?.intentos || (_prev ? 1 : 0)) + 1;
+const _historial = [...(_prev?.historial || []), { nota, correctas, total, sinResp, fecha: new Date().toISOString().slice(0, 10) }];
+state.examResults[testActual.id][currentStudentCode] = {
+  nota, correctas, total, sinResp,
+  fecha: new Date().toISOString().slice(0, 10),
+  intentos: _intentos,
+  historial: _historial
+};
   saveState();
 });
 document.getElementById("btnVolverTestsA").addEventListener("click", () => { document.getElementById("studentExamRunner").classList.remove("visible"); document.getElementById("studentExamsLista").style.display = "block"; document.getElementById("testResultadoA").classList.remove("visible"); testActual = null; renderStudentExams(); });
@@ -5635,14 +5693,15 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
     const examId = "exam_" + Date.now();
     const asgId  = "asg_exam_" + Date.now();
 
-    state.exams.push({
-      id: examId,
-      nombre,
-      grupoId,
-      assignmentId: asgId,
-      fechaPublicacion: new Date().toISOString().slice(0, 10),
-      preguntas
-    });
+   state.exams.push({
+  id: examId,
+  nombre,
+  grupoId,
+  assignmentId: asgId,
+  fechaPublicacion: new Date().toISOString().slice(0, 10),
+  preguntas,
+  intentosPermitidos: parseInt(document.getElementById("admExamIntentos").value, 10) || 1
+});
 
     state.assignments.push({
       id: asgId,
