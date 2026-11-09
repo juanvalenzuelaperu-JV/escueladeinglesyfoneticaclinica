@@ -4948,75 +4948,61 @@ function renderTeacherPago() {
   const descBox = document.getElementById("dPagoDescuentos");
   if (!resumen || !gruposLista) return;
 
-  // 🔑 1. OBTENER LOS GRUPOS REALES (no los turnos de programación)
-  // Tomamos todos los grupos del docente actual.
+  // 1. Buscar TODOS los grupos reales del docente (sin importar si están cerrados o no)
   const myGroups = (state.groups || []).filter(g => g.teacherCode === currentTeacherCode);
   
-  // Si no hay grupos, mostramos un mensaje de aviso
   if (!myGroups.length) {
-    gruposLista.innerHTML = `<div class="empty-state">📚 No tienes grupos creados/asignados en el sistema. Crea uno en "Mis Grupos" para ver tu pago.</div>`;
-    resumen.innerHTML = `<div class="resumen-card amarillo"><div class="et">Aviso</div><div class="val" style="font-size:1rem;">Sin grupos asignados</div></div>`;
-    if (bonifBox) bonifBox.innerHTML = '<div class="empty-state" style="padding:12px;">Sin datos</div>';
-    if (descBox) descBox.innerHTML = '<div class="empty-state" style="padding:12px;">Sin datos</div>';
+    gruposLista.innerHTML = `<div class="empty-state">📚 No tienes grupos asignados en el sistema.</div>`;
+    resumen.innerHTML = `<div class="resumen-card amarillo"><div class="et">Aviso</div><div class="val" style="font-size:1rem;">Sin grupos</div></div>`;
     return;
   }
 
+  // 2. Sumar las horas reales configuradas en "Mis Grupos"
   const pagoHora = parseFloat(currentTeacher?.pagoHora) || 0;
-  
-  // 🔑 2. SUMAR LAS HORAS REALES DE CADA GRUPO
   const totalHoras = myGroups.reduce((sum, g) => sum + (parseFloat(g.totalHoras) || 0), 0);
   const subGrupos = totalHoras * pagoHora;
 
-  // 3. Cargar bonificaciones y descuentos guardados (por si acaso)
+  // 3. Cargar bonificaciones y descuentos
   let bonifs = [], descs = [];
   let subB = 0, subD = 0, horasExt = 0, pagoHoraExt = 0, subExt = 0, horasPed = 0;
   
   try {
     const p = typeof getPagoDocente === "function" ? getPagoDocente(currentTeacherCode) : null;
-    const calc = typeof calcPagoDocente === "function" ? calcPagoDocente(currentTeacherCode) : null;
     if (p) {
       bonifs = p.bonificaciones || [];
       descs = p.descuentos || [];
       horasExt = parseFloat(p.horasExt) || 0;
       pagoHoraExt = parseFloat(p.pagoHoraExtra) || 0;
       horasPed = parseFloat(p.horasPed) || 0;
-    }
-    if (calc) {
-      subB = calc.subB || 0;
-      subD = calc.subD || 0;
-      subExt = calc.subExt || 0;
-    } else {
       subB = bonifs.reduce((s, b) => s + (parseFloat(b.monto) || 0), 0);
       subD = descs.reduce((s, d) => s + (parseFloat(d.monto) || 0), 0);
       subExt = horasExt * pagoHoraExt;
     }
   } catch (e) { console.warn(e); }
 
-  // 4. Cálculo final
-  // Si el admin ingresó horasPed, usamos esas. Si no, usamos el total de horas de los grupos.
   const baseHoras = (horasPed > 0 ? horasPed : totalHoras) * pagoHora;
   const montoNeto = baseHoras + subExt + subB - subD;
 
-  // 5. Pintar el resumen superior
+  // 4. Pintar el tablero superior
   resumen.innerHTML = `
-    <div class="resumen-card morado"><div class="et">Pago/hora</div><div class="val">S/ ${pagoHora.toFixed(2)}</div></div>
+    <div class="resumen-card morado"><div class="et">Pago/hora base</div><div class="val">S/ ${pagoHora.toFixed(2)}</div></div>
     <div class="resumen-card azul"><div class="et">Horas del ciclo</div><div class="val">${totalHoras} h</div></div>
     <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val">S/ ${subB.toFixed(2)}</div></div>
     <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Descuentos</div><div class="val">S/ ${subD.toFixed(2)}</div></div>
-    <div class="resumen-card verde"><div class="et">Monto neto estimado</div><div class="val">S/ ${montoNeto.toFixed(2)}</div></div>
-    <div class="resumen-card"><div class="et">Fecha de pago</div><div class="val" style="font-size:1.05rem;">${typeof fechaFinDeMes === "function" ? fechaFinDeMes() : "—"}</div></div>`;
+    <div class="resumen-card verde"><div class="et">Total neto</div><div class="val">S/ ${montoNeto.toFixed(2)}</div></div>
+  `;
 
-  // 6. Pintar la tabla de "Detalle de grupos asignados"
+  // 5. Pintar la tabla de grupos
   let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
-    <table style="min-width:640px;">
+    <table style="min-width:100%; width:100%;">
       <thead>
         <tr>
           <th>Grupo</th>
           <th>Programa</th>
-          <th>Nivel</th>
           <th>Horario</th>
-          <th>Horas/ciclo</th>
-          <th>Subtotal</th>
+          <th>Frecuencia</th>
+          <th>Horas</th>
+          <th>Estado</th>
         </tr>
       </thead>
       <tbody>`;
@@ -5024,35 +5010,30 @@ function renderTeacherPago() {
   myGroups.forEach(g => {
     const nivel = typeof getNivelInfo === "function" ? getNivelInfo(g.nivel) : { nombre: g.nivel || "—" };
     const horas = parseFloat(g.totalHoras) || 0;
+    const estadoBadge = g.cerrado 
+      ? '<span class="cerrado-badge" style="font-size:.7rem;">🔒 Cerrado</span>' 
+      : '<span class="estado estado-present" style="font-size:.7rem; padding:2px 8px;">Abierto</span>';
+
     html += `<tr>
       <td><strong>${g.nombre || "—"}</strong></td>
       <td>${g.programa || "—"}</td>
-      <td>${g.nivelTexto || nivel.nombre || "—"}</td>
       <td>${g.horario || "—"}</td>
+      <td>${g.frecuencia || "—"}</td>
       <td><strong>${horas} h</strong></td>
-      <td><strong>S/ ${(horas * pagoHora).toFixed(2)}</strong></td>
+      <td>${estadoBadge}</td>
     </tr>`;
   });
   
-  html += `</tbody>
-      <tfoot>
-        <tr style="background:#f8fafc;font-weight:800;">
-          <td colspan="4" style="text-align:right;padding:10px;">Total</td>
-          <td>${totalHoras} h</td>
-          <td>S/ ${subGrupos.toFixed(2)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>`;
+  html += `</tbody></table></div>`;
   
   gruposLista.innerHTML = html;
 
-  // 7. Bonificaciones y descuentos (se mantiene igual)
+  // 6. Cajas de bonificaciones y descuentos
   if (bonifBox) {
-    bonifBox.innerHTML = bonifs.length ? `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${bonifs.map(b => `<tr><td>${b.concepto || "—"}</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${(parseFloat(b.monto)||0).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin bonificaciones.</div>`;
+    bonifBox.innerHTML = bonifs.length ? `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><tbody>${bonifs.map(b => `<tr><td>${b.concepto || "—"}</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${(parseFloat(b.monto)||0).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin bonificaciones.</div>`;
   }
   if (descBox) {
-    descBox.innerHTML = descs.length ? `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${descs.map(d => `<tr><td>${d.concepto || "—"}</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${(parseFloat(d.monto)||0).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin descuentos.</div>`;
+    descBox.innerHTML = descs.length ? `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><tbody>${descs.map(d => `<tr><td>${d.concepto || "—"}</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${(parseFloat(d.monto)||0).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin descuentos.</div>`;
   }
 }
  
@@ -10813,25 +10794,6 @@ console.log('Planilla lista y visible');
 
   // Exponer para reutilizar
   window.getGruposDelCicloActual = getGruposDelCicloActual;
-
-  // Sobrescribir renderTeacherPago
-  const origRenderPago = window.renderTeacherPago;
-  window.renderTeacherPago = function () {
-    if (typeof origRenderPago !== 'function') return;
-
-    // Forzamos temporalmente getTeacherGroups para que devuelva
-    // SOLO los grupos del ciclo actual (incluyendo cerrados del ciclo)
-    const origGetTeacherGroups = window.getTeacherGroups;
-    window.getTeacherGroups = function (teacherCode) {
-      return getGruposDelCicloActual(teacherCode);
-    };
-
-    try {
-      origRenderPago.apply(this, arguments);
-    } finally {
-      window.getTeacherGroups = origGetTeacherGroups;
-    }
-  };
 
   console.log('✅ Pago Docente: solo muestra grupos del ciclo actual.');
 })();
