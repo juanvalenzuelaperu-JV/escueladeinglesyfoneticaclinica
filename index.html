@@ -2397,6 +2397,33 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
     <img id="imageViewerImg" src="" style="max-width:100%; max-height:70vh; border-radius:12px; box-shadow:var(--sombra);">
   </div>
 </div>
+ <!-- MODAL EDITAR EXAMEN -->
+<div class="modal-overlay" id="modalEditarExamen">
+  <div class="modal-box" style="max-width:520px; text-align:left; padding:28px 24px;">
+    <button class="modal-close" id="btnCerrarEditarExamen" type="button">✕</button>
+    <h3 style="margin-bottom:20px; text-align:center; color:var(--azul);">✏️ Editar Examen</h3>
+    <form id="formEditarExamen">
+      <input type="hidden" id="editExamId">
+      <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="editExamNombre" required></div>
+      <div class="campo"><label>Descripción</label><input type="text" id="editExamDesc"></div>
+      <div class="campo"><label>Fecha publicación</label><input type="date" id="editExamFechaPub"></div>
+      <div class="campo"><label>Fecha límite</label><input type="date" id="editExamFechaFin"></div>
+      <div class="campo">
+        <label>Intentos permitidos <span class="req">*</span></label>
+        <select id="editExamIntentos" required>
+          <option value="1">1 intento (sin repetición)</option>
+          <option value="2">2 intentos (permite reintento)</option>
+        </select>
+      </div>
+      <div class="campo"><label>Grupo</label><input type="text" id="editExamGrupo" disabled style="background:#f1f5f9;"></div>
+      <div class="campo"><label>Preguntas registradas</label><input type="text" id="editExamPreguntas" disabled style="background:#f1f5f9;"></div>
+      <div class="tform-acciones" style="justify-content:flex-end;margin-top:14px;">
+        <button type="button" class="btn btn-slate btn-mini" id="btnCancelarEditarExamen">Cancelar</button>
+        <button type="submit" class="btn btn-verde btn-mini">💾 Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
 <!-- MODAL RC REGISTRADO -->
 <div class="modal-overlay" id="modalRCRegistrado">
   <div class="modal-box" style="max-width:440px; text-align:center; padding:32px 26px;">
@@ -5700,7 +5727,9 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
   assignmentId: asgId,
   fechaPublicacion: new Date().toISOString().slice(0, 10),
   preguntas,
-  intentosPermitidos: parseInt(document.getElementById("admExamIntentos").value, 10) || 1
+  intentosPermitidos: parseInt(document.getElementById("admExamIntentos").value, 10) || 1,
+ descripcion: (document.getElementById("admExamDesc").value || "").trim() || null,
+fechaFin: document.getElementById("admExamFechaFin").value || null
 });
 
     state.assignments.push({
@@ -5785,7 +5814,186 @@ document.getElementById('admNewCourseForm')?.addEventListener('submit', (e) => {
   alert('✅ Curso creado en la programación.');
 });
 
-function renderAdminExams() { const cont = document.getElementById("admExamsLista"); if (!cont) return; cont.innerHTML = `<div class="empty-state">${(state.exams || []).length ? state.exams.length + " exámenes publicados." : "Sin exámenes."}</div>`; }
+function renderAdminExams() {
+  const cont = document.getElementById("admExamsLista");
+  if (!cont) return;
+
+  const exams = state.exams || [];
+  if (!exams.length) {
+    cont.innerHTML = `<div class="empty-state">📭 Sin exámenes publicados.</div>`;
+    return;
+  }
+
+  const ordenados = [...exams].sort((a, b) =>
+    (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")
+  );
+
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+    <button type="button" class="btn btn-azul btn-mini" id="btnActualizarListaExams">🔄 Actualizar lista</button>
+  </div>`;
+
+  ordenados.forEach(ex => {
+    const grupo = (state.groups || []).find(g => g.id === ex.grupoId);
+    const grupoNombre = grupo ? grupo.nombre : "Sin grupo";
+    const totalAlumnos = grupo ? (grupo.studentCodes || []).length : 0;
+    const resultados = (state.examResults && state.examResults[ex.id]) || {};
+    const rendidos = Object.values(resultados).filter(r => r && r.nota !== undefined).length;
+    const intentosMax = ex.intentosPermitidos || 1;
+    const descripcion = ex.descripcion ? ` · ${ex.descripcion}` : "";
+
+    html += `
+      <div class="exam-link-card" style="align-items:center;">
+        <div class="exam-link-info" style="flex:1;">
+          <h4>📝 ${ex.nombre}</h4>
+          <p>${(ex.preguntas || []).length} pregunta(s) · Intentos: ${intentosMax}${descripcion}</p>
+          <small>
+            📅 Publicado: ${formatearFecha(ex.fechaPublicacion)}
+            · Grupo: <strong>${grupoNombre}</strong>
+            · ✅ Rendidos: <strong>${rendidos}/${totalAlumnos}</strong>
+          </small>
+        </div>
+        <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
+          <button type="button" class="btn btn-mini btn-morado" data-edit-exam="${ex.id}">✏️ Editar</button>
+          <button type="button" class="btn btn-mini btn-azul" data-refresh-exam="${ex.id}">🔄 Actualizar</button>
+          <button type="button" class="btn btn-mini btn-rojo" data-delete-exam="${ex.id}">🗑️ Eliminar</button>
+        </div>
+      </div>`;
+  });
+
+  cont.innerHTML = html;
+
+  document.getElementById("btnActualizarListaExams")?.addEventListener("click", actualizarListaExamenes);
+  cont.querySelectorAll("[data-edit-exam]").forEach(btn =>
+    btn.addEventListener("click", () => abrirEditarExamen(btn.dataset.editExam))
+  );
+  cont.querySelectorAll("[data-refresh-exam]").forEach(btn =>
+    btn.addEventListener("click", () => actualizarUnExamen(btn.dataset.refreshExam))
+  );
+  cont.querySelectorAll("[data-delete-exam]").forEach(btn =>
+    btn.addEventListener("click", () => eliminarExamen(btn.dataset.deleteExam))
+  );
+}
+ /* ============================================================
+   EDITAR EXAMEN
+   ============================================================ */
+function abrirEditarExamen(examId) {
+  const ex = (state.exams || []).find(e => e.id === examId);
+  if (!ex) { alert("Examen no encontrado."); return; }
+
+  const grupo = (state.groups || []).find(g => g.id === ex.grupoId);
+
+  document.getElementById("editExamId").value         = ex.id;
+  document.getElementById("editExamNombre").value     = ex.nombre || "";
+  document.getElementById("editExamDesc").value       = ex.descripcion || "";
+  document.getElementById("editExamFechaPub").value   = ex.fechaPublicacion || "";
+  document.getElementById("editExamFechaFin").value   = ex.fechaFin || "";
+  document.getElementById("editExamIntentos").value   = ex.intentosPermitidos || 1;
+  document.getElementById("editExamGrupo").value      = grupo ? grupo.nombre : "Sin grupo";
+  document.getElementById("editExamPreguntas").value  = `${(ex.preguntas || []).length} pregunta(s)`;
+
+  document.getElementById("modalEditarExamen")?.classList.add("visible");
+}
+
+document.getElementById("formEditarExamen")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const examId = document.getElementById("editExamId").value;
+  const ex = (state.exams || []).find(x => x.id === examId);
+  if (!ex) { alert("Examen no encontrado."); return; }
+
+  const nombre = document.getElementById("editExamNombre").value.trim();
+  if (!nombre) { alert("El nombre es obligatorio."); return; }
+
+  ex.nombre = nombre;
+  ex.descripcion = (document.getElementById("editExamDesc").value || "").trim() || null;
+  ex.fechaPublicacion = document.getElementById("editExamFechaPub").value || ex.fechaPublicacion;
+  ex.fechaFin = document.getElementById("editExamFechaFin").value || null;
+  ex.intentosPermitidos = parseInt(document.getElementById("editExamIntentos").value, 10) || 1;
+
+  // Sincronizar la asignación asociada (nombre y fecha fin)
+  if (ex.assignmentId) {
+    const asg = (state.assignments || []).find(a => a.id === ex.assignmentId);
+    if (asg) {
+      asg.nombre = "📝 " + nombre;
+      if (ex.fechaFin) asg.fechaFin = ex.fechaFin;
+    }
+  }
+
+  saveState();
+  document.getElementById("modalEditarExamen")?.classList.remove("visible");
+  renderAdminExams();
+  alert("✅ Examen actualizado correctamente.");
+});
+
+document.getElementById("btnCerrarEditarExamen")?.addEventListener("click", () =>
+  document.getElementById("modalEditarExamen")?.classList.remove("visible")
+);
+document.getElementById("btnCancelarEditarExamen")?.addEventListener("click", () =>
+  document.getElementById("modalEditarExamen")?.classList.remove("visible")
+);
+document.getElementById("modalEditarExamen")?.addEventListener("click", (e) => {
+  if (e.target.id === "modalEditarExamen")
+    document.getElementById("modalEditarExamen").classList.remove("visible");
+});
+
+/* ============================================================
+   ACTUALIZAR (un examen / toda la lista desde el servidor)
+   ============================================================ */
+async function actualizarUnExamen(examId) {
+  const ex = (state.exams || []).find(e => e.id === examId);
+  if (!ex) { alert("Examen no encontrado."); return; }
+  try {
+    const fresh = await loadState();
+    if (fresh) state = fresh;
+    renderAdminExams();
+    alert(`✅ Examen "${ex.nombre}" actualizado desde el servidor.`);
+  } catch (err) {
+    alert("Error al actualizar: " + err.message);
+  }
+}
+
+async function actualizarListaExamenes() {
+  try {
+    const fresh = await loadState();
+    if (fresh) state = fresh;
+    renderAdminExams();
+    alert("✅ Lista actualizada desde el servidor.");
+  } catch (err) {
+    alert("Error al actualizar: " + err.message);
+  }
+}
+
+/* ============================================================
+   ELIMINAR EXAMEN
+   ============================================================ */
+function eliminarExamen(examId) {
+  const exam = (state.exams || []).find(e => e.id === examId);
+  if (!exam) return;
+
+  const grupo = (state.groups || []).find(g => g.id === exam.grupoId);
+  const rendidos = Object.keys((state.examResults && state.examResults[examId]) || {}).length;
+
+  let msg = `¿Eliminar el examen "${exam.nombre}"?\n\n`;
+  if (grupo) msg += `Grupo: ${grupo.nombre}\n`;
+  msg += `Alumnos con nota registrada: ${rendidos}\n\n`;
+  msg += `También se eliminarán las notas y la evaluación asociada en Registro de Notas.\n\n⛔ Esta acción no se puede deshacer.`;
+
+  if (!confirm(msg)) return;
+
+  if (exam.assignmentId) {
+    state.assignments = (state.assignments || []).filter(a => a.id !== exam.assignmentId);
+    Object.keys(state.grades || {}).forEach(code => {
+      if (state.grades[code]) delete state.grades[code][exam.assignmentId];
+    });
+  }
+
+  if (state.examResults && state.examResults[examId]) delete state.examResults[examId];
+
+  state.exams = state.exams.filter(e => e.id !== examId);
+
+  saveState();
+  renderAdminExams();
+  alert("✅ Examen eliminado.");
+}
 function renderAdminResumen() {
   document.getElementById("admStatAlumnos").textContent = Object.keys(state.students).length;
   document.getElementById("admStatDocentes").textContent = Object.keys(state.teachers).length;
