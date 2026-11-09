@@ -3925,20 +3925,26 @@ function renderStudentResumen() {
 }
 function renderStudentCalificaciones() {
   if (!currentStudentCode) return;
-  // Mis calificaciones: solo assignments + grades (NO calendarEvents de Calendarización)
+
+  // 🔒 SOLO grupos activos (no cerrados)
+  const allGroups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+  const groups = allGroups.filter(g => !g.cerrado);
+  const myGroupIds = groups.map(g => g.id);
+
+  // Promedio general (ya respeta grupos activos vía promedioGeneral)
   const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
   const elProm = document.getElementById('califPromedioA');
   const elRes = document.getElementById('resumenPromA');
   if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
   if (elRes) elRes.textContent = prom !== null ? prom.toFixed(2) : '—';
+
   const est = typeof estadoCurso === 'function' ? estadoCurso(currentStudentCode) : { texto: 'Pendiente', clase: 'pendiente' };
   const elEst = document.getElementById('califEstadoA');
   if (elEst) { elEst.textContent = est.texto; elEst.className = 'calif-estado ' + est.clase; }
 
-  // Teacher photo beside grades
+  // Foto del docente (del primer grupo activo)
   const photoEl = document.getElementById('califTeacherPhoto');
   const nameEl = document.getElementById('califTeacherName');
-  const groups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
   let teacher = null;
   if (groups.length) {
     const g = groups[0];
@@ -3955,53 +3961,59 @@ function renderStudentCalificaciones() {
   }
   if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
 
-  // Due dates highlight
+  // Vencimientos (solo grupos activos)
   const vencBox = document.getElementById('califVencimientosBox');
   if (vencBox) {
     const hoy = new Date().toISOString().slice(0, 10);
-    const myGroupIds = groups.map(g => g.id);
-    const proximas = (state.assignments || []).filter(a => {
-      if (!a.fechaFin) return false;
-      if (a.grupoId && myGroupIds.length && !myGroupIds.includes(a.grupoId)) return false;
-      return a.fechaFin >= hoy;
-    }).sort((a, b) => a.fechaFin.localeCompare(b.fechaFin));
-    const vencidasSinNota = (state.assignments || []).filter(a => {
-      if (!a.fechaFin || a.fechaFin >= hoy) return false;
-      if (a.grupoId && myGroupIds.length && !myGroupIds.includes(a.grupoId)) return false;
-      const nota = (state.grades[currentStudentCode] || {})[a.id];
-      return nota === undefined || nota === null;
-    });
-    let html = '';
-    if (proximas.length) {
-      html += '<div style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
-      html += '<div style="font-weight:800;color:#b45309;margin-bottom:8px;font-size:.9rem;">⏰ Evaluaciones con fecha de caducidad</div>';
-      proximas.slice(0, 6).forEach(a => {
-        const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
-        const days = Math.ceil((new Date(a.fechaFin) - new Date(hoy)) / 86400000);
-        const urg = days <= 3 ? 'color:#b91c1c;font-weight:800;' : 'color:#92400e;';
-        html += `<div style="font-size:.88rem;margin:4px 0;${urg}">📌 ${crit.nombre}: <strong>${a.nombre}</strong> — vence ${formatearFecha(a.fechaFin)} (${days === 0 ? 'hoy' : days + ' día(s)'})</div>`;
+
+    // Sin grupos activos → vacío
+    if (!myGroupIds.length) {
+      vencBox.innerHTML = '';
+    } else {
+      const proximas = (state.assignments || []).filter(a => {
+        if (!a.fechaFin) return false;
+        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
+        return a.fechaFin >= hoy;
+      }).sort((a, b) => a.fechaFin.localeCompare(b.fechaFin));
+
+      const vencidasSinNota = (state.assignments || []).filter(a => {
+        if (!a.fechaFin || a.fechaFin >= hoy) return false;
+        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
+        const nota = (state.grades[currentStudentCode] || {})[a.id];
+        return nota === undefined || nota === null;
       });
-      html += '</div>';
+
+      let html = '';
+      if (proximas.length) {
+        html += '<div style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
+        html += '<div style="font-weight:800;color:#b45309;margin-bottom:8px;font-size:.9rem;">⏰ Evaluaciones con fecha de caducidad</div>';
+        proximas.slice(0, 6).forEach(a => {
+          const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
+          const days = Math.ceil((new Date(a.fechaFin) - new Date(hoy)) / 86400000);
+          const urg = days <= 3 ? 'color:#b91c1c;font-weight:800;' : 'color:#92400e;';
+          html += `<div style="font-size:.88rem;margin:4px 0;${urg}">📌 ${crit.nombre}: <strong>${a.nombre}</strong> — vence ${formatearFecha(a.fechaFin)} (${days === 0 ? 'hoy' : days + ' día(s)'})</div>`;
+        });
+        html += '</div>';
+      }
+      if (vencidasSinNota.length) {
+        html += '<div style="background:#fee2e2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
+        html += '<div style="font-weight:800;color:#b91c1c;margin-bottom:8px;font-size:.9rem;">⚠️ Evaluaciones vencidas sin nota</div>';
+        vencidasSinNota.slice(0, 4).forEach(a => {
+          const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
+          html += `<div style="font-size:.88rem;margin:4px 0;color:#991b1b;">${crit.nombre}: ${a.nombre} (venció ${formatearFecha(a.fechaFin)})</div>`;
+        });
+        html += '</div>';
+      }
+      vencBox.innerHTML = html;
     }
-    if (vencidasSinNota.length) {
-      html += '<div style="background:#fee2e2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
-      html += '<div style="font-weight:800;color:#b91c1c;margin-bottom:8px;font-size:.9rem;">⚠️ Evaluaciones vencidas sin nota</div>';
-      vencidasSinNota.slice(0, 4).forEach(a => {
-        const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
-        html += `<div style="font-size:.88rem;margin:4px 0;color:#991b1b;">${crit.nombre}: ${a.nombre} (venció ${formatearFecha(a.fechaFin)})</div>`;
-      });
-      html += '</div>';
-    }
-    vencBox.innerHTML = html;
   }
 
-  // Criteria grid
+  // Criterios
   const grid = document.getElementById('criteriaGridA');
   if (grid) {
     grid.innerHTML = '';
     CRITERIOS.forEach(c => {
       const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
-      // also check legacy online_workbook
       let p = promC;
       if (p === null && c.id === 'online_homework' && typeof promedioCriterio === 'function') {
         p = promedioCriterio(currentStudentCode, 'online_workbook');
@@ -4013,15 +4025,15 @@ function renderStudentCalificaciones() {
     });
   }
 
-  // Detail by criterion
+  // Detalle por criterio (solo grupos activos)
   const det = document.getElementById('detalleCriteriosA');
   if (det) {
     det.innerHTML = '';
     const hoy = new Date().toISOString().slice(0, 10);
-    const myGroupIds = groups.map(g => g.id);
     CRITERIOS.forEach(c => {
       let asgs = (state.assignments || []).filter(a => a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook'));
-      asgs = asgs.filter(a => !a.grupoId || !myGroupIds.length || myGroupIds.includes(a.grupoId));
+      // 🔒 Solo asignaciones de grupos activos (o sin grupo)
+      asgs = asgs.filter(a => !a.grupoId || myGroupIds.includes(a.grupoId));
       if (!asgs.length) return;
       const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
       const block = document.createElement('div');
@@ -4047,7 +4059,6 @@ function renderStudentCalificaciones() {
     if (!det.innerHTML) det.innerHTML = '<div class="empty-state">Aún no hay evaluaciones registradas.</div>';
   }
 }
-
 
 /* ===== Calendario del alumno (solo lectura, desde Calendarización) ===== */
 let alumnoCalSelectedDate = null;
