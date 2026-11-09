@@ -3486,10 +3486,57 @@ document.querySelectorAll("#dashboardDocente .dash-tab").forEach(tab => tab.addE
   if (tab.dataset.dtab === "pago") renderTeacherPago();
 }));
 document.querySelectorAll("[data-taltab]").forEach(tab => tab.addEventListener("click", () => {
+  const portal = tab.dataset.taltab;
+
+  // 1. Quitar .activo de todos los tabs principales
   document.querySelectorAll("[data-taltab]").forEach(t => t.classList.remove("activo"));
+
+  // 2. Quitar .activo de todos los paneles principales
   document.querySelectorAll("#dashboardTalento > .dash-contenido > .panel").forEach(p => p.classList.remove("activo"));
+
+  // 3. 🔑 NUEVO: Quitar .activo de TODOS los subpaneles (marketing, contabilidad, dirección, admin)
+  document.querySelectorAll("#dashboardTalento .subpanel").forEach(p => p.classList.remove("activo"));
+
+  // 4. 🔑 NUEVO: Quitar .activo de TODOS los sub-tabs (cont, mkt, dir, adm)
+  document.querySelectorAll(
+    "#dashboardTalento [data-cont-subtab], " +
+    "#dashboardTalento [data-mkt-subtab], " +
+    "#dashboardTalento [data-dir-subtab], " +
+    "#dashboardTalento [data-admtab]"
+  ).forEach(b => b.classList.remove("activo"));
+
+  // 5. Activar el tab principal elegido
   tab.classList.add("activo");
-  document.getElementById("tal-panel-" + tab.dataset.taltab).classList.add("activo");
+  const panelPrincipal = document.getElementById("tal-panel-" + portal);
+  if (panelPrincipal) panelPrincipal.classList.add("activo");
+
+  // 6. 🔑 NUEVO: Reactivar el primer sub-tab por defecto de cada portal
+  if (portal === "admin") {
+    const btn = document.querySelector('[data-admtab="alumnos"]');
+    const sub = document.getElementById("adm-panel-alumnos");
+    if (btn) btn.classList.add("activo");
+    if (sub) sub.classList.add("activo");
+  }
+  if (portal === "contabilidad") {
+    const btn = document.querySelector('[data-cont-subtab="pago"]');
+    const sub = document.getElementById("cont-subpanel-pago");
+    if (btn) btn.classList.add("activo");
+    if (sub) sub.classList.add("activo");
+    // Refrescar select del gestor de pago
+    try { fillPagoTeacherSelect(); } catch (e) {}
+  }
+  if (portal === "direccion") {
+    const btn = document.querySelector('[data-dir-subtab="firma"]');
+    const sub = document.getElementById("dir-subpanel-firma");
+    if (btn) btn.classList.add("activo");
+    if (sub) sub.classList.add("activo");
+  }
+  if (portal === "marketing") {
+    const btn = document.querySelector('[data-mkt-subtab="galeria"]');
+    const sub = document.getElementById("mkt-subpanel-galeria");
+    if (btn) btn.classList.add("activo");
+    if (sub) sub.classList.add("activo");
+  }
 }));
 document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(tab => tab.addEventListener("click", () => {
   document.querySelectorAll("#tal-panel-admin [data-admtab]").forEach(t => t.classList.remove("activo"));
@@ -3744,8 +3791,14 @@ document.querySelectorAll("[data-mkt-subtab]").forEach(tab => tab.addEventListen
   document.querySelectorAll("[data-mkt-subtab]").forEach(t => t.classList.remove("activo"));
   document.querySelectorAll("#tal-panel-marketing .subpanel").forEach(p => p.classList.remove("activo"));
   tab.classList.add("activo");
-  document.getElementById("mkt-subpanel-" + tab.dataset.mktSubtab).classList.add("activo");
-  if (tab.dataset.mktSubtab === "iconografia") renderIconografia();
+  const panel = document.getElementById("mkt-subpanel-" + tab.dataset.mktSubtab);
+  if (panel) panel.classList.add("activo");   // 🔑 guard contra null
+  if (tab.dataset.mktSubtab === "iconografia") {
+    try { renderIconografia(); } catch (e) { console.warn(e); }
+  }
+  if (tab.dataset.mktSubtab === "cumples") {
+    try { renderMktCumples(); } catch (e) { console.warn(e); }
+  }
 }));
 
 /* ============================================================
