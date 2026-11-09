@@ -2798,7 +2798,6 @@ function renderHorariosTable() {
   if (!container) return;
   container.innerHTML = '';
 
-  // Filtrar solo los grupos que NO estén cerrados
   const openGroups = (state.groups || []).filter(g => !g.cerrado);
 
   if (!openGroups.length) {
@@ -2808,37 +2807,43 @@ function renderHorariosTable() {
     return;
   }
 
-  openGroups.forEach(g => {
+  // Paleta de colores vivos y elegantes
+  const paleta = [
+    '#4CAF50', // Verde
+    '#0066CC', // Azul Medio
+    '#7c3aed', // Morado
+    '#ec4899', // Rosa
+    '#f59e0b', // Ámbar
+    '#0891b2', // Cian
+    '#ea580c', // Naranja oscuro
+    '#6366f1', // Índigo
+    '#14b8a6', // Teal
+    '#8b5cf6'  // Violeta
+  ];
+
+  openGroups.forEach((g, index) => {
     const teacher = state.teachers[g.teacherCode];
     const teacherName = teacher ? teacher.nombre : 'Por asignar';
+    const enrolledCount = g.studentCodes ? g.studentCodes.length : 0;
     
-    // Asignar colores según el nivel
-    let badgeClass = 'basico';
-    let cardBorder = 'var(--verde)';
-    let btnClass = 'btn-verde';
+    // Asignar color de la paleta (se reinicia si hay más grupos que colores)
+    const colorAsignado = paleta[index % paleta.length];
+    
+    // El texto del botón se adapta: si el fondo es muy claro, se pone texto oscuro
+    const btnClass = 'btn-primario'; // Usamos el estilo de tu botón principal
     let nivelTexto = g.nivelTexto || getNivelInfo(g.nivel).nombre;
-
-    if (g.nivel === 'intermedio') {
-      badgeClass = 'intermedio';
-      cardBorder = 'var(--azul-medio)';
-      btnClass = 'btn-azul';
-    } else if (g.nivel === 'teens') {
-      badgeClass = 'teens';
-      cardBorder = 'var(--morado)';
-      btnClass = 'btn-morado';
-    }
 
     const card = document.createElement('article');
     card.className = 'tarjeta-curso';
-    card.style.borderTop = `4px solid ${cardBorder}`;
+    card.style.borderTop = `4px solid ${colorAsignado}`;
 
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <span class="group-nivel ${badgeClass}">${nivelTexto}</span>
+        <span class="group-nivel" style="background:${colorAsignado}20; color:${colorAsignado};">${nivelTexto}</span>
         <span style="background:#dcfce7; color:#15803d; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:50px;">🟢 Abierto</span>
       </div>
       
-      <h3 style="font-size:1.3rem; margin-bottom:4px; color:var(--azul);">${g.nombre}</h3>
+      <h3 style="font-size:1.3rem; margin-bottom:4px; color:${colorAsignado};">${g.nombre}</h3>
       <p style="font-size:.88rem; color:var(--gris); margin-bottom:16px;">Programa: ${g.programa || '—'}</p>
 
       <ul style="display:grid; gap:8px; margin-bottom:20px; list-style:none; padding:0;">
@@ -2850,9 +2855,14 @@ function renderHorariosTable() {
         </li>
         <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
           <span style="font-size:1.1rem;">👨‍🏫</span> ${teacherName}
-       </ul>
+        </li>
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center; margin-top:4px;">
+          <span style="font-size:1.1rem;">👥</span> <span style="color:var(--gris);">${enrolledCount} alumno(s) matriculados</span>
+        </li>
+      </ul>
 
-      <button class="btn ${btnClass} btn-inscribirse-grupo" data-id="${g.id}" data-programa="${g.programa || g.nombre}" style="width:100%; border-radius:12px;">
+      <button class="btn btn-inscribirse-grupo" data-id="${g.id}" data-programa="${g.programa || g.nombre}" 
+        style="width:100%; border-radius:12px; background:${colorAsignado}; color:#fff; border:none;">
         Inscribirse a este grupo
       </button>
     `;
@@ -2860,40 +2870,11 @@ function renderHorariosTable() {
     container.appendChild(card);
   });
 
-  // Tarjeta extra estática para las Citas (Terapia)
-  const cardCita = document.createElement('article');
-  cardCita.className = 'tarjeta-curso clinica';
-  cardCita.style.borderTop = '4px solid var(--rosa)';
-  cardCita.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <span class="group-nivel" style="background:#fce7f3; color:#be185d;">Especial</span>
-    </div>
-    <h3 style="font-size:1.3rem; margin-bottom:4px; color:var(--rosa);">Terapia del Lenguaje</h3>
-    <p style="font-size:.88rem; color:var(--gris); margin-bottom:16px;">Evaluación y tratamiento personalizado.</p>
-    <ul style="display:grid; gap:8px; margin-bottom:20px; list-style:none; padding:0;">
-      <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
-        <span style="font-size:1.1rem;">🩺</span> Sesión individual (Previa cita)
-      </li>
-    </ul>
-    <button class="btn btn-rosa btn-cita" style="width:100%; border-radius:12px;">Separe su cita ahora</button>
-  `;
-  container.appendChild(cardCita);
-
-  // Conectar los botones con el sistema de inscripción y citas
+  // Conectar los botones
   container.querySelectorAll('.btn-inscribirse-grupo').forEach(btn => {
     btn.addEventListener('click', () => {
-      // Creamos un objeto compatible con la función abrirModalInscripcion
-      const mockCourse = {
-        id: btn.dataset.id,
-        programa: btn.dataset.programa
-      };
+      const mockCourse = { id: btn.dataset.id, programa: btn.dataset.programa };
       abrirModalInscripcion(mockCourse);
-    });
-  });
-
-  container.querySelectorAll('.btn-cita').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('modalCita').classList.add('visible');
     });
   });
 }
