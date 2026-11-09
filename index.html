@@ -5896,19 +5896,15 @@ function renderAdmPagoEditor(teacherCode) {
     return;
   }
   if (editor) editor.style.display = 'block';
-
   try { fillPagoGrupos(teacherCode); } catch (e) { console.warn(e); }
-
-  // 1. Buscar los grupos REALES del docente y sumar sus horas
-  const groups = (state.groups || []).filter(g => g.teacherCode === teacherCode);
-  const totalHorasReales = groups.reduce((s, g) => s + (parseFloat(g.totalHoras) || 0), 0);
-
-  // 2. Pintar la tabla de cursos asignados
+  // Cursos asignados + horas totales del ciclo
   const cursosBox = document.getElementById('admPagoCursosAsignados');
   if (cursosBox) {
+    const groups = (typeof getTeacherGroups === 'function' ? getTeacherGroups(teacherCode) : (state.groups || []).filter(g => g.teacherCode === teacherCode));
     if (!groups.length) {
-      cursosBox.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Este docente no tiene cursos asignados.</div>';
+      cursosBox.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Este docente no tiene cursos/grupos asignados.</div>';
     } else {
+      const totalCiclo = groups.reduce((s, g) => s + (parseFloat(g.totalHoras) || 0), 0);
       let rows = groups.map(g => {
         const horas = parseFloat(g.totalHoras) || 0;
         const nivel = g.nivelTexto || g.nivel || '—';
@@ -5941,56 +5937,32 @@ function renderAdmPagoEditor(teacherCode) {
             <tfoot>
               <tr style="background:#f8fafc;font-weight:800;">
                 <td colspan="5" style="padding:10px;text-align:right;">Total horas del ciclo</td>
-                <td style="padding:10px;text-align:right;color:var(--azul);">${totalHorasReales} h</td>
+                <td style="padding:10px;text-align:right;color:var(--azul);">${totalCiclo} h</td>
                 <td></td>
               </tr>
             </tfoot>
           </table>
         </div>`;
+      // Sugerir horas pedagógicas = total del ciclo si aún está en 0
+      const p0 = getPagoDocente(teacherCode);
+      if ((!p0.horasPed || Number(p0.horasPed) === 0) && totalCiclo > 0) {
+        p0.horasPed = totalCiclo;
+      }
     }
   }
-
-  // 3. OBTENER VALORES ACTUALES DEL FORMULARIO
-  const inputHorasPed = document.getElementById('admPagoHorasPed');
-  const inputHorasExt = document.getElementById('admPagoHorasExt');
-  const inputPagoExt = document.getElementById('admPagoHoraExtra');
-
-  // 🔑 MAGIA: Si las horas pedagógicas están vacías o en 0, forzamos que tome el total real
-  let horasPed = parseFloat(inputHorasPed?.value) || 0;
-  if (horasPed === 0 && totalHorasReales > 0) {
-    horasPed = totalHorasReales;
-    if (inputHorasPed) inputHorasPed.value = totalHorasReales;
-  } else if (inputHorasPed && inputHorasPed.value !== String(totalHorasReales)) {
-    // Si el usuario no las ha tocado manualmente, las actualizamos al total real
-    if (inputHorasPed.dataset.manual !== 'true') {
-      horasPed = totalHorasReales;
-      inputHorasPed.value = totalHorasReales;
-    }
-  }
-
-  const horasExt = parseFloat(inputHorasExt?.value) || 0;
-  const pagoHoraExtra = parseFloat(inputPagoExt?.value) || 0;
-
-  // 4. Calcular montos
   const p = getPagoDocente(teacherCode);
-  const base = parseFloat(state.teachers[teacherCode]?.pagoHora) || 0;
-  
-  const subPed = horasPed * base;
-  const subExt = horasExt * pagoHoraExtra;
-  const subB = (p.bonificaciones || []).reduce((s, b) => s + (parseFloat(b.monto) || 0), 0);
-  const subD = (p.descuentos || []).reduce((s, d) => s + (parseFloat(d.monto) || 0), 0);
-  const total = subPed + subExt + subB - subD;
-
-  // 5. Mostrar en las cajitas
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setTxt('admPagoBase', 'S/ ' + base.toFixed(2));
-  setTxt('admPagoSubH', 'S/ ' + subPed.toFixed(2));
-  setTxt('admPagoSubHE', 'S/ ' + subExt.toFixed(2));
-  setTxt('admPagoSubB', 'S/ ' + subB.toFixed(2));
-  setTxt('admPagoSubD', 'S/ ' + subD.toFixed(2));
-  setTxt('admPagoSubTotal', 'S/ ' + total.toFixed(2));
-
-  // 6. Renderizar bonificaciones y descuentos
+  setVal('admPagoHorasPed', p.horasPed || 0);
+  setVal('admPagoHorasExt', p.horasExt || 0);
+  setVal('admPagoHoraExtra', p.pagoHoraExtra || 0);
+  const c = calcPagoDocente(teacherCode);
+  setTxt('admPagoBase', 'S/ ' + c.base.toFixed(2));
+  setTxt('admPagoSubH', 'S/ ' + c.subPed.toFixed(2));
+  setTxt('admPagoSubHE', 'S/ ' + c.subExt.toFixed(2));
+  setTxt('admPagoSubB', 'S/ ' + c.subB.toFixed(2));
+  setTxt('admPagoSubD', 'S/ ' + c.subD.toFixed(2));
+  setTxt('admPagoSubTotal', 'S/ ' + c.total.toFixed(2));
   const renderLista = (arr, tipo) => {
     const cont = document.getElementById(tipo === 'bonif' ? 'admPagoBonifList' : 'admPagoDescList');
     if (!cont) return;
@@ -6000,7 +5972,6 @@ function renderAdmPagoEditor(teacherCode) {
         <input type="number" value="${it.monto || 0}" min="0" step="0.01" data-${tipo}-monto="${i}" placeholder="Monto S/">
         <button type="button" data-del-${tipo}="${i}">✕</button>
       </div>`).join('') : '<div class="empty-state" style="padding:8px;font-size:.85rem;">Sin registros.</div>';
-    
     cont.querySelectorAll(`[data-${tipo}-concepto]`).forEach(inp => inp.addEventListener('input', () => { arr[+inp.dataset[tipo + 'Concepto']].concepto = inp.value; }));
     cont.querySelectorAll(`[data-${tipo}-monto]`).forEach(inp => inp.addEventListener('input', () => { arr[+inp.dataset[tipo + 'Monto']].monto = parseFloat(inp.value) || 0; }));
     cont.querySelectorAll(`[data-del-${tipo}]`).forEach(btn => btn.addEventListener('click', () => { arr.splice(+btn.dataset['del' + (tipo === 'bonif' ? 'Bonif' : 'Desc')], 1); saveState(); renderAdmPagoEditor(teacherCode); }));
@@ -6012,19 +5983,7 @@ document.getElementById('admPagoSelectTeacher')?.addEventListener('change', (e) 
 document.getElementById('admPagoAddBonif')?.addEventListener('click', () => { const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return; getPagoDocente(tc).bonificaciones.push({ concepto: '', monto: 0 }); saveState(); renderAdmPagoEditor(tc); });
 document.getElementById('admPagoAddDesc')?.addEventListener('click', () => { const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return; getPagoDocente(tc).descuentos.push({ concepto: '', monto: 0 }); saveState(); renderAdmPagoEditor(tc); });
 ['admPagoHorasPed','admPagoHorasExt','admPagoHoraExtra'].forEach(id => {
-  document.getElementById(id)?.addEventListener('input', (e) => {
-    if (id === 'admPagoHorasPed') {
-      e.target.dataset.manual = 'true'; // 🔑 Le avisa al sistema que el humano lo tocó
-    }
-    const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return;
-    const p = getPagoDocente(tc);
-    p.horasPed = parseFloat(document.getElementById('admPagoHorasPed').value) || 0;
-    p.horasExt = parseFloat(document.getElementById('admPagoHorasExt').value) || 0;
-    p.pagoHoraExtra = parseFloat(document.getElementById('admPagoHoraExtra').value) || 0;
-    saveState(); 
-    renderAdmPagoEditor(tc);
-  });
-});
+  document.getElementById(id)?.addEventListener('input', () => {
     const tc = document.getElementById('admPagoSelectTeacher').value; if (!tc) return;
     const p = getPagoDocente(tc);
     p.horasPed = parseFloat(document.getElementById('admPagoHorasPed').value) || 0;
