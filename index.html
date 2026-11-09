@@ -4948,14 +4948,29 @@ function renderTeacherPago() {
   const descBox = document.getElementById("dPagoDescuentos");
   if (!resumen || !gruposLista) return;
 
-  const myGroups = typeof getTeacherGroups === "function" ? getTeacherGroups(currentTeacherCode) : [];
+  // 🔑 1. OBTENER LOS GRUPOS REALES (no los turnos de programación)
+  // Tomamos todos los grupos del docente actual.
+  const myGroups = (state.groups || []).filter(g => g.teacherCode === currentTeacherCode);
+  
+  // Si no hay grupos, mostramos un mensaje de aviso
+  if (!myGroups.length) {
+    gruposLista.innerHTML = `<div class="empty-state">📚 No tienes grupos creados/asignados en el sistema. Crea uno en "Mis Grupos" para ver tu pago.</div>`;
+    resumen.innerHTML = `<div class="resumen-card amarillo"><div class="et">Aviso</div><div class="val" style="font-size:1rem;">Sin grupos asignados</div></div>`;
+    if (bonifBox) bonifBox.innerHTML = '<div class="empty-state" style="padding:12px;">Sin datos</div>';
+    if (descBox) descBox.innerHTML = '<div class="empty-state" style="padding:12px;">Sin datos</div>';
+    return;
+  }
+
   const pagoHora = parseFloat(currentTeacher?.pagoHora) || 0;
-  const totalHoras = myGroups.reduce((s, g) => s + (parseFloat(g.totalHoras) || 0), 0);
+  
+  // 🔑 2. SUMAR LAS HORAS REALES DE CADA GRUPO
+  const totalHoras = myGroups.reduce((sum, g) => sum + (parseFloat(g.totalHoras) || 0), 0);
   const subGrupos = totalHoras * pagoHora;
 
-  let bonifs = [];
-  let descs = [];
+  // 3. Cargar bonificaciones y descuentos guardados (por si acaso)
+  let bonifs = [], descs = [];
   let subB = 0, subD = 0, horasExt = 0, pagoHoraExt = 0, subExt = 0, horasPed = 0;
+  
   try {
     const p = typeof getPagoDocente === "function" ? getPagoDocente(currentTeacherCode) : null;
     const calc = typeof calcPagoDocente === "function" ? calcPagoDocente(currentTeacherCode) : null;
@@ -4977,57 +4992,70 @@ function renderTeacherPago() {
     }
   } catch (e) { console.warn(e); }
 
+  // 4. Cálculo final
+  // Si el admin ingresó horasPed, usamos esas. Si no, usamos el total de horas de los grupos.
   const baseHoras = (horasPed > 0 ? horasPed : totalHoras) * pagoHora;
   const montoNeto = baseHoras + subExt + subB - subD;
 
+  // 5. Pintar el resumen superior
   resumen.innerHTML = `
     <div class="resumen-card morado"><div class="et">Pago/hora</div><div class="val">S/ ${pagoHora.toFixed(2)}</div></div>
-    <div class="resumen-card azul"><div class="et">Horas ciclo / ped.</div><div class="val">${totalHoras} h${horasPed ? " / " + horasPed + " h" : ""}</div></div>
+    <div class="resumen-card azul"><div class="et">Horas del ciclo</div><div class="val">${totalHoras} h</div></div>
     <div class="resumen-card amarillo"><div class="et">Bonificaciones</div><div class="val">S/ ${subB.toFixed(2)}</div></div>
     <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Descuentos</div><div class="val">S/ ${subD.toFixed(2)}</div></div>
     <div class="resumen-card verde"><div class="et">Monto neto estimado</div><div class="val">S/ ${montoNeto.toFixed(2)}</div></div>
     <div class="resumen-card"><div class="et">Fecha de pago</div><div class="val" style="font-size:1.05rem;">${typeof fechaFinDeMes === "function" ? fechaFinDeMes() : "—"}</div></div>`;
 
-  if (!myGroups.length) {
-    gruposLista.innerHTML = `<div class="empty-state">📚 Sin grupos asignados.</div>`;
-  } else {
-    let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:640px;"><thead><tr><th>Grupo</th><th>Programa</th><th>Nivel</th><th>Horas/ciclo</th><th>Subtotal</th></tr></thead><tbody>`;
-    myGroups.forEach(g => {
-      const nivel = typeof getNivelInfo === "function" ? getNivelInfo(g.nivel) : { nombre: g.nivel || "—" };
-      const horas = parseFloat(g.totalHoras) || 0;
-      html += `<tr><td><strong>${g.nombre || "—"}</strong></td><td>${g.programa || "—"}</td><td>${nivel.nombre || g.nivelTexto || "—"}</td><td>${horas} h</td><td><strong>S/ ${(horas * pagoHora).toFixed(2)}</strong></td></tr>`;
-    });
-    html += `</tbody><tfoot><tr style="background:#f8fafc;font-weight:800;"><td colspan="3" style="text-align:right;padding:10px;">Total grupos</td><td>${totalHoras} h</td><td>S/ ${subGrupos.toFixed(2)}</td></tr></tfoot></table></div>`;
-    gruposLista.innerHTML = html;
-  }
+  // 6. Pintar la tabla de "Detalle de grupos asignados"
+  let html = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+    <table style="min-width:640px;">
+      <thead>
+        <tr>
+          <th>Grupo</th>
+          <th>Programa</th>
+          <th>Nivel</th>
+          <th>Horario</th>
+          <th>Horas/ciclo</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>`;
+      
+  myGroups.forEach(g => {
+    const nivel = typeof getNivelInfo === "function" ? getNivelInfo(g.nivel) : { nombre: g.nivel || "—" };
+    const horas = parseFloat(g.totalHoras) || 0;
+    html += `<tr>
+      <td><strong>${g.nombre || "—"}</strong></td>
+      <td>${g.programa || "—"}</td>
+      <td>${g.nivelTexto || nivel.nombre || "—"}</td>
+      <td>${g.horario || "—"}</td>
+      <td><strong>${horas} h</strong></td>
+      <td><strong>S/ ${(horas * pagoHora).toFixed(2)}</strong></td>
+    </tr>`;
+  });
+  
+  html += `</tbody>
+      <tfoot>
+        <tr style="background:#f8fafc;font-weight:800;">
+          <td colspan="4" style="text-align:right;padding:10px;">Total</td>
+          <td>${totalHoras} h</td>
+          <td>S/ ${subGrupos.toFixed(2)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>`;
+  
+  gruposLista.innerHTML = html;
 
+  // 7. Bonificaciones y descuentos (se mantiene igual)
   if (bonifBox) {
-    if (!bonifs.length) {
-      bonifBox.innerHTML = `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin bonificaciones registradas por administración.</div>`;
-    } else {
-      let bh = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto / justificación</th><th style="text-align:right;">Monto</th></tr></thead><tbody>`;
-      bonifs.forEach(b => {
-        bh += `<tr><td>${b.concepto || "—"}</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${(parseFloat(b.monto)||0).toFixed(2)}</td></tr>`;
-      });
-      bh += `</tbody><tfoot><tr style="background:#f0fdf4;font-weight:800;"><td style="text-align:right;padding:10px;">Total bonificaciones</td><td style="text-align:right;color:var(--verde);">S/ ${subB.toFixed(2)}</td></tr></tfoot></table></div>`;
-      bonifBox.innerHTML = bh;
-    }
+    bonifBox.innerHTML = bonifs.length ? `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${bonifs.map(b => `<tr><td>${b.concepto || "—"}</td><td style="text-align:right;color:var(--verde);font-weight:700;">+ S/ ${(parseFloat(b.monto)||0).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin bonificaciones.</div>`;
   }
-
   if (descBox) {
-    if (!descs.length) {
-      descBox.innerHTML = `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin descuentos registrados por administración.</div>`;
-    } else {
-      let dh = `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto / justificación</th><th style="text-align:right;">Monto</th></tr></thead><tbody>`;
-      descs.forEach(d => {
-        dh += `<tr><td>${d.concepto || "—"}</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${(parseFloat(d.monto)||0).toFixed(2)}</td></tr>`;
-      });
-      dh += `</tbody><tfoot><tr style="background:#fef2f2;font-weight:800;"><td style="text-align:right;padding:10px;">Total descuentos</td><td style="text-align:right;color:var(--rojo);">S/ ${subD.toFixed(2)}</td></tr></tfoot></table></div>`;
-      descBox.innerHTML = dh;
-    }
+    descBox.innerHTML = descs.length ? `<div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);"><table style="min-width:100%;"><thead><tr><th>Concepto</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${descs.map(d => `<tr><td>${d.concepto || "—"}</td><td style="text-align:right;color:var(--rojo);font-weight:700;">− S/ ${(parseFloat(d.monto)||0).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin descuentos.</div>`;
   }
 }
-
+ 
 document.getElementById("btnGenerarBoleta").addEventListener("click", () => {
   const myGroups = getTeacherGroups(currentTeacherCode);
   const c = calcPagoDocente(currentTeacherCode);   // base, subPed, subExt, subB, subD, total, p
