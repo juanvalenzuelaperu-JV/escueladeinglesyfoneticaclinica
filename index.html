@@ -10684,25 +10684,77 @@ console.log('Planilla lista y visible');
     }, 300);
   };
 
-  // 2. Sobrescribir el renderizado de Pago Docente para que SÍ muestre los grupos cerrados
-  // (Así el profesor no pierde el registro de lo que trabajó y debe cobrar)
+/* ============================================================
+   PAGO DOCENTE: mostrar solo grupos del ciclo actual
+   Incluye cerrados del ciclo actual (hay que pagarlos)
+   Excluye grupos de ciclos anteriores (ya pagados)
+   ============================================================ */
+(function () {
+  'use strict';
+
+  function getPeriodoActual() {
+    const d = new Date();
+    return {
+      anio: String(d.getFullYear()),
+      mes: String(d.getMonth() + 1).padStart(2, '0')
+    };
+  }
+
+  function getGrupoPeriodo(g) {
+    // Usa anio/mes explícitos si existen
+    if (g.anio && g.mes) {
+      return { anio: String(g.anio), mes: String(g.mes).padStart(2, '0') };
+    }
+    // Fallback: derivar del timestamp del id "grp_<ts>"
+    const m = /grp_(\d+)/.exec(g.id || '');
+    if (m) {
+      const d = new Date(parseInt(m[1]));
+      if (!isNaN(d)) {
+        return {
+          anio: String(d.getFullYear()),
+          mes: String(d.getMonth() + 1).padStart(2, '0')
+        };
+      }
+    }
+    // Sin periodo → se considera del ciclo actual para no perderlo
+    return null;
+  }
+
+  function getGruposDelCicloActual(teacherCode) {
+    const { anio, mes } = getPeriodoActual();
+    return (state.groups || []).filter(g => {
+      if (g.teacherCode !== teacherCode) return false;
+      const periodo = getGrupoPeriodo(g);
+      if (!periodo) return true; // sin periodo conocido → mostrarlo
+      return periodo.anio === anio && periodo.mes === mes;
+    });
+  }
+
+  // Exponer para reutilizar
+  window.getGruposDelCicloActual = getGruposDelCicloActual;
+
+  // Sobrescribir renderTeacherPago
   const origRenderPago = window.renderTeacherPago;
   window.renderTeacherPago = function () {
     if (typeof origRenderPago !== 'function') return;
-    
-    // Truco: temporalmente engañamos al sistema para que incluya los cerrados
+
+    // Forzamos temporalmente getTeacherGroups para que devuelva
+    // SOLO los grupos del ciclo actual (incluyendo cerrados del ciclo)
     const origGetTeacherGroups = window.getTeacherGroups;
     window.getTeacherGroups = function (teacherCode) {
-      return (state.groups || []).filter(g => g.teacherCode === teacherCode); // Todos, sin filtro de cerrado
+      return getGruposDelCicloActual(teacherCode);
     };
 
-    // Ejecutamos la función original (ahora traerá todos)
-    origRenderPago.apply(this, arguments);
-
-    // Restauramos la función original para que el resto de tabs sigan ocultando los cerrados
-    window.getTeacherGroups = origGetTeacherGroups;
+    try {
+      origRenderPago.apply(this, arguments);
+    } finally {
+      window.getTeacherGroups = origGetTeacherGroups;
+    }
   };
 
+  console.log('✅ Pago Docente: solo muestra grupos del ciclo actual.');
+})();
+ 
   // 3. Forzar que el calendario del docente no muestre eventos de grupos cerrados
   // (El calendario usa getTeacherGroups para filtrar, así que ya está cubierto, 
   // pero por seguridad forzamos una actualización al entrar al tab)
