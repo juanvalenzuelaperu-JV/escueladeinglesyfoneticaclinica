@@ -2816,8 +2816,21 @@ function aplicarIconosInterfaz() {
 }
 
 /* ============================================================
-   RENDER: HORARIOS
+   RENDER: HORARIOS (con fechas de inicio/fin desde calendarEvents)
    ============================================================ */
+function buscarFechasDeGrupo(groupId) {
+  let fechaInicio = null;
+  let fechaFin = null;
+  Object.keys(state.calendarEvents || {}).forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => {
+      if (ev.grupoId !== groupId) return;
+      if (ev.tipo === 'inicio_curso' && !fechaInicio) fechaInicio = fecha;
+      if (ev.tipo === 'fin_curso' && !fechaFin) fechaFin = fecha;
+    });
+  });
+  return { fechaInicio, fechaFin };
+}
+
 function renderHorariosTable() {
   const container = document.getElementById('gridHorarios');
   if (!container) return;
@@ -2832,31 +2845,34 @@ function renderHorariosTable() {
     return;
   }
 
-  // Paleta de colores vivos y elegantes
   const paleta = [
-    '#4CAF50', // Verde
-    '#0066CC', // Azul Medio
-    '#7c3aed', // Morado
-    '#ec4899', // Rosa
-    '#f59e0b', // Ámbar
-    '#0891b2', // Cian
-    '#ea580c', // Naranja oscuro
-    '#6366f1', // Índigo
-    '#14b8a6', // Teal
-    '#8b5cf6'  // Violeta
+    '#4CAF50', '#0066CC', '#7c3aed', '#ec4899', '#f59e0b',
+    '#0891b2', '#ea580c', '#6366f1', '#14b8a6', '#8b5cf6'
   ];
 
   openGroups.forEach((g, index) => {
     const teacher = state.teachers[g.teacherCode];
     const teacherName = teacher ? teacher.nombre : 'Por asignar';
-    const enrolledCount = g.studentCodes ? g.studentCodes.length : 0;
-    
-    // Asignar color de la paleta (se reinicia si hay más grupos que colores)
     const colorAsignado = paleta[index % paleta.length];
-    
-    // El texto del botón se adapta: si el fondo es muy claro, se pone texto oscuro
-    const btnClass = 'btn-primario'; // Usamos el estilo de tu botón principal
     let nivelTexto = g.nivelTexto || getNivelInfo(g.nivel).nombre;
+
+    // 🆕 Buscar fechas de inicio/fin en calendarEvents
+    const { fechaInicio, fechaFin } = buscarFechasDeGrupo(g.id);
+
+    // 🆕 Bloque visual de fechas (solo si existen)
+    let fechasHtml = '';
+    if (fechaInicio || fechaFin) {
+      fechasHtml = `
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
+          <span style="font-size:1.1rem;">🟢</span>
+          <span><strong>Inicio:</strong> ${fechaInicio ? formatearFecha(fechaInicio) : '—'}</span>
+        </li>
+        <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
+          <span style="font-size:1.1rem;">🔴</span>
+          <span><strong>Fin:</strong> ${fechaFin ? formatearFecha(fechaFin) : '—'}</span>
+        </li>
+      `;
+    }
 
     const card = document.createElement('article');
     card.className = 'tarjeta-curso';
@@ -2880,7 +2896,10 @@ function renderHorariosTable() {
         </li>
         <li style="font-size:.9rem; color:var(--texto); display:flex; gap:8px; align-items:center;">
           <span style="font-size:1.1rem;">👨‍🏫</span> ${teacherName}
-      
+        </li>
+        ${fechasHtml}
+      </ul>
+
       <button class="btn btn-inscribirse-grupo" data-id="${g.id}" data-programa="${g.programa || g.nombre}" 
         style="width:100%; border-radius:12px; background:${colorAsignado}; color:#fff; border:none;">
         Inscribirse a este grupo
