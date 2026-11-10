@@ -1497,7 +1497,11 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
               <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
               <form id="admNewExamForm" class="tform-grid">
                 <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
-                <div class="campo"><label>Grupo destino <span class="req">*</span></label><select id="admExamGroup" required><option value="">Selecciona grupo</option></select></div>
+               <div class="campo completo">
+  <label>Grupos destino <span class="req">*</span></label>
+  <div id="admExamGroupsCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;max-height:230px;overflow-y:auto;padding:10px;border:1.5px solid var(--borde);border-radius:10px;background:#f9fafb;"></div>
+  <small id="admExamGroupsInfo" style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">Selecciona al menos un grupo.</small>
+</div>
                 <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
                 <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
                 <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
@@ -5508,11 +5512,63 @@ function refreshAdminTeacherSelects() {
   if (selAlu) { const cur = selAlu.value; selAlu.innerHTML = '<option value="">Sin grupo</option>'; state.groups.forEach(g => { const nivel = typeof getNivelInfo === 'function' ? getNivelInfo(g.nivel) : { nombre: g.nivel || '' }; const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; selAlu.appendChild(opt); }); if (cur) selAlu.value = cur; }
 }
 function refreshAdminExamGroups() {
-  if (!state || !state.groups) return;
-  const sel = document.getElementById("admExamGroup"); if (!sel) return;
-  const cur = sel.value; sel.innerHTML = '<option value="">Selecciona grupo</option>';
-  state.groups.forEach(g => { const nivel = typeof getNivelInfo === 'function' ? getNivelInfo(g.nivel) : { nombre: g.nivel || '' }; const opt = document.createElement("option"); opt.value = g.id; opt.textContent = `${g.nombre} · ${nivel.nombre}`; sel.appendChild(opt); });
-  if (cur) sel.value = cur;
+  const cont = document.getElementById("admExamGroupsCheckboxes");
+  const info = document.getElementById("admExamGroupsInfo");
+  if (!cont) return;
+
+  // Preservar selecciones actuales
+  const prevSel = new Set();
+  cont.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => prevSel.add(cb.value));
+
+  cont.innerHTML = "";
+  const activos = (state.groups || []).filter(g => !g.cerrado);
+
+  if (!activos.length) {
+    cont.innerHTML = '<div style="color:var(--gris);font-size:.88rem;padding:4px;">No hay grupos activos.</div>';
+    if (info) info.textContent = "";
+    return;
+  }
+
+  activos.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+
+  activos.forEach(g => {
+    const nivel = typeof getNivelInfo === "function" ? getNivelInfo(g.nivel) : { nombre: g.nivel || "" };
+    const teacher = state.teachers[g.teacherCode];
+    const label = document.createElement("label");
+    label.style.cssText = "display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--borde);border-radius:8px;cursor:pointer;font-size:.85rem;transition:background .15s;";
+    label.innerHTML = `
+      <input type="checkbox" value="${g.id}" style="margin-top:3px;width:16px;height:16px;accent-color:var(--azul-medio);flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <strong style="color:var(--azul);display:block;font-size:.88rem;">${g.nombre || g.programa || g.id}</strong>
+        <small style="display:block;color:var(--gris);font-size:.72rem;margin-top:1px;">
+          ${nivel.nombre || ""} · ${teacher ? teacher.nombre : "Sin docente"}
+        </small>
+      </div>`;
+    cont.appendChild(label);
+
+    const cb = label.querySelector("input");
+    if (prevSel.has(g.id)) cb.checked = true;
+
+    label.addEventListener("mouseenter", () => { label.style.background = "#f0f7ff"; });
+    label.addEventListener("mouseleave", () => { label.style.background = "#fff"; });
+    cb.addEventListener("change", updateExamGroupsInfo);
+  });
+
+  updateExamGroupsInfo();
+}
+
+function updateExamGroupsInfo() {
+  const cont = document.getElementById("admExamGroupsCheckboxes");
+  const info = document.getElementById("admExamGroupsInfo");
+  if (!cont || !info) return;
+  const n = cont.querySelectorAll('input[type="checkbox"]:checked').length;
+  if (n === 0) {
+    info.textContent = "Selecciona al menos un grupo.";
+    info.style.color = "var(--gris)";
+  } else {
+    info.innerHTML = `✅ <strong>${n} grupo(s)</strong> seleccionado(s). Se creará un examen independiente para cada uno.`;
+    info.style.color = "var(--verde)";
+  }
 }
 function renderAdminAlumnos() {
   const body = document.getElementById("admAlumnosBody"); body.innerHTML = "";
@@ -5762,13 +5818,17 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
   e.preventDefault();
   const btnSubmit = e.target.querySelector('button[type="submit"]');
   const nombre = document.getElementById("admExamNombre").value.trim();
-  const grupoId = document.getElementById("admExamGroup").value;
-  if (!nombre || !grupoId) { alert("Completa nombre y grupo."); return; }
+
+  // 🔑 Multi-grupo
+  const checkedBoxes = [...document.querySelectorAll('#admExamGroupsCheckboxes input[type="checkbox"]:checked')];
+  const grupoIds = checkedBoxes.map(cb => cb.value);
+
+  if (!nombre) { alert("Completa el nombre del examen."); return; }
+  if (!grupoIds.length) { alert("Selecciona al menos un grupo destino."); return; }
 
   const blocks = [...document.querySelectorAll("#admExamPreguntas .qblock")];
   if (!blocks.length) { alert("Agrega preguntas."); return; }
 
-  // 1) Validar primero (sin imágenes) para no subir nada si hay errores
   const pendientes = blocks.map(b => ({
     enunciado: b.querySelector(".q-enunciado").value.trim(),
     opciones: [...b.querySelectorAll(".q-op")].map(i => i.value.trim()),
@@ -5782,22 +5842,17 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
     return;
   }
 
-  // 2) Procesar imágenes (sube a Storage o base64 si falla)
   if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = "⏳ Publicando..."; }
   try {
-    const preguntas = [];
+    // Procesar imágenes UNA sola vez (se comparten entre todos los grupos)
+    const preguntasBase = [];
     for (const p of pendientes) {
       let contextoImagen = null;
       if (p._imgFile) {
-        try {
-          contextoImagen = await procesarImagen(p._imgFile, "examenes-contexto");
-        } catch (err) {
-          alert(`No se pudo subir una imagen de contexto: ${err.message || err}`);
-          if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
-          return;
-        }
+        try { contextoImagen = await procesarImagen(p._imgFile, "examenes-contexto"); }
+        catch (err) { alert(`No se pudo subir una imagen: ${err.message || err}`); return; }
       }
-      preguntas.push({
+      preguntasBase.push({
         enunciado: p.enunciado,
         opciones: p.opciones,
         correcta: p.correcta,
@@ -5806,38 +5861,57 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
       });
     }
 
-    const examId = "exam_" + Date.now();
-    const asgId  = "asg_exam_" + Date.now();
-
-   state.exams.push({
-  id: examId,
-  nombre,
-  grupoId,
-  assignmentId: asgId,
-  fechaPublicacion: new Date().toISOString().slice(0, 10),
-  preguntas,
-  intentosPermitidos: parseInt(document.getElementById("admExamIntentos").value, 10) || 1,
- descripcion: (document.getElementById("admExamDesc").value || "").trim() || null,
-fechaFin: document.getElementById("admExamFechaFin").value || null
-});
-
-    state.assignments.push({
-      id: asgId,
-      criterio: "final_exam",
-      nombre: "📝 " + nombre,
-      fechaInicio: new Date().toISOString().slice(0, 10),
-      esExamen: true,
-      examId
-    });
+    const descripcion = (document.getElementById("admExamDesc").value || "").trim() || null;
+    const fechaFin = document.getElementById("admExamFechaFin").value || null;
+    const intentosPermitidos = parseInt(document.getElementById("admExamIntentos").value, 10) || 1;
+    const fechaPub = new Date().toISOString().slice(0, 10);
 
     if (!state.examResults) state.examResults = {};
-    state.examResults[examId] = {};
+
+    // 🔁 Crear un examen + asignación por cada grupo seleccionado
+    let creados = 0;
+    grupoIds.forEach((grupoId, idx) => {
+      const examId = "exam_" + (Date.now() + idx);
+      const asgId  = "asg_exam_" + (Date.now() + idx);
+
+      state.exams.push({
+        id: examId,
+        nombre,
+        grupoId,
+        assignmentId: asgId,
+        fechaPublicacion: fechaPub,
+        preguntas: JSON.parse(JSON.stringify(preguntasBase)),   // copia independiente por grupo
+        intentosPermitidos,
+        descripcion,
+        fechaFin
+      });
+
+      state.assignments.push({
+        id: asgId,
+        criterio: "final_exam",
+        nombre: "📝 " + nombre,
+        fechaInicio: fechaPub,
+        fechaFin,
+        esExamen: true,
+        examId,
+        grupoId
+      });
+
+      state.examResults[examId] = {};
+      creados++;
+    });
 
     saveState();
+
+    // Reset del formulario
     e.target.reset();
     document.getElementById("admExamPreguntas").innerHTML = "";
     document.getElementById("admExamMsg")?.classList.add("visible");
     setTimeout(() => document.getElementById("admExamMsg")?.classList.remove("visible"), 3000);
+    refreshAdminExamGroups();
+
+    const nombresGrupos = grupoIds.map(id => state.groups.find(g => g.id === id)?.nombre || id).join(", ");
+    alert(`✅ Examen publicado para ${creados} grupo(s):\n\n${nombresGrupos}`);
   } finally {
     if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
   }
