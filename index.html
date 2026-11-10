@@ -4025,38 +4025,116 @@ function renderStudentCalificaciones() {
     });
   }
 
-  // Detalle por criterio (solo grupos activos)
+   // ============================================
+  // DETALLE POR CRITERIO → GRÁFICA DE BARRAS HORIZONTAL
+  // ============================================
   const det = document.getElementById('detalleCriteriosA');
   if (det) {
     det.innerHTML = '';
-    const hoy = new Date().toISOString().slice(0, 10);
+
+    // 1) Recopilar criterios con nota (solo grupos activos)
+    const criteriosConNota = [];
     CRITERIOS.forEach(c => {
-      let asgs = (state.assignments || []).filter(a => a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook'));
-      // 🔒 Solo asignaciones de grupos activos (o sin grupo)
-      asgs = asgs.filter(a => !a.grupoId || myGroupIds.includes(a.grupoId));
-      if (!asgs.length) return;
       const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
-      const block = document.createElement('div');
-      block.className = 'criterion-detail';
-      let rows = asgs.map(a => {
-        const nota = (state.grades[currentStudentCode] || {})[a.id];
-        const vencida = a.fechaFin && a.fechaFin < hoy;
-        const porVencer = a.fechaFin && a.fechaFin >= hoy && a.fechaFin <= new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-        let notaCls = 'assignment-nota pending';
-        let notaTxt = 'Pendiente';
-        if (nota !== undefined && nota !== null) {
-          notaTxt = Number(nota).toFixed(1);
-          notaCls = 'assignment-nota ' + (nota >= 16 ? 'alta' : nota >= 14 ? 'media' : 'baja');
-        }
-        const badge = vencida && (nota === undefined || nota === null)
-          ? '<span class="cerrado-badge" style="margin-left:6px;">Vencida</span>'
-          : (porVencer ? '<span style="display:inline-block;padding:2px 8px;background:#fef3c7;color:#b45309;border-radius:50px;font-size:.68rem;font-weight:800;margin-left:6px;">Por vencer</span>' : '');
-        return `<div class="assignment-row"><div class="assignment-info"><strong>${a.nombre}${badge}</strong><small>📅 ${formatearFecha(a.fechaInicio)} → ${formatearFecha(a.fechaFin)}</small></div><div class="${notaCls}">${notaTxt}</div></div>`;
-      }).join('');
-      block.innerHTML = `<div class="criterion-detail-header"><h5>${c.nombre}</h5><span class="c-prom">${promC !== null ? promC.toFixed(2) : '—'}</span></div>${rows}`;
-      det.appendChild(block);
+      let p = promC;
+      if (p === null && c.id === 'online_homework' && typeof promedioCriterio === 'function') {
+        p = promedioCriterio(currentStudentCode, 'online_workbook');
+      }
+      if (p !== null) {
+        criteriosConNota.push({ id: c.id, nombre: c.nombre, valor: p });
+      }
     });
-    if (!det.innerHTML) det.innerHTML = '<div class="empty-state">Aún no hay evaluaciones registradas.</div>';
+
+    if (!criteriosConNota.length) {
+      det.innerHTML = '<div class="empty-state">Aún no hay evaluaciones registradas.</div>';
+    } else {
+      // 2) Contenedor con altura dinámica
+      const altura = Math.max(180, criteriosConNota.length * 50);
+      det.innerHTML = `
+        <div style="background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px 22px 10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+            <span style="font-size:.82rem;color:var(--gris);font-weight:600;">Nota obtenida por criterio · máximo 20</span>
+            <span style="font-size:.75rem;color:var(--gris);">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981;margin-right:4px;"></span>Aprobado
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin:0 4px 0 10px;"></span>En riesgo
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;margin:0 4px 0 10px;"></span>Desaprobado
+            </span>
+          </div>
+          <div style="position:relative;height:${altura}px;width:100%;">
+            <canvas id="studentCriteriaChart"></canvas>
+          </div>
+        </div>`;
+
+      // 3) Destruir la instancia anterior si existía
+      if (window._studentCriteriaChart) {
+        try { window._studentCriteriaChart.destroy(); } catch (e) {}
+        window._studentCriteriaChart = null;
+      }
+
+      // 4) Crear el chart solo si el contenedor está visible
+      const crearChart = () => {
+        const canvas = document.getElementById('studentCriteriaChart');
+        if (!canvas || !canvas.offsetParent) return;
+
+        window._studentCriteriaChart = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: criteriosConNota.map(c => c.nombre),
+            datasets: [{
+              label: 'Nota',
+              data: criteriosConNota.map(c => c.valor),
+              backgroundColor: criteriosConNota.map(c =>
+                c.valor >= 14 ? '#10b981' : c.valor >= 11 ? '#f59e0b' : '#dc2626'
+              ),
+              borderRadius: 8,
+              borderSkipped: false,
+              barThickness: 22
+            }]
+          },
+          options: {
+            indexAxis: 'y',              // 👈 horizontal
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600 },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `Nota: ${Number(ctx.parsed.x).toFixed(2)} / 20`
+                }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                max: 20,
+                ticks: {
+                  stepSize: 2,
+                  color: '#6b7280',
+                  font: { size: 11 }
+                },
+                grid: { color: 'rgba(0,0,0,0.06)' }
+              },
+              y: {
+                ticks: {
+                  color: '#1f2937',
+                  font: { size: 12, weight: '600' }
+                },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      };
+
+      // Pequeño delay para asegurar que el DOM del panel ya tiene tamaño
+      if (det.offsetParent !== null) {
+        setTimeout(crearChart, 30);
+      } else {
+        // Panel oculto (ej. alumno está en otra pestaña) → se creará al hacer clic
+        setTimeout(() => { if (det.offsetParent !== null) crearChart(); }, 250);
+      }
+    }
   }
 }
 
