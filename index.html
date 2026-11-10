@@ -879,6 +879,7 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         <button class="dash-tab" data-atab="reportcard">📄 Recojo de Report Card</button>
         <button class="dash-tab" data-atab="matricula">🎫 Matrícula</button>
         <button class="dash-tab" data-atab="libros">📚 Mis libros</button>
+       <button class="dash-tab" data-atab="online_workbook">💻 Online Workbook</button>
       </div>
       <div class="dash-contenido">
         <div class="resumen-grid">
@@ -970,11 +971,19 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <div id="studentMatriculaCursos"></div>
           </div>
         </div>
-        <div class="panel" id="panel-libros">
-          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Mis libros</h4>
-          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Libros del mes asignados a tus grupos (Class Book, Readers y Otro).</p>
-          <div id="studentLibrosLista"></div>
-        </div>
+<div class="panel" id="panel-libros">
+  <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Mis libros</h4>
+  <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Libros del mes asignados a tus grupos (Class Book, Readers y Otro).</p>
+  <div id="studentLibrosLista"></div>
+</div>
+
+<div class="panel" id="panel-online_workbook">
+  <h4 style="color:var(--azul);margin-bottom:8px;font-size:1rem;font-weight:800;">💻 Online Workbook</h4>
+  <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">
+    Revisa los Online Workbooks programados por tu docente. Aquí verás las fechas, el estado y tu nota.
+  </p>
+  <div id="studentOnlineWorkbookLista"></div>
+</div>
       </div>
     </div>
 
@@ -16357,5 +16366,124 @@ console.log('Planilla lista y visible');
   console.log('✅ Panel de eventos ahora aparece a la derecha (estilo Google Calendar).');
 })();
 </script>
+<!-- ============================================================
+     ONLINE WORKBOOK — Portal del Alumno (función nueva)
+     ============================================================ -->
+<script>
+function renderStudentOnlineWorkbook() {
+  if (!currentStudentCode) return;
+  const cont = document.getElementById("studentOnlineWorkbookLista");
+  if (!cont) return;
+
+  const groups = (typeof getStudentGroups === "function" ? getStudentGroups(currentStudentCode) : [])
+    .filter(g => !g.cerrado);
+  const groupIds = groups.map(g => g.id);
+
+  if (!groupIds.length) {
+    cont.innerHTML = '<div class="empty-state">🔒 No tienes grupos activos. Los Online Workbooks aparecerán cuando te asignen a un grupo.</div>';
+    return;
+  }
+
+  const owAsgs = (state.assignments || []).filter(a => {
+    const esOW = a.criterio === "online_homework" || a.criterio === "online_workbook";
+    if (!esOW) return false;
+    if (a.grupoId && !groupIds.includes(a.grupoId)) return false;
+    return true;
+  });
+
+  if (!owAsgs.length) {
+    cont.innerHTML = '<div class="empty-state">📭 Aún no hay Online Workbooks asignados. Vuelve a revisar pronto.</div>';
+    return;
+  }
+
+  owAsgs.sort((a, b) => {
+    const fa = a.fechaFin || a.fechaInicio || "";
+    const fb = b.fechaFin || b.fechaInicio || "";
+    return fa.localeCompare(fb);
+  });
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const grades = state.grades[currentStudentCode] || {};
+
+  let completados = 0, pendientes = 0, vencidos = 0, suma = 0, conNota = 0;
+  const tarjetas = owAsgs.map(a => {
+    const nota = grades[a.id];
+    const calificado = nota !== undefined && nota !== null;
+    const vencido = a.fechaFin && a.fechaFin < hoy && !calificado;
+    const grupo = (state.groups || []).find(g => g.id === a.grupoId);
+
+    if (calificado) { completados++; suma += Number(nota); conNota++; }
+    else if (vencido) { vencidos++; pendientes++; }
+    else { pendientes++; }
+
+    let urlWorkbook = null;
+    if (a.fechaInicio) {
+      const evs = (state.calendarEvents && state.calendarEvents[a.fechaInicio]) || [];
+      const ev = evs.find(e =>
+        e.id === a.calendarEventId ||
+        (e.grupoId === a.grupoId && (e.tipo === "online_workbook" || e.tipo === "online_homework"))
+      );
+      if (ev && ev.nota && /^https?:\/\//i.test(ev.nota)) {
+        urlWorkbook = ev.nota;
+      }
+    }
+
+    let estadoBadge, estadoClase;
+    if (calificado) { estadoBadge = "Calificado"; estadoClase = "aprobado"; }
+    else if (vencido) { estadoBadge = "Vencido"; estadoClase = "desaprobado"; }
+    else { estadoBadge = "Pendiente"; estadoClase = "pendiente"; }
+
+    const badgeVencida = vencido
+      ? '<span style="display:inline-block;padding:2px 8px;background:#fee2e2;color:#b91c1c;border-radius:50px;font-size:.68rem;font-weight:800;margin-left:6px;">Vencido</span>'
+      : "";
+
+    return `
+      <div class="exam-link-card" style="align-items:center;">
+        <div class="exam-link-info" style="flex:1;">
+          <h4>💻 ${a.nombre || "Online Workbook"} ${badgeVencida}</h4>
+          <p>${grupo ? grupo.nombre : "—"}</p>
+          <small>📅 ${a.fechaInicio ? formatearFecha(a.fechaInicio) : "—"}${a.fechaFin ? " → " + formatearFecha(a.fechaFin) : ""}</small>
+        </div>
+        <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
+          <span class="calif-estado ${estadoClase}" style="font-size:.78rem;padding:4px 12px;">${estadoBadge}</span>
+          ${calificado ? `<div style="font-size:1.3rem;font-weight:800;color:var(--azul);line-height:1;">${Number(nota).toFixed(1)}<span style="font-size:.75rem;color:var(--gris);font-weight:500;"> / 20</span></div>` : ""}
+          ${urlWorkbook ? `<a href="${urlWorkbook}" target="_blank" rel="noopener" class="btn btn-mini btn-azul">🔗 Ir al Workbook</a>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+
+  const promedio = conNota ? (suma / conNota).toFixed(2) : "—";
+
+  cont.innerHTML = `
+    <div class="resumen-grid" style="margin-bottom:20px;">
+      <div class="resumen-card verde"><div class="et">Calificados</div><div class="val">${completados}</div></div>
+      <div class="resumen-card amarillo"><div class="et">Pendientes</div><div class="val">${pendientes}</div></div>
+      <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Vencidos</div><div class="val" style="color:var(--rojo);">${vencidos}</div></div>
+      <div class="resumen-card azul"><div class="et">Promedio OW</div><div class="val">${promedio}</div></div>
+    </div>
+    ${tarjetas}
+  `;
+}
+
+document.querySelectorAll('#dashboardAlumno [data-atab="online_workbook"]').forEach(tab => {
+  tab.addEventListener("click", () => setTimeout(renderStudentOnlineWorkbook, 40));
+});
+
+(function () {
+  const _origRefresh = window.refreshStudentView;
+  if (typeof _origRefresh === "function") {
+    window.refreshStudentView = function () {
+      const r = _origRefresh.apply(this, arguments);
+      try { renderStudentOnlineWorkbook(); } catch (e) {}
+      return r;
+    };
+  }
+})();
+
+console.log("✅ Tab Online Workbook del alumno cargado.");
+</script>
+<!-- ============================================================
+     FIN ONLINE WORKBOOK
+     ============================================================ -->
 </body>
 </html>
