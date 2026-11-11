@@ -1982,21 +1982,36 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
                 </div>
                 <div class="campo"><label>Tipo de evento / evaluación <span class="req">*</span></label>
                   <select id="calTipoSel">
-                    <option value="">Selecciona...</option>
-                    <optgroup label="Curso">
-                      <option value="inicio_curso">Inicio de curso</option>
-                      <option value="fin_curso">Fin de curso</option>
-                    </optgroup>
-                    <optgroup label="Evaluaciones" id="calTipoEvalGroup">
-                      <option value="class_participation">Class Participation</option>
-                      <option value="online_workbook">Online Workbook</option>
-                      <option value="readers">Readers</option>
-                      <option value="writing">Writing</option>
-                      <option value="speaking">Speaking</option>
-                      <option value="final_exam">Final Exam</option>
-                    </optgroup>
-                    <option value="otro">➕ Crear otro evento</option>
-                  </select>
+  <option value="">Selecciona...</option>
+  <optgroup label="Curso">
+    <option value="inicio_curso">Inicio de curso</option>
+    <option value="fin_curso">Fin de curso</option>
+  </optgroup>
+  <optgroup label="Evaluaciones" id="calTipoEvalGroup">
+    <option value="class_participation" data-nombre="Class Participation 1">Class Participation 1</option>
+    <option value="class_participation" data-nombre="Class Participation 2">Class Participation 2</option>
+    <option value="class_participation" data-nombre="Class Participation 3">Class Participation 3</option>
+    <option value="class_participation" data-nombre="Class Participation 4">Class Participation 4</option>
+    <option value="class_participation" data-nombre="Class Participation 5">Class Participation 5</option>
+    <option value="class_participation" data-nombre="Class Participation 6">Class Participation 6</option>
+    <option value="class_participation" data-nombre="Class Participation 7">Class Participation 7</option>
+    <option value="class_participation" data-nombre="Class Participation 8">Class Participation 8</option>
+    <option value="online_workbook" data-nombre="Online Workbook 1">Online Workbook 1</option>
+    <option value="online_workbook" data-nombre="Online Workbook 2">Online Workbook 2</option>
+    <option value="online_workbook" data-nombre="Online Workbook 3">Online Workbook 3</option>
+    <option value="readers" data-nombre="Readers 1">Readers 1</option>
+    <option value="readers" data-nombre="Readers 2">Readers 2</option>
+    <option value="readers" data-nombre="Readers 3">Readers 3</option>
+    <option value="writing" data-nombre="Writing 1">Writing 1</option>
+    <option value="writing" data-nombre="Writing 2">Writing 2</option>
+    <option value="writing" data-nombre="Writing 3">Writing 3</option>
+    <option value="speaking" data-nombre="Speaking 1">Speaking 1</option>
+    <option value="speaking" data-nombre="Speaking 2">Speaking 2</option>
+    <option value="speaking" data-nombre="Speaking 3">Speaking 3</option>
+    <option value="final_exam" data-nombre="Final Exam">Final Exam</option>
+  </optgroup>
+  <option value="otro">➕ Crear otro evento</option>
+</select>
                 </div>
                 <div class="campo" id="calOtroWrap" style="display:none;">
                   <label>Nombre del nuevo evento</label>
@@ -8426,9 +8441,12 @@ function fillCalTipoSelect() {
   if (group) {
     // base options already in HTML; append custom criterios
     group.querySelectorAll('option[data-custom="1"]').forEach(o => o.remove());
-    (state.customCriterios || []).forEach(c => {
+     (state.customCriterios || []).forEach(c => {
       const o = document.createElement('option');
-      o.value = c.id; o.textContent = c.nombre; o.dataset.custom = '1';
+      o.value = c.id;
+      o.textContent = c.nombre;
+      o.dataset.custom = '1';
+      o.dataset.nombre = c.nombre;   // 🆕 para que use data-nombre al crear
       group.appendChild(o);
     });
   }
@@ -8657,16 +8675,32 @@ document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
   const panel = document.getElementById('calEventPanel');
   const fecha = panel?.dataset.fecha || calSelectedDate;
   if (!fecha) { alert('Selecciona un día en el calendario.'); return; }
+
   const grupoId = document.getElementById('calGrupoSel').value;
-  const tipo = document.getElementById('calTipoSel').value;
+  const selTipo = document.getElementById('calTipoSel');
+  const tipo = selTipo.value;
   const nota = (document.getElementById('calNotaEvento')?.value || '').trim();
-  let nombre = calTipoLabel(tipo);
+
+  // 🆕 Obtener el nombre específico desde data-nombre
+  const optSeleccionada = selTipo.selectedOptions[0];
+  const nombreDesdeData = optSeleccionada?.dataset?.nombre || null;
+
+  let nombre = nombreDesdeData || calTipoLabel(tipo);
+
   if (tipo === 'otro') {
     nombre = (document.getElementById('calOtroEvento').value || '').trim();
     if (!nombre) { alert('Escribe el nombre del nuevo evento.'); return; }
   }
   if (!tipo) { alert('Selecciona el tipo de evento.'); return; }
   if (!grupoId && tipo !== 'otro') { alert('Selecciona un grupo.'); return; }
+
+  // 🆕 Validar que no se duplique el mismo NOMBRE específico en la misma fecha
+  const existentes = (state.calendarEvents[fecha] || []).filter(ev => ev.grupoId === grupoId);
+  const yaExiste = existentes.some(ev => ev.nombre === nombre && ev.tipo === tipo);
+  if (yaExiste) {
+    if (!confirm(`⚠️ Ya existe un evento "${nombre}" en el ${formatearFechaCal(fecha)} para este grupo.\n\n¿Agregar de todos modos?`)) return;
+  }
+
   if (!state.calendarEvents) state.calendarEvents = {};
   if (!state.calendarEvents[fecha]) state.calendarEvents[fecha] = [];
   state.calendarEvents[fecha].push({
@@ -8677,21 +8711,38 @@ document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
     nota: nota || null,
     createdAt: new Date().toISOString()
   });
-  // Si es evaluación, opcionalmente crear asignación programada ese día
-  const evalTipos = ['class_participation','online_workbook','readers','writing','speaking','final_exam'];
+
+  // 🆕 Si es evaluación, crear asignación con el nombre específico
+  const evalTipos = ['class_participation','online_workbook','readers','writing','speaking','final_exam','intl_exam'];
   const isCustomCrit = (state.customCriterios || []).some(c => c.id === tipo);
   if ((evalTipos.includes(tipo) || isCustomCrit) && grupoId) {
     if (!state.assignments) state.assignments = [];
-    state.assignments.push({
-      id: 'asg_cal_' + Date.now(),
-      criterio: tipo === 'online_workbook' ? 'online_homework' : tipo,
-      nombre: `${nombre} · ${formatearFechaCal(fecha)}`,
-      fechaInicio: fecha,
-      fechaFin: fecha,
-      grupoId,
-      createdBy: 'calendarizacion'
-    });
+    const criterioNorm = tipo === 'online_workbook' ? 'online_homework' : tipo;
+
+    // 🆕 Evitar duplicado por (fecha + criterio + nombre específico)
+    const yaExisteAsg = state.assignments.some(a =>
+      a.grupoId === grupoId &&
+      a.fechaInicio === fecha &&
+      a.criterio === criterioNorm &&
+      a.nombre === nombre
+    );
+
+    if (!yaExisteAsg) {
+      state.assignments.push({
+        id: 'asg_cal_' + Date.now(),
+        criterio: criterioNorm,
+        nombre,
+        fechaInicio: fecha,
+        fechaFin: fecha,
+        grupoId,
+        createdBy: 'calendarizacion'
+      });
+      console.log(`✅ Asignación creada: "${nombre}" · ${fecha}`);
+    } else {
+      console.log(`ℹ️ Ya existe asignación: "${nombre}" · ${fecha}. No se duplica.`);
+    }
   }
+
   saveState();
   document.getElementById('calOtroEvento').value = '';
   if (document.getElementById('calNotaEvento')) document.getElementById('calNotaEvento').value = '';
@@ -8700,7 +8751,7 @@ document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
   renderCalEventosDelDia(fecha);
   renderCalendarizacion();
 });
-document.getElementById('btnCalCerrarPanel')?.addEventListener('click', () => {
+ document.getElementById('btnCalCerrarPanel')?.addEventListener('click', () => {
   calSelectedDate = null;
   document.getElementById('calEventPanel').style.display = 'none';
   document.querySelectorAll('#calGrid [data-cal-day]').forEach(el => {
