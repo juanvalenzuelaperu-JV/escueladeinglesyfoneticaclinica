@@ -4263,15 +4263,40 @@ function renderStudentCalificaciones() {
   }
   if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
 
-  // 4. Generar Mapa de Ruta (Timeline)
+  // 4. Generar Mapa de Ruta (Timeline) filtrado
   const timeline = document.getElementById('mapaTimelineA');
   if (!timeline) return;
   timeline.innerHTML = '';
 
+  // 🆕 A. Detectar qué criterios están realmente activos en el grupo (Asignaciones + Calendario)
+  const criteriosActivos = new Set();
+  const myGroupIdsSet = new Set(myGroupIds);
+
+  // Buscar en asignaciones
+  (state.assignments || []).forEach(a => {
+    if (!a.grupoId || myGroupIdsSet.has(a.grupoId)) {
+      criteriosActivos.add(a.criterio === 'online_workbook' ? 'online_homework' : a.criterio);
+    }
+  });
+
+  // Buscar en eventos del calendario (por si acaso hay eventos sin asignación)
+  Object.values(state.calendarEvents || {}).forEach(evs => {
+    (evs || []).forEach(ev => {
+      if (ev.grupoId && myGroupIdsSet.has(ev.grupoId)) {
+        const tipo = ev.tipo === 'online_workbook' ? 'online_homework' : ev.tipo;
+        criteriosActivos.add(tipo);
+      }
+    });
+  });
+
+  // Juntar criterios base + personalizados
+  const todosLosCriterios = [...CRITERIOS, ...(state.customCriterios || [])];
+
   let sumaProyeccion = 0;
   let criteriosEvaluados = 0;
 
-  CRITERIOS.forEach(c => {
+  // 🆕 B. Iterar solo sobre los criterios activos
+  todosLosCriterios.forEach(c => {
     // Calcular promedio del criterio
     let p = promedioCriterio(currentStudentCode, c.id);
     if (p === null && c.id === 'online_homework') {
@@ -4283,6 +4308,11 @@ function renderStudentCalificaciones() {
       const matchCrit = a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook');
       return matchCrit && (!a.grupoId || myGroupIds.includes(a.grupoId));
     });
+
+    // 🆕 C. FILTRO MAESTRO: Si el criterio no está en el calendario/asignaciones y no tiene notas, NO SE DIBUJA.
+    if (!criteriosActivos.has(c.id) && p === null) {
+      return; // Saltamos este criterio (ej. International Examination)
+    }
 
     const grades = state.grades[currentStudentCode] || {};
     const completadas = asgs.filter(a => grades[a.id] !== undefined && grades[a.id] !== null).length;
@@ -4307,7 +4337,7 @@ function renderStudentCalificaciones() {
         notaClass = 'verde';
         barClass = 'verde';
         icono = '🟢';
-        mensaje = `¡Buen trabajo! Llevas ${completadas} de ${total} evaluaciones.`;
+        mensaje = `¡Buen trabajo! Llevas ${completadas} de ${total} evaluaciones aprobadas.`;
       } else if (p >= 11) {
         colorClass = 'curso';
         notaClass = 'amarillo';
