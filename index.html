@@ -4309,23 +4309,34 @@ function renderStudentCalificaciones() {
       p = promedioCriterio(currentStudentCode, 'online_workbook');
     }
 
-       // Buscar asignaciones de este criterio
+    // Buscar asignaciones de este criterio
     const asgs = (state.assignments || []).filter(a => {
       const matchCrit = a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook');
       if (!matchCrit) return false;
       if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
 
-      // 🆕 FILTRO ANTI-FANTASMAS:
-      // Si la asignación nació de un evento (ID empieza con 'asg_cal_'), verificamos que el evento exista.
-      if (a.id && String(a.id).startsWith('asg_cal_')) {
-        const fecha = a.fechaInicio;
-        const eventos = (state.calendarEvents && state.calendarEvents[fecha]) || [];
-        const existeEvento = eventos.some(ev =>
-          ev.grupoId === a.grupoId &&
-          (ev.tipo === a.criterio || (a.criterio === 'online_homework' && ev.tipo === 'online_workbook'))
-        );
-        if (!existeEvento) return false; // Es un fantasma (se borró el evento del calendario)
-      }
+      // 🆕 FILTRO UNIVERSAL ANTI-FANTASMAS:
+      const grades = state.grades[currentStudentCode] || {};
+      const tieneNota = grades[a.id] !== undefined && grades[a.id] !== null;
+      
+      // Si el alumno ya tiene nota, se muestra sin importar nada.
+      if (tieneNota) return true;
+
+      // Si no tiene nota, verificar que el evento realmente exista en el calendario.
+      const fecha = a.fechaInicio;
+      if (!fecha) return true;
+
+      const eventos = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+      const existeEvento = eventos.some(ev => {
+        if (ev.grupoId !== a.grupoId) return false;
+        const tipoEventoNorm = ev.tipo === 'online_workbook' ? 'online_homework' : ev.tipo;
+        const tipoAsgNorm = a.criterio === 'online_workbook' ? 'online_homework' : a.criterio;
+        return tipoEventoNorm === tipoAsgNorm;
+      });
+
+      // Si no existe el evento, es una asignación huérfana (fantasma).
+      if (!existeEvento) return false;
+
       return true;
     });
 
