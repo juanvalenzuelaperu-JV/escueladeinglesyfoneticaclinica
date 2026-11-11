@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <link rel="icon" id="dynamicFavicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004aad'/><text x='50' y='68' font-size='50' fill='white' text-anchor='middle' font-weight='bold'>JV</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1501,6 +1503,15 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           </div>
 
           <div class="panel" id="adm-panel-examenes">
+           <!-- 🆕 SUB-TABS: Manual vs Importar -->
+<div class="dash-tabs sub-tabs" style="margin-bottom:18px;">
+  <button type="button" class="dash-tab activo" data-admExamTab="manual">📝 Crear manualmente</button>
+  <button type="button" class="dash-tab" data-admExamTab="importar">📄 Importar documento</button>
+</div>
+
+<!-- 🆕 VISTA 1: Manual (envolviendo tu formulario actual) -->
+<div id="admExamVistaManual" class="subpanel activo">
+
             <div class="tform admin-form">
               <h4>➕ Crear nuevo examen</h4>
               <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
@@ -1547,9 +1558,181 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
                 </div>
                 <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
               </form>
-              <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
-            </div>
-            <h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
+  <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
+</div>
+</div><!-- ✅ cierra el div admin-form -->
+
+</div><!-- ✅ cierra admExamVistaManual -->
+
+<!-- 🆕 VISTA 2: Importar documento (oculta por defecto) -->
+<div id="admExamVistaImportar" class="subpanel" style="display:none;">
+
+  <div class="tform admin-form" id="admImportarDocumentoPanel" style="border:2px dashed #c7d2fe;background:linear-gradient(180deg,#f5f3ff 0%,#f8fafc 100%);">
+
+    <!-- Encabezado -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;">
+      <div style="font-size:2.2rem;line-height:1;">📄</div>
+      <div style="flex:1;">
+        <h4 style="margin:0 0 4px;color:var(--morado);font-size:1.15rem;">Importar documento → Crear examen automático</h4>
+        <p style="margin:0;color:var(--gris);font-size:.88rem;">
+          Sube un PDF, Word, TXT o imagen. El sistema extraerá el texto y generará preguntas de opción múltiple.
+        </p>
+      </div>
+      <span style="background:#ede9fe;color:#6d28d9;padding:4px 12px;border-radius:50px;font-size:.7rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;">Beta</span>
+    </div>
+
+    <!-- Paso 1: Drag & Drop -->
+    <div id="dropZoneDoc" style="
+      border:2px dashed #a5b4fc;
+      border-radius:14px;
+      background:#fff;
+      padding:40px 20px;
+      text-align:center;
+      transition:all .25s ease;
+      cursor:pointer;
+      margin-bottom:16px;
+    ">
+      <div style="font-size:3rem;margin-bottom:12px;">📤</div>
+      <div style="font-weight:700;color:var(--slate);font-size:1rem;margin-bottom:6px;">
+        Arrastra tu archivo aquí o haz clic para seleccionar
+      </div>
+      <div style="color:var(--gris);font-size:.85rem;margin-bottom:4px;">
+        PDF · DOCX · TXT
+      </div>
+      <div style="color:#94a3b8;font-size:.75rem;">
+        Tamaño máximo: 10 MB
+      </div>
+      <input type="file" id="docImportFile" accept=".pdf,.docx,.doc,.txt" style="display:none;">
+    </div>
+
+    <!-- Archivo cargado -->
+    <div id="docArchivoCargado" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;margin-bottom:16px;align-items:center;gap:12px;">
+      <div style="font-size:1.6rem;">📎</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;color:#065f46;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="docArchivoNombre">documento.pdf</div>
+        <div style="color:#6b7280;font-size:.78rem;" id="docArchivoInfo">245 KB</div>
+      </div>
+      <button type="button" id="docQuitarArchivo" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:700;cursor:pointer;">
+        ✕ Quitar
+      </button>
+    </div>
+
+    <!-- Opciones -->
+    <h5 style="color:var(--slate);font-size:.92rem;font-weight:800;margin:0 0 12px;text-transform:uppercase;letter-spacing:.04em;">
+      📋 Opciones de procesamiento
+    </h5>
+
+    <div class="tform-grid" style="margin-bottom:16px;">
+
+      <div class="campo">
+        <label>Tipo de examen <span class="req">*</span></label>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:12px;background:#fff;border:1.5px solid var(--borde);border-radius:10px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.9rem;color:var(--azul);">
+            <input type="radio" name="docTipoExamen" value="final_exam" checked style="width:17px;height:17px;accent-color:var(--azul-medio);">
+            🎯 Examen Final
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.9rem;color:var(--morado);">
+            <input type="radio" name="docTipoExamen" value="online_workbook" style="width:17px;height:17px;accent-color:var(--morado);">
+            💻 Online Workbook
+          </label>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Intentos permitidos</label>
+        <select id="docIntentos" style="width:100%;padding:12px 14px;border:1.5px solid var(--borde);border-radius:10px;font-family:inherit;font-size:.92rem;background:#fff;">
+          <option value="1">1 intento (sin repetición)</option>
+          <option value="2">2 intentos (permite reintento)</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>Nombre del examen <span class="req">*</span></label>
+        <input type="text" id="docNombreExamen" placeholder="Ej: Quiz de comprensión lectora" style="padding:12px 14px;border:1.5px solid var(--borde);border-radius:10px;font-family:inherit;font-size:.92rem;">
+      </div>
+
+      <div class="campo">
+        <label>Cantidad de preguntas</label>
+        <input type="number" id="docCantPreguntas" min="1" max="30" value="5" style="padding:12px 14px;border:1.5px solid var(--borde);border-radius:10px;font-family:inherit;font-size:.92rem;">
+      </div>
+
+    </div>
+
+    <!-- Grupos destino -->
+    <div class="campo completo" style="margin-bottom:16px;">
+      <label>Grupos destino <span class="req">*</span></label>
+      <div id="docGruposCheckboxes" style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+        gap:8px;
+        padding:12px;
+        border:1.5px solid var(--borde);
+        border-radius:10px;
+        background:#fff;
+        max-height:180px;
+        overflow-y:auto;
+      ">
+        <div style="color:var(--gris);font-size:.85rem;padding:8px;">Cargando grupos...</div>
+      </div>
+      <small id="docGruposInfo" style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">
+        Selecciona al menos un grupo.
+      </small>
+    </div>
+
+    <!-- Botón procesar -->
+    <div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;">
+      <button type="button" id="docProcesar" style="
+        background:linear-gradient(135deg,#7c3aed,#a78bfa);
+        color:#fff;
+        border:none;
+        padding:12px 28px;
+        border-radius:10px;
+        font-family:inherit;
+        font-weight:800;
+        font-size:.95rem;
+        cursor:pointer;
+        box-shadow:0 4px 14px rgba(124,58,237,.35);
+      ">
+        🤖 Procesar y generar preguntas
+      </button>
+    </div>
+
+    <!-- Progreso -->
+    <div id="docProgreso" style="display:none;margin-top:20px;background:#fff;border:1.5px solid #a5b4fc;border-radius:12px;padding:20px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="font-size:1.8rem;">⚙️</div>
+        <div style="flex:1;">
+          <div style="font-weight:800;color:var(--morado);font-size:.95rem;">Procesando documento…</div>
+          <div id="docProgresoPaso" style="color:var(--gris);font-size:.82rem;">Iniciando análisis</div>
+        </div>
+      </div>
+      <div style="background:#f1f5f9;border-radius:50px;height:10px;overflow:hidden;">
+        <div id="docProgresoBarra" style="height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);width:0%;transition:width .4s ease;border-radius:50px;"></div>
+      </div>
+    </div>
+
+    <!-- Preview de preguntas generadas -->
+    <div id="docPreviewPreguntas" style="display:none;margin-top:20px;background:#fff;border:1.5px solid #a5b4fc;border-radius:12px;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <h4 style="margin:0;color:var(--morado);font-size:1rem;font-weight:800;">📝 Preguntas generadas</h4>
+        <span id="docPreviewCount" style="background:#ede9fe;color:#6d28d9;padding:4px 12px;border-radius:50px;font-size:.75rem;font-weight:800;">0 preguntas</span>
+      </div>
+      <div id="docPreviewLista" style="max-height:400px;overflow-y:auto;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid var(--borde);padding-top:16px;">
+        <button type="button" id="docCancelarPreview" style="background:#f1f5f9;color:#475569;border:1.5px solid var(--borde);padding:10px 20px;border-radius:8px;font-family:inherit;font-weight:700;font-size:.88rem;cursor:pointer;">
+          Cancelar
+        </button>
+        <button type="button" id="docPublicarExamen" style="background:linear-gradient(135deg,#10b981,#34d399);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-family:inherit;font-weight:800;font-size:.9rem;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,.35);">
+          📤 Publicar examen
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- ✅ cierra admExamVistaImportar -->
+
+<h4 style="color:var(--slate);margin-bottom:14px;font-size:1rem;font-weight:800;">📝 Exámenes publicados</h4>
             <div id="admExamsLista"></div>
           </div>
 
@@ -16607,5 +16790,539 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
 <!-- ============================================================
      FIN ONLINE WORKBOOK
      ============================================================ -->
-</body>
+/* ============================================================
+   SUB-TABS DE EXÁMENES: Manual vs Importar
+   ============================================================ */
+<script>
+ (function () {
+  'use strict';
+
+  function setupExamSubTabs() {
+    const tabs = document.querySelectorAll('[data-admExamTab]');
+    if (!tabs.length) return;
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const vista = tab.dataset.admExamTab;
+
+        // 1. Actualizar tabs
+        tabs.forEach(t => t.classList.remove('activo'));
+        tab.classList.add('activo');
+
+        // 2. Ocultar todas las vistas
+        const vistaManual = document.getElementById('admExamVistaManual');
+        const vistaImportar = document.getElementById('admExamVistaImportar');
+        if (vistaManual) vistaManual.style.display = 'none';
+        if (vistaImportar) vistaImportar.style.display = 'none';
+
+        // 3. Mostrar la vista elegida
+        if (vista === 'manual' && vistaManual) vistaManual.style.display = 'block';
+        if (vista === 'importar' && vistaImportar) vistaImportar.style.display = 'block';
+      });
+    });
+  }
+
+  // Inicializar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupExamSubTabs);
+  } else {
+    setupExamSubTabs();
+  }
+
+  console.log('✅ Sub-tabs de Exámenes (manual/importar) cargados.');
+})();
+ </script>
+ <!-- ============================================================
+     IMPORTACIÓN DE DOCUMENTOS — Generación automática de preguntas
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Módulo Importar Documento iniciando...');
+
+  // ─── Estado local ───
+  let archivoActual = null;
+  let textoExtraido = "";
+  let preguntasGeneradas = [];
+
+  // ─── Helpers de UI ───
+  function $(id) { return document.getElementById(id); }
+
+  function mostrarProgreso(paso, porcentaje) {
+    const box = $('docProgreso');
+    const barra = $('docProgresoBarra');
+    const pasoEl = $('docProgresoPaso');
+    if (!box) return;
+    box.style.display = 'block';
+    if (barra) barra.style.width = porcentaje + '%';
+    if (pasoEl) pasoEl.textContent = paso;
+  }
+
+  function ocultarProgreso() {
+    const box = $('docProgreso');
+    if (box) box.style.display = 'none';
+    const barra = $('docProgresoBarra');
+    if (barra) barra.style.width = '0%';
+  }
+
+  // ─── Cargar grupos destino en checkboxes ───
+  function cargarGruposDestino() {
+    const cont = $('docGruposCheckboxes');
+    if (!cont) return;
+
+    const activos = (state.groups || []).filter(g => !g.cerrado);
+    if (!activos.length) {
+      cont.innerHTML = '<div style="color:var(--gris);font-size:.85rem;padding:8px;">No hay grupos activos.</div>';
+      return;
+    }
+
+    activos.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+    cont.innerHTML = activos.map(g => {
+      const nivel = typeof getNivelInfo === 'function' ? getNivelInfo(g.nivel) : { nombre: g.nivel || '' };
+      const teacher = state.teachers[g.teacherCode];
+      return `
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#f9fafb;border:1px solid var(--borde);border-radius:8px;cursor:pointer;font-size:.85rem;">
+          <input type="checkbox" value="${g.id}" class="doc-grupo-cb" style="margin-top:3px;width:16px;height:16px;accent-color:var(--azul-medio);flex-shrink:0;">
+          <div style="flex:1;min-width:0;">
+            <strong style="color:var(--azul);display:block;font-size:.88rem;">${g.nombre || g.programa || g.id}</strong>
+            <small style="display:block;color:var(--gris);font-size:.72rem;margin-top:1px;">
+              ${nivel.nombre || ''} · ${teacher ? teacher.nombre : 'Sin docente'}
+            </small>
+          </div>
+        </label>`;
+    }).join('');
+
+    cont.querySelectorAll('.doc-grupo-cb').forEach(cb => {
+      cb.addEventListener('change', actualizarInfoGrupos);
+    });
+  }
+
+  function actualizarInfoGrupos() {
+    const cbs = document.querySelectorAll('.doc-grupo-cb:checked');
+    const info = $('docGruposInfo');
+    if (!info) return;
+    if (cbs.length === 0) {
+      info.textContent = 'Selecciona al menos un grupo.';
+      info.style.color = 'var(--gris)';
+    } else {
+      info.innerHTML = `✅ <strong>${cbs.length} grupo(s)</strong> seleccionado(s).`;
+      info.style.color = 'var(--verde)';
+    }
+  }
+
+  // ─── Drag & Drop ───
+  function setupDragDrop() {
+    const dropZone = $('dropZoneDoc');
+    const fileInput = $('docImportFile');
+    if (!dropZone || !fileInput) return;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#7c3aed';
+      dropZone.style.background = '#faf5ff';
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#a5b4fc';
+      dropZone.style.background = '#fff';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#a5b4fc';
+      dropZone.style.background = '#fff';
+      const files = e.dataTransfer.files;
+      if (files.length > 0) procesarArchivoSeleccionado(files[0]);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) procesarArchivoSeleccionado(e.target.files[0]);
+    });
+  }
+
+  // ─── Validar y guardar archivo ───
+  function procesarArchivoSeleccionado(file) {
+    const MAX = 10 * 1024 * 1024;
+    const tiposOk = ['.pdf', '.docx', '.doc', '.txt'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+
+    if (!tiposOk.includes(ext)) {
+      alert('❌ Solo se aceptan PDF, DOCX o TXT.');
+      return;
+    }
+
+    if (file.size > MAX) {
+      alert(`❌ El archivo pesa ${(file.size/1024/1024).toFixed(1)} MB. Máximo 10 MB.`);
+      return;
+    }
+
+    archivoActual = file;
+    textoExtraido = '';
+    preguntasGeneradas = [];
+
+    $('docArchivoNombre').textContent = file.name;
+    $('docArchivoInfo').textContent = `${(file.size/1024).toFixed(0)} KB · ${ext.replace('.','').toUpperCase()}`;
+    $('docArchivoCargado').style.display = 'flex';
+    $('docPreviewPreguntas').style.display = 'none';
+    ocultarProgreso();
+
+    // Autocompletar nombre del examen si está vacío
+    const nombreInp = $('docNombreExamen');
+    if (nombreInp && !nombreInp.value.trim()) {
+      const baseName = file.name.replace(/\.(pdf|docx|doc|txt)$/i, '');
+      nombreInp.value = baseName;
+    }
+
+    console.log('✅ Archivo cargado:', file.name);
+  }
+
+  function quitarArchivo() {
+    archivoActual = null;
+    textoExtraido = '';
+    preguntasGeneradas = [];
+    $('docArchivoCargado').style.display = 'none';
+    $('docPreviewPreguntas').style.display = 'none';
+    $('docImportFile').value = '';
+    ocultarProgreso();
+    if ($('docProgresoPaso')) $('docProgresoPaso').textContent = '';
+  }
+
+  // ─── Extraer texto de PDF (usando PDF.js) ───
+  async function extraerTextoPDF(file) {
+    if (typeof pdfjsLib === 'undefined') {
+      throw new Error('PDF.js no está cargado. Recarga la página.');
+    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let texto = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const strings = content.items.map(item => item.str).join(' ');
+      texto += strings + '\n\n';
+    }
+    return texto;
+  }
+
+  // ─── Extraer texto de DOCX (usando mammoth.js) ───
+  async function extraerTextoDOCX(file) {
+    if (typeof mammoth === 'undefined') {
+      throw new Error('Mammoth.js no está cargado. Recarga la página.');
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value;
+  }
+
+  // ─── Extraer texto de TXT ───
+  async function extraerTextoTXT(file) {
+    return await file.text();
+  }
+
+  // ─── Generar preguntas a partir del texto ───
+  function generarPreguntas(texto, cantidad) {
+    // Limpiar y normalizar
+    const limpio = texto
+      .replace(/\s+/g, ' ')
+      .replace(/([.!?])\s+/g, '$1|')
+      .split('|')
+      .map(o => o.trim())
+      .filter(o => o.length > 30 && o.length < 250);
+
+    if (limpio.length < 4) {
+      return [];
+    }
+
+    // Mezclar y tomar las oraciones más útiles
+    const oraciones = [...limpio].sort(() => Math.random() - 0.5);
+    const seleccionadas = oraciones.slice(0, Math.min(cantidad, oraciones.length));
+
+    return seleccionadas.map((oracion, idx) => {
+      // Enunciado: "¿Cuál de estas oraciones aparece en el texto?"
+      // Opciones: la correcta + 3 distractores (otras oraciones)
+      const distractores = oraciones
+        .filter(o => o !== oracion)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+      const opciones = [oracion, ...distractores].sort(() => Math.random() - 0.5);
+      const correcta = opciones.indexOf(oracion);
+
+      return {
+        enunciado: `Pregunta ${idx + 1}: ¿Cuál de las siguientes afirmaciones aparece en el texto?`,
+        opciones,
+        correcta,
+        contexto: null,
+        contextoImagen: null
+      };
+    });
+  }
+
+  // ─── Procesar archivo (flujo completo) ───
+  async function procesarDocumento() {
+    if (!archivoActual) {
+      alert('⚠️ Primero sube un archivo.');
+      return;
+    }
+
+    const nombre = $('docNombreExamen').value.trim();
+    if (!nombre) {
+      alert('⚠️ Escribe un nombre para el examen.');
+      $('docNombreExamen').focus();
+      return;
+    }
+
+    const cbsMarcados = document.querySelectorAll('.doc-grupo-cb:checked');
+    if (cbsMarcados.length === 0) {
+      alert('⚠️ Selecciona al menos un grupo destino.');
+      return;
+    }
+
+    const cantidad = parseInt($('docCantPreguntas').value, 10) || 5;
+
+    try {
+      mostrarProgreso('Leyendo documento...', 10);
+      const ext = '.' + archivoActual.name.split('.').pop().toLowerCase();
+
+      // 1. Extraer texto
+      let texto = '';
+      if (ext === '.pdf') {
+        mostrarProgreso('Extrayendo texto del PDF...', 30);
+        texto = await extraerTextoPDF(archivoActual);
+      } else if (ext === '.docx' || ext === '.doc') {
+        mostrarProgreso('Extrayendo texto del Word...', 30);
+        texto = await extraerTextoDOCX(archivoActual);
+      } else {
+        mostrarProgreso('Leyendo TXT...', 30);
+        texto = await extraerTextoTXT(archivoActual);
+      }
+
+      if (!texto || texto.trim().length < 50) {
+        throw new Error('El documento no tiene suficiente texto para generar preguntas.');
+      }
+
+      textoExtraido = texto;
+      mostrarProgreso('Analizando contenido...', 60);
+
+      // 2. Generar preguntas
+      await new Promise(r => setTimeout(r, 400)); // pausa visual
+      mostrarProgreso('Generando preguntas...', 85);
+
+      preguntasGeneradas = generarPreguntas(texto, cantidad);
+
+      if (preguntasGeneradas.length === 0) {
+        throw new Error('No se pudieron generar preguntas. El documento puede tener muy poco texto útil.');
+      }
+
+      mostrarProgreso('¡Listo!', 100);
+      await new Promise(r => setTimeout(r, 400));
+      ocultarProgreso();
+
+      // 3. Mostrar preview
+      mostrarPreviewPreguntas();
+      console.log(`✅ ${preguntasGeneradas.length} preguntas generadas.`);
+
+    } catch (err) {
+      ocultarProgreso();
+      alert('❌ Error al procesar el documento:\n\n' + (err.message || err));
+      console.error(err);
+    }
+  }
+
+  // ─── Mostrar preview editable de preguntas ───
+  function mostrarPreviewPreguntas() {
+    const preview = $('docPreviewPreguntas');
+    const lista = $('docPreviewLista');
+    const count = $('docPreviewCount');
+    if (!preview || !lista) return;
+
+    preview.style.display = 'block';
+    if (count) count.textContent = `${preguntasGeneradas.length} pregunta(s)`;
+
+    lista.innerHTML = preguntasGeneradas.map((p, idx) => `
+      <div class="doc-pregunta-item" data-idx="${idx}" style="border:1px solid var(--borde);border-radius:10px;padding:14px;margin-bottom:10px;background:#f9fafb;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
+          <strong style="color:var(--morado);font-size:.9rem;">Pregunta ${idx + 1}</strong>
+          <button type="button" class="doc-eliminar-pregunta" data-idx="${idx}" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:700;cursor:pointer;">🗑️ Eliminar</button>
+        </div>
+        <div class="campo" style="margin-bottom:8px;">
+          <label style="font-size:.82rem;color:var(--gris);">Enunciado</label>
+          <input type="text" class="doc-enunciado" value="${escapeHTML(p.enunciado)}" style="width:100%;padding:8px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.88rem;">
+        </div>
+        <div style="font-size:.82rem;color:var(--gris);margin-bottom:6px;">Opciones (marca la correcta):</div>
+        ${p.opciones.map((op, i) => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <input type="radio" name="doc_correcta_${idx}" value="${i}" ${i === p.correcta ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--verde);">
+            <input type="text" class="doc-opcion" value="${escapeHTML(op)}" style="flex:1;padding:6px 10px;border:1.5px solid var(--borde);border-radius:6px;font-family:inherit;font-size:.85rem;">
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+
+    // Listeners
+    lista.querySelectorAll('.doc-eliminar-pregunta').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        preguntasGeneradas.splice(idx, 1);
+        if (preguntasGeneradas.length === 0) {
+          preview.style.display = 'none';
+        } else {
+          mostrarPreviewPreguntas();
+        }
+      });
+    });
+
+    // Sincronizar ediciones
+    lista.querySelectorAll('.doc-pregunta-item').forEach(item => {
+      const idx = parseInt(item.dataset.idx, 10);
+      const enunciadoInp = item.querySelector('.doc-enunciado');
+      const opcionesInps = item.querySelectorAll('.doc-opcion');
+      const radios = item.querySelectorAll(`input[name="doc_correcta_${idx}"]`);
+
+      if (enunciadoInp) {
+        enunciadoInp.addEventListener('input', () => {
+          preguntasGeneradas[idx].enunciado = enunciadoInp.value;
+        });
+      }
+      opcionesInps.forEach((inp, i) => {
+        inp.addEventListener('input', () => {
+          preguntasGeneradas[idx].opciones[i] = inp.value;
+        });
+      });
+      radios.forEach(r => {
+        r.addEventListener('change', () => {
+          if (r.checked) preguntasGeneradas[idx].correcta = parseInt(r.value, 10);
+        });
+      });
+    });
+
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ─── Utilidad para escapar HTML en inputs ───
+  function escapeHTML(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ─── Publicar el examen (usa la misma lógica que el manual) ───
+  async function publicarExamen() {
+    if (!preguntasGeneradas.length) {
+      alert('⚠️ No hay preguntas para publicar.');
+      return;
+    }
+
+    const nombre = $('docNombreExamen').value.trim();
+    const intentos = parseInt($('docIntentos').value, 10) || 1;
+    const tipoExamen = document.querySelector('input[name="docTipoExamen"]:checked')?.value || 'final_exam';
+    const criterio = tipoExamen === 'online_workbook' ? 'online_homework' : 'final_exam';
+
+    const cbsMarcados = Array.from(document.querySelectorAll('.doc-grupo-cb:checked')).map(cb => cb.value);
+    if (cbsMarcados.length === 0) {
+      alert('⚠️ Selecciona al menos un grupo.');
+      return;
+    }
+
+    const btn = $('docPublicarExamen');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Publicando...'; }
+
+    try {
+      const fechaPub = new Date().toISOString().slice(0, 10);
+      const preguntasFinales = JSON.parse(JSON.stringify(preguntasGeneradas));
+
+      if (!state.examResults) state.examResults = {};
+
+      let creados = 0;
+      cbsMarcados.forEach((grupoId, idx) => {
+        const examId = 'exam_' + (Date.now() + idx);
+        const asgId = 'asg_exam_' + (Date.now() + idx);
+
+        state.exams.push({
+          id: examId,
+          nombre,
+          grupoId,
+          assignmentId: asgId,
+          fechaPublicacion: fechaPub,
+          preguntas: JSON.parse(JSON.stringify(preguntasFinales)),
+          intentosPermitidos: intentos,
+          descripcion: 'Importado desde documento',
+          fechaFin: null,
+          tipoExamen,
+          criterio
+        });
+
+        state.assignments.push({
+          id: asgId,
+          criterio,
+          nombre: '📝 ' + nombre,
+          fechaInicio: fechaPub,
+          fechaFin: null,
+          esExamen: true,
+          examId,
+          grupoId
+        });
+
+        state.examResults[examId] = {};
+        creados++;
+      });
+
+      saveState();
+      if (typeof renderAdminExams === 'function') renderAdminExams();
+
+      alert(`✅ Examen "${nombre}" publicado en ${creados} grupo(s).\n\n${preguntasFinales.length} preguntas.`);
+
+      // Reset
+      quitarArchivo();
+      $('docNombreExamen').value = '';
+      document.querySelectorAll('.doc-grupo-cb:checked').forEach(cb => cb.checked = false);
+      actualizarInfoGrupos();
+
+    } catch (err) {
+      alert('❌ Error al publicar: ' + (err.message || err));
+      console.error(err);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '📤 Publicar examen'; }
+    }
+  }
+
+  // ─── Init ───
+  function init() {
+    setupDragDrop();
+    cargarGruposDestino();
+
+    $('docQuitarArchivo')?.addEventListener('click', quitarArchivo);
+    $('docProcesar')?.addEventListener('click', procesarDocumento);
+    $('docPublicarExamen')?.addEventListener('click', publicarExamen);
+    $('docCancelarPreview')?.addEventListener('click', () => {
+      if (confirm('¿Cancelar y descartar las preguntas generadas?')) {
+        quitarArchivo();
+      }
+    });
+
+    // Recargar grupos al entrar al tab
+    document.querySelectorAll('[data-admExamTab="importar"]').forEach(tab => {
+      tab.addEventListener('click', () => setTimeout(cargarGruposDestino, 80));
+    });
+
+    console.log('✅ Módulo Importar Documento listo.');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+ </body>
 </html>
