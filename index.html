@@ -4309,10 +4309,24 @@ function renderStudentCalificaciones() {
       p = promedioCriterio(currentStudentCode, 'online_workbook');
     }
 
-    // Buscar asignaciones de este criterio
+       // Buscar asignaciones de este criterio
     const asgs = (state.assignments || []).filter(a => {
       const matchCrit = a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook');
-      return matchCrit && (!a.grupoId || myGroupIds.includes(a.grupoId));
+      if (!matchCrit) return false;
+      if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
+
+      // 🆕 FILTRO ANTI-FANTASMAS:
+      // Si la asignación nació de un evento (ID empieza con 'asg_cal_'), verificamos que el evento exista.
+      if (a.id && String(a.id).startsWith('asg_cal_')) {
+        const fecha = a.fechaInicio;
+        const eventos = (state.calendarEvents && state.calendarEvents[fecha]) || [];
+        const existeEvento = eventos.some(ev =>
+          ev.grupoId === a.grupoId &&
+          (ev.tipo === a.criterio || (a.criterio === 'online_homework' && ev.tipo === 'online_workbook'))
+        );
+        if (!existeEvento) return false; // Es un fantasma (se borró el evento del calendario)
+      }
+      return true;
     });
 
     // 🆕 C. FILTRO MAESTRO: Si el criterio no está en el calendario/asignaciones y no tiene notas, NO SE DIBUJA.
@@ -8645,16 +8659,46 @@ function renderCalEventosDelDia(fecha) {
       <button type="button" class="btn btn-mini btn-rojo" data-del-cev="${ev.id}" data-fecha="${fecha}" title="Eliminar">🗑️</button>
     </div>`;
   }).join('');
-  cont.querySelectorAll('[data-del-cev]').forEach(b => b.addEventListener('click', () => {
+   cont.querySelectorAll('[data-del-cev]').forEach(b => b.addEventListener('click', () => {
     if (!confirm('¿Eliminar este evento del calendario?')) return;
     const f = b.dataset.fecha;
-    state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== b.dataset.delCev);
+    const evId = b.dataset.delCev;
+    
+    // 🆕 Identificar qué evento se va a borrar antes de eliminarlo
+    const evento = (state.calendarEvents[f] || []).find(x => x.id === evId);
+
+    // Eliminar del calendario
+    state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== evId);
     if (!state.calendarEvents[f].length) delete state.calendarEvents[f];
+
+    // 🆕 Eliminar la asignación fantasma vinculada (si no tiene notas)
+    if (evento && evento.grupoId) {
+      const criterioNorm = evento.tipo === 'online_workbook' ? 'online_homework' : evento.tipo;
+      const asg = state.assignments.find(a => 
+        a.grupoId === evento.grupoId && 
+        a.fechaInicio === f && 
+        a.criterio === criterioNorm
+      );
+      
+      if (asg) {
+        // Verificar que ningún alumno tenga nota en esta asignación
+        let tieneNotas = false;
+        Object.keys(state.grades || {}).forEach(code => {
+          if (state.grades[code] && state.grades[code][asg.id] !== undefined) tieneNotas = true;
+        });
+        
+        if (!tieneNotas) {
+          state.assignments = state.assignments.filter(a => a.id !== asg.id);
+          console.log('🗑️ Asignación fantasma eliminada junto con el evento.');
+        }
+      }
+    }
+
     saveState();
     renderCalEventosDelDia(f);
     renderCalendarizacion();
   }));
-}
+ }
 
 function renderCalMesResumen() {
   const cont = document.getElementById('calMesResumen');
