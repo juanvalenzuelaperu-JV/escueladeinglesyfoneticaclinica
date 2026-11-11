@@ -18111,5 +18111,176 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ Sincronización bidireccional configurada correctamente.");
 })();
 </script>
+ <!-- ============================================================
+     FIX DEFINITIVO: Ocultar tareas duplicadas en Online Workbook
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log("🔧 Aplicando filtro inteligente para Online Workbook...");
+
+  // ─── 1. Guardar la función original ───
+  const origRenderOW = window.renderStudentOnlineWorkbook;
+  
+  if (typeof origRenderOW === 'function') {
+    window.renderStudentOnlineWorkbook = function () {
+      if (!currentStudentCode) return;
+      
+      const cont = document.getElementById("studentOnlineWorkbookLista");
+      if (!cont) return;
+
+      const groups = (typeof getStudentGroups === "function" ? getStudentGroups(currentStudentCode) : []).filter(g => !g.cerrado);
+      const groupIds = groups.map(g => g.id);
+
+      if (!groupIds.length) {
+        cont.innerHTML = '<div class="empty-state">🔒 No tienes grupos activos.</div>';
+        return;
+      }
+
+      // Obtener exámenes de tipo OW
+      const owExams = (state.exams || []).filter(ex => {
+        if (ex.grupoId && !groupIds.includes(ex.grupoId)) return false;
+        return (ex.tipoExamen || "final_exam") === "online_workbook";
+      });
+
+      // Obtener asignaciones de tipo OW
+      const owAsgs = (state.assignments || []).filter(a => {
+        const esOW = a.criterio === "online_homework" || a.criterio === "online_workbook";
+        if (!esOW) return false;
+        if (a.grupoId && !groupIds.includes(a.grupoId)) return false;
+        if (a.esExamen || a.examId) return false; // Si ya está vinculada a un examen, ignorar
+
+        // 🆕 FILTRO MAESTRO: Ocultar si el examen ya existe para este grupo
+        const nombreAsg = (a.nombre || "").toLowerCase();
+        
+        const tieneExamenAsociado = owExams.some(ex => {
+          if (ex.grupoId !== a.grupoId) return false;
+          
+          // Comparar nombres (ej. "online workbook 1" está dentro de "online workbook 1. unit 4")
+          const nombreEx = (ex.nombre || "").toLowerCase();
+          return nombreEx.includes(nombreAsg) || nombreAsg.includes(nombreEx);
+        });
+
+        // Si el examen existe, ocultamos la tarea pendiente
+        if (tieneExamenAsociado) return false;
+
+        return true;
+      });
+
+      // ─── AQUÍ EMPIEZA EL RENDERIZADO (Igual que antes pero usando owAsgs filtradas) ───
+      if (!owAsgs.length && !owExams.length) {
+        cont.innerHTML = '<div class="empty-state">📭 Aún no hay Online Workbooks asignados.</div>';
+        return;
+      }
+
+      const hoy = new Date().toISOString().slice(0, 10);
+      const grades = state.grades[currentStudentCode] || {};
+      let completados = 0, pendientes = 0, vencidos = 0, suma = 0, conNota = 0;
+      let tarjetas = "";
+
+      // Renderizar Exámenes (Tarjeta superior)
+      owExams.sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
+        const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+        const completado = !!result;
+        const maxIntentos = ex.intentosPermitidos || 1;
+        const realizados = result?.intentos || (completado ? 1 : 0);
+        const grupo = (state.groups || []).find(g => g.id === ex.grupoId);
+
+        if (completado) { completados++; suma += Number(result.nota); conNota++; }
+        else pendientes++;
+
+        let accionesHtml = "";
+        if (!completado) {
+          accionesHtml = `<button class="btn btn-mini btn-verde" data-ow-start-exam="${ex.id}">▶️ Iniciar examen</button>`;
+        } else if (realizados < maxIntentos) {
+          accionesHtml = `
+            <div style="text-align:right;">
+              <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
+              <div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div>
+              <div style="font-size:.72rem;color:var(--gris);margin-top:2px;">Intento ${realizados} de ${maxIntentos}</div>
+              <button class="btn btn-mini btn-azul" data-ow-retake-exam="${ex.id}" style="margin-top:4px;">🔄 Reintentar</button>
+            </div>`;
+        } else {
+          accionesHtml = `
+            <div style="text-align:right;">
+              <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
+              <div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div>
+              <div style="font-size:.72rem;color:var(--gris);margin-top:2px;">Intento ${realizados} de ${maxIntentos}</div>
+              <div style="font-size:.72rem;color:var(--gris);font-weight:700;margin-top:4px;">🔒 Nota Final</div>
+            </div>`;
+        }
+
+        tarjetas += `
+          <div class="exam-link-card" style="align-items:center; border-left: 4px solid var(--morado);">
+            <div class="exam-link-info" style="flex:1;">
+              <h4>💻 ${ex.nombre} <span style="display:inline-block;padding:2px 8px;background:#ede9fe;color:#6d28d9;border-radius:50px;font-size:.65rem;font-weight:800;margin-left:6px;">EXAMEN</span></h4>
+              <p>${grupo ? grupo.nombre : "—"}</p>
+              <small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas</small>
+            </div>
+            <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
+              ${accionesHtml}
+            </div>
+          </div>`;
+      });
+
+      // Renderizar Asignaciones normales
+      owAsgs.sort((a, b) => (a.fechaFin || a.fechaInicio || "").localeCompare(b.fechaFin || b.fechaInicio || "")).forEach(a => {
+        const nota = grades[a.id];
+        const calificado = nota !== undefined && nota !== null;
+        const vencido = a.fechaFin && a.fechaFin < hoy && !calificado;
+        const grupo = (state.groups || []).find(g => g.id === a.grupoId);
+
+        if (calificado) { completados++; suma += Number(nota); conNota++; }
+        else if (vencido) { vencidos++; pendientes++; }
+        else { pendientes++; }
+
+        let estadoBadge, estadoClase;
+        if (calificado) { estadoBadge = "Calificado"; estadoClase = "aprobado"; }
+        else if (vencido) { estadoBadge = "Vencido"; estadoClase = "desaprobado"; }
+        else { estadoBadge = "Pendiente"; estadoClase = "pendiente"; }
+
+        tarjetas += `
+          <div class="exam-link-card" style="align-items:center;">
+            <div class="exam-link-info" style="flex:1;">
+              <h4>💻 ${a.nombre || "Online Workbook"} ${vencido ? '<span style="display:inline-block;padding:2px 8px;background:#fee2e2;color:#b91c1c;border-radius:50px;font-size:.68rem;font-weight:800;margin-left:6px;">Vencido</span>' : ''}</h4>
+              <p>${grupo ? grupo.nombre : "—"}</p>
+              <small>📅 ${a.fechaInicio ? formatearFecha(a.fechaInicio) : "—"}${a.fechaFin ? " → " + formatearFecha(a.fechaFin) : ""}</small>
+            </div>
+            <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
+              <span class="calif-estado ${estadoClase}" style="font-size:.78rem;padding:4px 12px;">${estadoBadge}</span>
+              ${calificado ? `<div style="font-size:1.3rem;font-weight:800;color:var(--azul);line-height:1;">${Number(nota).toFixed(1)}<span style="font-size:.75rem;color:var(--gris);font-weight:500;"> / 20</span></div>` : ""}
+            </div>
+          </div>`;
+      });
+
+      const promedio = conNota ? (suma / conNota).toFixed(2) : "—";
+
+      cont.innerHTML = `
+        <div class="resumen-grid" style="margin-bottom:20px;">
+          <div class="resumen-card verde"><div class="et">Calificados</div><div class="val">${completados}</div></div>
+          <div class="resumen-card amarillo"><div class="et">Pendientes</div><div class="val">${pendientes}</div></div>
+          <div class="resumen-card" style="border-left:4px solid var(--rojo);"><div class="et">Vencidos</div><div class="val" style="color:var(--rojo);">${vencidos}</div></div>
+          <div class="resumen-card azul"><div class="et">Promedio OW</div><div class="val">${promedio}</div></div>
+        </div>
+        ${tarjetas}
+      `;
+
+      // Conectar botones
+      cont.querySelectorAll("[data-ow-start-exam]").forEach(btn => btn.addEventListener("click", () => abrirExamenDesdeOW(btn.dataset.owStartExam)));
+      cont.querySelectorAll("[data-ow-retake-exam]").forEach(btn => btn.addEventListener("click", () => { if (confirm("¿Reintentar?")) abrirExamenDesdeOW(btn.dataset.owRetakeExam); }));
+    };
+  }
+
+  // ─── 2. Cambiar el texto de "Sin intentos" a "Nota Final" para que se vea más profesional ───
+  // (Esto ya está aplicado en el código de arriba, donde reemplacé el texto de bloqueo)
+
+  // Forzar refresco
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(() => { if (typeof refreshStudentView === 'function') refreshStudentView(); }, 500);
+  }
+
+  console.log("✅ Filtro inteligente aplicado. Las tareas duplicadas ya no se mostrarán.");
+})();
+</script>
  </body>
 </html>
