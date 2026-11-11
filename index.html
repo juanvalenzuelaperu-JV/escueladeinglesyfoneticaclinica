@@ -17026,44 +17026,182 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
   }
 
   // ─── Generar preguntas a partir del texto ───
-  function generarPreguntas(texto, cantidad) {
-    // Limpiar y normalizar
-    const limpio = texto
-      .replace(/\s+/g, ' ')
-      .replace(/([.!?])\s+/g, '$1|')
-      .split('|')
-      .map(o => o.trim())
-      .filter(o => o.length > 30 && o.length < 250);
+function generarPreguntas(texto, cantidad) {
+  // ═══════════════════════════════════════════════════════
+  // 1) NORMALIZAR: limpiar caracteres y ruido
+  // ═══════════════════════════════════════════════════════
+  let t = String(texto || '')
+    .replace(/\r\n?/g, '\n')
+    // Ligaduras y caracteres "raros" que rompen regex
+    .replace(/ﬁ/g, 'fi').replace(/ﬂ/g, 'fl').replace(/ﬀ/g, 'ff')
+    .replace(/[""'']/g, '"').replace(/['']/g, "'")
+    .replace(/[–—]/g, '-')
+    .replace(/\u00a0/g, ' ') // non-breaking space
+    // Eliminar números de página sueltos
+    .replace(/^\s*(?:Page\s+\d+(?:\s+(?:of|de)\s+\d+)?|\d{1,3})\s*$/gim, '')
+    // Eliminar headers/footers repetidos
+    .replace(/^\s*(?:Escuela[^\n]{0,80}|Jotavalenzuela[^\n]{0,80})\s*$/gim, '');
 
-    if (limpio.length < 4) {
-      return [];
+  // ═══════════════════════════════════════════════════════
+  // 2) DETECTAR "ANSWER KEY" AL FINAL
+  //    Ej: "ANSWER KEY\n1.B 2.C 3.A" o "Respuestas: 1-b, 2-c"
+  // ═══════════════════════════════════════════════════════
+  let mainText = t;
+  const answerKey = {};
+
+  const keyMarkerRe = /\n\s*(?:ANSWER\s*KEY|CLAVE\s+DE\s+RESPUESTAS|RESPUESTAS|ANSWERS|SOLUCIONARIO)\s*[:\-\n]/i;
+  const keyMatch = t.match(keyMarkerRe);
+
+  if (keyMatch) {
+    const keyIdx = keyMatch.index;
+    mainText = t.slice(0, keyIdx);
+    const keyText = t.slice(keyIdx);
+
+    // Acepta: "1.B", "1) B", "1 - B", "1: B", "1 B"
+    const re = /(\d{1,3})\s*[\.\)\-\:]?\s*([A-Da-d])(?=\s|$|[\d.,;])/g;
+    let m;
+    while ((m = re.exec(keyText)) !== null) {
+      answerKey[parseInt(m[1], 10)] = m[2].toUpperCase();
     }
-
-    // Mezclar y tomar las oraciones más útiles
-    const oraciones = [...limpio].sort(() => Math.random() - 0.5);
-    const seleccionadas = oraciones.slice(0, Math.min(cantidad, oraciones.length));
-
-    return seleccionadas.map((oracion, idx) => {
-      // Enunciado: "¿Cuál de estas oraciones aparece en el texto?"
-      // Opciones: la correcta + 3 distractores (otras oraciones)
-      const distractores = oraciones
-        .filter(o => o !== oracion)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
-
-      const opciones = [oracion, ...distractores].sort(() => Math.random() - 0.5);
-      const correcta = opciones.indexOf(oracion);
-
-      return {
-        enunciado: `Pregunta ${idx + 1}: ¿Cuál de las siguientes afirmaciones aparece en el texto?`,
-        opciones,
-        correcta,
-        contexto: null,
-        contextoImagen: null
-      };
-    });
+    console.log(`🗝️ Answer key detectada al final: ${Object.keys(answerKey).length} respuestas`);
   }
 
+  // ═══════════════════════════════════════════════════════
+  // 3) DIVIDIR EN BLOQUES DE PREGUNTA
+  //    Estrategia: cortar ANTES de un número de pregunta.
+  //    El número debe estar al inicio de línea O después de
+  //    un "." seguido de espacio y mayúscula.
+  // ═══════════════════════════════════════════════════════
+  let bloques = [];
+
+  // Intento A: dividir por saltos de línea (formato ideal)
+  const splitByNL = mainText.split(/\n(?=\s*(?:Question\s+\d+|Q\s*\d+|\d{1,3}\s*[\.\)\:]))/i);
+
+  if (splitByNL.length >= 2) {
+    bloques = splitByNL;
+  } else {
+    // Intento B: no hay saltos → cortar por patrón ". 1." " 2." " 3." etc.
+    // Insertar un marcador antes de cada " N. " o " N) "
+    const injected = mainText.replace(/(?<=[\.\?\!\)])\s+(\d{1,3})\s*[\.\)]\s+(?=[A-Z¿¡])/g, '\n$1. ');
+    bloques = injected.split(/\n(?=\s*\d{1,3}\s*[\.\)])/);
+    console.log(`🔧 Modo "línea única": ${bloques.length} bloques detectados`);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 4) PARSEAR CADA BLOQUE
+  // ═══════════════════════════════════════════════════════
+  const preguntas = [];
+  const rechazadas = [];
+  const usados = new Set(); // evitar procesar el mismo número 2 veces
+
+  for (const bloqueRaw of bloques) {
+    const bloque = bloqueRaw.trim();
+    if (!bloque) continue;
+
+    // 4.1 Extraer número de pregunta
+    const numMatch = bloque.match(/^\s*(?:Question\s+(\d+)|Q\s*(\d+)|(\d{1,3}))\s*[\.\)\:]\s*/i);
+    if (!numMatch) continue;
+
+    const numPregunta = parseInt(numMatch[1] || numMatch[2] || numMatch[3], 10);
+
+    // Evitar duplicados si el split dejó el mismo número dos veces
+    if (usados.has(numPregunta)) continue;
+    usados.add(numPregunta);
+
+    const cuerpo = bloque.slice(numMatch[0].length).trim();
+
+    // 4.2 Detectar opciones con regex flexible
+    //     Acepta: "A) x"  "A. x"  "A: x"  "(A) x"  "a) x"
+    //     Opciones inline y multiline
+    const reOpcion = /[\(\[]?([A-Da-d])[\)\]\.\:]\s*([^A-D\)\]\.\:]+?)(?=\s*[\(\[]?[A-Da-d][\)\]\.\:]|\s*(?:Answer|Respuesta|Correct|Corr|R)\s*[:\-]|$)/gi;
+
+    const ops = [];
+    let m;
+    while ((m = reOpcion.exec(cuerpo)) !== null) {
+      const letra = m[1].toUpperCase();
+      const valor = m[2].trim().replace(/\s+/g, ' ');
+      // Validar que sea A, B, C o D y que no esté repetida
+      if (['A','B','C','D'].includes(letra) && !ops.find(o => o.letra === letra)) {
+        ops.push({ letra, valor });
+      }
+      if (ops.length === 4) break;
+    }
+
+    // 4.3 Si no encontramos 4 opciones → rechazar
+    if (ops.length < 4) {
+      rechazadas.push({ num: numPregunta, motivo: `Solo ${ops.length} opción(es) detectada(s)`, muestra: cuerpo.slice(0, 80) });
+      continue;
+    }
+
+    // Ordenar A, B, C, D
+    ops.sort((a, b) => a.letra.localeCompare(b.letra));
+
+    // 4.4 Extraer enunciado = todo el cuerpo ANTES de la primera opción
+    const idxPrimeraOpcion = cuerpo.search(/[\(\[]?A[\)\]\.\:]/i);
+    const enunciado = (idxPrimeraOpcion > 0 ? cuerpo.slice(0, idxPrimeraOpcion) : cuerpo).trim();
+    if (enunciado.length < 5) {
+      rechazadas.push({ num: numPregunta, motivo: 'Enunciado vacío o muy corto', muestra: cuerpo.slice(0, 80) });
+      continue;
+    }
+
+    // 4.5 Detectar respuesta correcta
+    //     Prioridad: 1) inline en el bloque  2) answer key
+    let letraCorrecta = null;
+
+    const inlineMatch = cuerpo.match(/(?:Answer|Respuesta|Correct|Correcta|Corr|R)\s*[:\-]\s*[\(\[]?([A-Da-d])[\)\]]?/i);
+    if (inlineMatch) {
+      letraCorrecta = inlineMatch[1].toUpperCase();
+    } else if (answerKey[numPregunta]) {
+      letraCorrecta = answerKey[numPregunta];
+    }
+
+    if (!letraCorrecta) {
+      rechazadas.push({ num: numPregunta, motivo: 'No se encontró la respuesta correcta', muestra: cuerpo.slice(0, 80) });
+      continue;
+    }
+
+    const correcta = letraCorrecta.charCodeAt(0) - 65; // A→0, B→1, C→2, D→3
+    if (correcta < 0 || correcta > 3) {
+      rechazadas.push({ num: numPregunta, motivo: `Letra inválida: ${letraCorrecta}`, muestra: '' });
+      continue;
+    }
+
+    // 4.6 ¡Éxito!
+    preguntas.push({
+      enunciado,
+      opciones: ops.map(o => o.valor),
+      correcta,
+      contexto: null,
+      contextoImagen: null
+    });
+
+    if (preguntas.length >= cantidad) break;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 5) REPORTAR RESULTADOS EN CONSOLA (para depurar)
+  // ═══════════════════════════════════════════════════════
+  console.log(`📊 RESULTADO DEL PARSER:`);
+  console.log(`   ✅ ${preguntas.length} pregunta(s) generada(s)`);
+  console.log(`   ❌ ${rechazadas.length} pregunta(s) descartada(s)`);
+  if (rechazadas.length) {
+    console.table(rechazadas);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 6) FALLBACK: si no detectó NADA, avisar al usuario
+  // ═══════════════════════════════════════════════════════
+  if (preguntas.length === 0) {
+    const msg = rechazadas.length
+      ? `⚠️ Se detectaron ${rechazadas.length} bloque(s) pero ninguno fue válido.\n\nMotivos:\n` +
+        rechazadas.slice(0, 5).map(r => `• Pregunta ${r.num}: ${r.motivo}`).join('\n') +
+        `\n\nRevisa la consola (F12) para ver el detalle.`
+      : '⚠️ No se detectó ninguna pregunta en el documento.\n\nRevisa que el PDF:\n• Tenga texto seleccionable (no sea escaneado)\n• Siga el formato "1. Pregunta\\nA) opción\\nB) opción\\n...\\nAnswer: B"';
+    alert(msg);
+  }
+
+  return preguntas;
+}
   // ─── Procesar archivo (flujo completo) ───
   async function procesarDocumento() {
     if (!archivoActual) {
