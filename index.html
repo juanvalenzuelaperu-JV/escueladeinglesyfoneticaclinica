@@ -16712,19 +16712,41 @@ function renderStudentOnlineWorkbook() {
     return;
   }
 
+  // ── 2) Exámenes OW (creados desde Coordinación con tipo online_workbook) ──
+  // (Lo movemos arriba para que el filtro de abajo pueda leer los nombres)
+  const owExams = (state.exams || []).filter(ex => {
+    if (ex.grupoId && !groupIds.includes(ex.grupoId)) return false;
+    const tipo = ex.tipoExamen || "final_exam";
+    return tipo === "online_workbook";
+  });
+
+  // 🆕 Helper para normalizar nombres (evita que "Workbook online 1" y "Online Workbook 1" se vean distintos)
+  const normalizarNombre = (str) => {
+    if (!str) return '';
+    return str.toLowerCase()
+      .replace(/workbook\s+online/g, 'online workbook')
+      .replace(/online\s+workbook/g, 'online workbook')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const nombresExamenesNorm = owExams.map(ex => normalizarNombre(ex.nombre));
+
   // ── 1) Asignaciones OW (las tradicionales, sin examen) ──
   const owAsgs = (state.assignments || []).filter(a => {
     const esOW = a.criterio === "online_homework" || a.criterio === "online_workbook";
     if (!esOW) return false;
     if (a.grupoId && !groupIds.includes(a.grupoId)) return false;
-    return true;
-  });
 
-  // ── 2) Exámenes OW (creados desde Coordinación con tipo online_workbook) ──
-  const owExams = (state.exams || []).filter(ex => {
-    if (ex.grupoId && !groupIds.includes(ex.grupoId)) return false;
-    const tipo = ex.tipoExamen || "final_exam";
-    return tipo === "online_workbook";
+    // 🆕 FILTRO 1: Si esta asignación ya está vinculada a un examen, NO mostrarla como tarjeta aparte
+    if (a.esExamen || a.examId) return false;
+
+    // 🆕 FILTRO 2: Si su nombre coincide con un examen ya creado, significa que es una asignación huérfana.
+    // La ocultamos para que no confunda al alumno con un "Pendiente" falso.
+    const nombreAsgNorm = normalizarNombre(a.nombre);
+    if (nombresExamenesNorm.includes(nombreAsgNorm)) return false;
+
+    return true;
   });
 
   if (!owAsgs.length && !owExams.length) {
