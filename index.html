@@ -16953,19 +16953,20 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
     cargarEvaluacionesDelGrupo(cbs);
   }
 
-  /* 🆕 Carga las evaluaciones de Online Homework / Final Exam del grupo seleccionado */
+   /* 🆕 Carga TODAS las evaluaciones (Online Homework + Final Exam + otras) del grupo */
   function cargarEvaluacionesDelGrupo(cbs) {
     const wrap = $('docEvaluacionDestinoWrap');
     const sel  = $('docEvaluacionDestino');
     const info = $('docEvaluacionDestinoInfo');
     if (!wrap || !sel) return;
 
+    // Sin grupos seleccionados → ocultar
     if (cbs.length === 0) {
       wrap.style.display = 'none';
       return;
     }
 
-    // Con varios grupos → solo permitir crear nueva (evita ambigüedad)
+    // Varios grupos → solo "crear nueva" para evitar ambigüedad
     if (cbs.length > 1) {
       sel.innerHTML = '<option value="__nueva__">➕ Crear una nueva evaluación para cada grupo</option>';
       if (info) {
@@ -16976,44 +16977,118 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
       return;
     }
 
-    // Un solo grupo → cargar sus evaluaciones de OH / FE
     const gid = cbs[0].value;
     const grupo = state.groups.find(g => g.id === gid);
     if (!grupo) { wrap.style.display = 'none'; return; }
 
-    const asgs = (state.assignments || []).filter(a => {
-      if (a.grupoId !== gid) return false;
-      const crit = a.criterio === 'online_workbook' ? 'online_homework' : a.criterio;
-      return crit === 'online_homework' || crit === 'final_exam';
-    }).sort((a, b) => (b.fechaInicio || '').localeCompare(a.fechaInicio || ''));
+    const hoy = new Date().toISOString().slice(0, 10);
 
+    // ─── Criterios aceptados como "evaluación" ───
+    const CRITERIOS_EVAL = ['online_homework', 'online_workbook', 'final_exam', 'intl_exam'];
+    function esCriterioValido(c) {
+      return CRITERIOS_EVAL.includes(c);
+    }
+
+    // ─── Helpers de estado ───
+    function estadoAsg(a) {
+      const ini = a.fechaInicio || '';
+      const fin = a.fechaFin || '';
+      if (!ini) return 'sin_fecha';
+      if (ini <= hoy && (!fin || fin >= hoy)) return 'activa';
+      if (ini > hoy) return 'futura';
+      return 'vencida';
+    }
+    const ORDEN = { activa: 0, futura: 1, vencida: 2, sin_fecha: 3 };
+    const EMOJI_ESTADO = {
+      activa:    '✅ ACTIVA',
+      futura:    '📅 FUTURA',
+      vencida:   '⏰ VENCIDA',
+      sin_fecha: '❓ SIN FECHA'
+    };
+    const EMOJI_CRIT = {
+      online_homework: '💻 Online Homework',
+      online_workbook: '💻 Online Homework',
+      final_exam:      '🎯 Final Exam',
+      intl_exam:       '🌐 International Exam'
+    };
+
+    // ─── 🆕 Buscar TODAS las asignaciones de evaluación del grupo (o globales) ───
+    const asgs = (state.assignments || []).filter(a => {
+      // Debe pertenecer al grupo, o ser global (sin grupoId)
+      if (a.grupoId && a.grupoId !== gid) return false;
+      // Debe ser un criterio de evaluación
+      return esCriterioValido(a.criterio);
+    });
+
+    // Ordenar: activas → futuras → vencidas → sin fecha (luego por fecha ascendente)
+    asgs.sort((a, b) => {
+      const ea = estadoAsg(a), eb = estadoAsg(b);
+      if (ea !== eb) return ORDEN[ea] - ORDEN[eb];
+      return (a.fechaInicio || '').localeCompare(b.fechaInicio || '');
+    });
+
+    // ─── Sin evaluaciones → solo "crear nueva" ───
     if (!asgs.length) {
       sel.innerHTML = '<option value="__nueva__">➕ Crear una nueva evaluación (no hay existentes)</option>';
       if (info) {
-        info.innerHTML = `ℹ️ El grupo <strong>${grupo.nombre}</strong> no tiene evaluaciones de Online Homework o Final Exam. Se creará una nueva.`;
+        info.innerHTML = `ℹ️ El grupo <strong>${grupo.nombre}</strong> no tiene evaluaciones programadas. Se creará una nueva.`;
         info.style.color = 'var(--gris)';
       }
       wrap.style.display = 'block';
       return;
     }
 
+    // ─── Construir TODAS las opciones ───
     let opciones = '<option value="__nueva__">➕ Crear una nueva evaluación</option>';
     asgs.forEach(a => {
-      const critNombre = (a.criterio === 'online_homework' || a.criterio === 'online_workbook')
-        ? '💻 Online Homework'
-        : '🎯 Final Exam';
+      const estado = EMOJI_ESTADO[estadoAsg(a)];
+      const crit   = EMOJI_CRIT[a.criterio] || a.criterio;
       const fechas = (a.fechaInicio ? formatearFecha(a.fechaInicio) : '—')
                    + (a.fechaFin ? ' → ' + formatearFecha(a.fechaFin) : '');
-      const tieneExamen = a.esExamen ? ' 🟢 [Ya tiene examen]' : '';
-      opciones += `<option value="${a.id}">${critNombre} · ${a.nombre} · ${fechas}${tieneExamen}</option>`;
+      const badge  = a.esExamen ? ' 🟢 [Ya tiene examen]' : '';
+      opciones += `<option value="${a.id}">${estado} · ${crit} · ${a.nombre} · ${fechas}${badge}</option>`;
     });
     sel.innerHTML = opciones;
 
+    // ─── Info con el desglose de estados ───
     if (info) {
-      info.innerHTML = `✅ <strong>${asgs.length} evaluación(es)</strong> disponible(s). Elige a cuál vincular el examen importado.`;
+      const activas  = asgs.filter(a => estadoAsg(a) === 'activa').length;
+      const futuras  = asgs.filter(a => estadoAsg(a) === 'futura').length;
+      const vencidas = asgs.filter(a => estadoAsg(a) === 'vencida').length;
+      const sinFecha = asgs.filter(a => estadoAsg(a) === 'sin_fecha').length;
+
+      const partes = [];
+      if (activas)  partes.push(`✅ ${activas} activa(s)`);
+      if (futuras)  partes.push(`📅 ${futuras} futura(s)`);
+      if (vencidas) partes.push(`⏰ ${vencidas} vencida(s)`);
+      if (sinFecha) partes.push(`❓ ${sinFecha} sin fecha`);
+
+      info.innerHTML =
+        `✅ <strong>${asgs.length} evaluación(es)</strong> disponible(s) en el grupo <strong>${grupo.nombre}</strong>: ` +
+        partes.join(' · ') +
+        `<br><small>Elige a cuál vincular el examen importado.</small>`;
       info.style.color = 'var(--verde)';
     }
+
     wrap.style.display = 'block';
+
+    // 🆕 Advertir si se elige una evaluación vencida
+    sel.addEventListener('change', function () {
+      const asg = (state.assignments || []).find(a => a.id === sel.value);
+      if (!asg) return;
+      const estado = estadoAsg(asg);
+      if (estado === 'vencida') {
+        if (!confirm(
+          `⚠️ La evaluación "${asg.nombre}" ya está VENCIDA.\n\n` +
+          `Fecha inicio: ${asg.fechaInicio ? formatearFecha(asg.fechaInicio) : '—'}\n` +
+          `Fecha fin: ${asg.fechaFin ? formatearFecha(asg.fechaFin) : '—'}\n\n` +
+          `Los alumnos NO podrán rendirla hasta que se extienda la fecha fin.\n\n` +
+          `¿Deseas vincular el examen de todas formas?`
+        )) {
+          sel.value = '__nueva__';
+        }
+      }
+    });
   }
   // ─── Drag & Drop ───
   function setupDragDrop() {
