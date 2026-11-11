@@ -17066,27 +17066,43 @@ function generarPreguntas(texto, cantidad) {
     console.log(`🗝️ Answer key detectada al final: ${Object.keys(answerKey).length} respuestas`);
   }
 
-  // ═══════════════════════════════════════════════════════
-  // 3) DIVIDIR EN BLOQUES DE PREGUNTA
-  //    Estrategia: cortar ANTES de un número de pregunta.
-  //    El número debe estar al inicio de línea O después de
-  //    un "." seguido de espacio y mayúscula.
-  // ═══════════════════════════════════════════════════════
-  let bloques = [];
+    // ═══════════════════════════════════════════════════════
+    // 3) DIVIDIR EN BLOQUES (v3 — combina 3 estrategias)
+    // ═══════════════════════════════════════════════════════
 
-  // Intento A: dividir por saltos de línea (formato ideal)
-  const splitByNL = mainText.split(/\n(?=\s*(?:Question\s+\d+|Q\s*\d+|\d{1,3}\s*[\.\)\:]))/i);
+    // Paso A: split por \n (lo que pdf.js rompió naturalmente)
+    let bloques = mainText.split(/\n(?=\s*(?:Question\s+\d+|Q\s*\d+|\d{1,3}\s*[\.\)\:]))/i);
 
-  if (splitByNL.length >= 2) {
-    bloques = splitByNL;
-  } else {
-    // Intento B: no hay saltos → cortar por patrón ". 1." " 2." " 3." etc.
-    // Insertar un marcador antes de cada " N. " o " N) "
-    const injected = mainText.replace(/(?<=[\.\?\!\)])\s+(\d{1,3})\s*[\.\)]\s+(?=[A-Z¿¡])/g, '\n$1. ');
-    bloques = injected.split(/\n(?=\s*\d{1,3}\s*[\.\)])/);
-    console.log(`🔧 Modo "línea única": ${bloques.length} bloques detectados`);
-  }
+    // Paso B: sub-dividir cada bloque cortando DESPUÉS de "Answer: X"
+    // cuando le sigue un número de pregunta. Esto captura preguntas
+    // que pdf.js pegó en la misma línea que la respuesta anterior.
+    const expandidos = [];
+    for (const b of bloques) {
+      const subs = b.split(
+        /(?<=(?:Answer|Respuesta|Correct|Correcta|Corr|R)\s*[:\-]\s*[\(\[]?[A-Da-d][\)\]]?)\s+(?=(?:Question\s+\d+|Q\s*\d+|\d{1,3}\s*[\.\)\:]))/i
+      );
+      expandidos.push(...subs);
+    }
+    bloques = expandidos;
 
+    // Paso C: si AÚN no llegamos a la cantidad esperada, aplicar
+    // split agresivo por " N. " seguido de mayúscula (más agresivo,
+    // pero cae en casos residuales como finales de oración sin "Answer:").
+    if (bloques.length < cantidad) {
+      const masExpandidos = [];
+      for (const b of bloques) {
+        const injected = b.replace(/(?<=[\.\?\!])\s+(\d{1,3})\s*[\.\)]\s+(?=[A-Z¿¡])/g, '\n$1. ');
+        const subs = injected.split(/\n(?=\s*\d{1,3}\s*[\.\)])/);
+        masExpandidos.push(...subs);
+      }
+      bloques = masExpandidos;
+    }
+
+    // 🔍 Log de diagnóstico: cuántos bloques se formaron y cómo empiezan
+    console.log(`🔧 Bloques detectados: ${bloques.length} (esperando ${cantidad})`);
+    bloques.slice(0, 6).forEach((b, i) => {
+      console.log(`   Bloque ${i}: "${b.slice(0, 90).replace(/\n/g, '⏎')}..."`);
+    });
   // ═══════════════════════════════════════════════════════
   // 4) PARSEAR CADA BLOQUE
   // ═══════════════════════════════════════════════════════
