@@ -1677,7 +1677,16 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         Selecciona al menos un grupo.
       </small>
     </div>
-
+<!-- 🆕 Vincular a evaluación existente -->
+<div class="campo completo" id="docEvaluacionDestinoWrap" style="margin-bottom:16px; display:none;">
+  <label>Evaluación del grupo a la que se vinculará <span class="req">*</span></label>
+  <select id="docEvaluacionDestino" style="width:100%; padding:12px 14px; border:1.5px solid var(--borde); border-radius:10px; font-family:inherit; font-size:.92rem; background:#fff;">
+    <option value="__nueva__">➕ Crear una nueva evaluación</option>
+  </select>
+  <small id="docEvaluacionDestinoInfo" style="color:var(--gris); font-size:.78rem; margin-top:6px; display:block;">
+    Selecciona el grupo primero.
+  </small>
+</div>
     <!-- Botón procesar -->
     <div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;">
       <button type="button" id="docProcesar" style="
@@ -4549,7 +4558,38 @@ document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () =
 
  function iniciarExamen(examId) {
   const exam = state.exams.find(e => e.id === examId); if (!exam) return;
+
+  // 🆕 PERMISOS: si hay un alumno logueado, validar acceso
+  if (currentStudentCode) {
+    // 1. Debe pertenecer al grupo del examen
+    const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
+    if (exam.grupoId && !myGroups.includes(exam.grupoId)) {
+      alert('❌ No tienes permiso para rendir este examen.\nNo perteneces al grupo asignado.');
+      return;
+    }
+    // 2. El examen debe estar publicado
+    const hoy = new Date().toISOString().slice(0, 10);
+    if (exam.fechaPublicacion && exam.fechaPublicacion > hoy) {
+      alert('📅 Este examen aún no está disponible. Estará disponible desde el ' + formatearFecha(exam.fechaPublicacion) + '.');
+      return;
+    }
+    // 3. El examen no debe estar vencido
+    if (exam.fechaFin && exam.fechaFin < hoy) {
+      alert('⏰ Este examen ha vencido (' + formatearFecha(exam.fechaFin) + '). Contacta a tu docente.');
+      return;
+    }
+    // 4. Respetar intentos máximos
+    const result = state.examResults[examId] && state.examResults[examId][currentStudentCode];
+    const realizados = result?.intentos || 0;
+    const maxIntentos = exam.intentosPermitidos || 1;
+    if (realizados >= maxIntentos) {
+      alert(`🔒 Ya has usado tus ${maxIntentos} intento(s).\nNo puedes volver a rendir este examen.`);
+      return;
+    }
+  }
+
   testActual = exam;
+  
   document.getElementById("studentExamsLista").style.display = "none";
   document.getElementById("studentExamRunner").classList.add("visible");
   document.getElementById("testResultadoA").classList.remove("visible");
@@ -16900,16 +16940,81 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
   function actualizarInfoGrupos() {
     const cbs = document.querySelectorAll('.doc-grupo-cb:checked');
     const info = $('docGruposInfo');
-    if (!info) return;
-    if (cbs.length === 0) {
-      info.textContent = 'Selecciona al menos un grupo.';
-      info.style.color = 'var(--gris)';
-    } else {
-      info.innerHTML = `✅ <strong>${cbs.length} grupo(s)</strong> seleccionado(s).`;
-      info.style.color = 'var(--verde)';
+    if (info) {
+      if (cbs.length === 0) {
+        info.textContent = 'Selecciona al menos un grupo.';
+        info.style.color = 'var(--gris)';
+      } else {
+        info.innerHTML = `✅ <strong>${cbs.length} grupo(s)</strong> seleccionado(s).`;
+        info.style.color = 'var(--verde)';
+      }
     }
+    // 🆕 Cargar evaluaciones disponibles del grupo
+    cargarEvaluacionesDelGrupo(cbs);
   }
 
+  /* 🆕 Carga las evaluaciones de Online Homework / Final Exam del grupo seleccionado */
+  function cargarEvaluacionesDelGrupo(cbs) {
+    const wrap = $('docEvaluacionDestinoWrap');
+    const sel  = $('docEvaluacionDestino');
+    const info = $('docEvaluacionDestinoInfo');
+    if (!wrap || !sel) return;
+
+    if (cbs.length === 0) {
+      wrap.style.display = 'none';
+      return;
+    }
+
+    // Con varios grupos → solo permitir crear nueva (evita ambigüedad)
+    if (cbs.length > 1) {
+      sel.innerHTML = '<option value="__nueva__">➕ Crear una nueva evaluación para cada grupo</option>';
+      if (info) {
+        info.innerHTML = 'Con varios grupos seleccionados solo se pueden crear evaluaciones nuevas.';
+        info.style.color = 'var(--gris)';
+      }
+      wrap.style.display = 'block';
+      return;
+    }
+
+    // Un solo grupo → cargar sus evaluaciones de OH / FE
+    const gid = cbs[0].value;
+    const grupo = state.groups.find(g => g.id === gid);
+    if (!grupo) { wrap.style.display = 'none'; return; }
+
+    const asgs = (state.assignments || []).filter(a => {
+      if (a.grupoId !== gid) return false;
+      const crit = a.criterio === 'online_workbook' ? 'online_homework' : a.criterio;
+      return crit === 'online_homework' || crit === 'final_exam';
+    }).sort((a, b) => (b.fechaInicio || '').localeCompare(a.fechaInicio || ''));
+
+    if (!asgs.length) {
+      sel.innerHTML = '<option value="__nueva__">➕ Crear una nueva evaluación (no hay existentes)</option>';
+      if (info) {
+        info.innerHTML = `ℹ️ El grupo <strong>${grupo.nombre}</strong> no tiene evaluaciones de Online Homework o Final Exam. Se creará una nueva.`;
+        info.style.color = 'var(--gris)';
+      }
+      wrap.style.display = 'block';
+      return;
+    }
+
+    let opciones = '<option value="__nueva__">➕ Crear una nueva evaluación</option>';
+    asgs.forEach(a => {
+      const critNombre = (a.criterio === 'online_homework' || a.criterio === 'online_workbook')
+        ? '💻 Online Homework'
+        : '🎯 Final Exam';
+      const fechas = (a.fechaInicio ? formatearFecha(a.fechaInicio) : '—')
+                   + (a.fechaFin ? ' → ' + formatearFecha(a.fechaFin) : '');
+      const tieneExamen = a.esExamen ? ' 🟢 [Ya tiene examen]' : '';
+      opciones += `<option value="${a.id}">${critNombre} · ${a.nombre} · ${fechas}${tieneExamen}</option>`;
+    });
+    sel.innerHTML = opciones;
+
+    if (info) {
+      info.innerHTML = `✅ <strong>${asgs.length} evaluación(es)</strong> disponible(s). Elige a cuál vincular el examen importado.`;
+      info.style.color = 'var(--verde)';
+    }
+    wrap.style.display = 'block';
+  }
   // ─── Drag & Drop ───
   function setupDragDrop() {
     const dropZone = $('dropZoneDoc');
@@ -17394,11 +17499,46 @@ function generarPreguntas(texto, cantidad) {
 
       if (!state.examResults) state.examResults = {};
 
+            // 🆕 Leer evaluación destino elegida
+      const evaluacionDestino = $('docEvaluacionDestino')?.value || '__nueva__';
+      console.log('📌 Evaluación destino:', evaluacionDestino);
+
       let creados = 0;
       cbsMarcados.forEach((grupoId, idx) => {
         const examId = 'exam_' + (Date.now() + idx);
-        const asgId = 'asg_exam_' + (Date.now() + idx);
+        let asgId;
 
+        // 🆕 Caso A: vincular a evaluación existente
+        if (evaluacionDestino !== '__nueva__' && cbsMarcados.length === 1) {
+          const asgExistente = state.assignments.find(a => a.id === evaluacionDestino && a.grupoId === grupoId);
+          if (asgExistente) {
+            asgId = asgExistente.id;
+            asgExistente.esExamen = true;
+            asgExistente.examId   = examId;
+            if (asgExistente.nombre && !asgExistente.nombre.includes(nombre)) {
+              asgExistente.nombre += ' · ' + nombre;
+            }
+            console.log(`🔗 Examen vinculado a evaluación existente: "${asgExistente.nombre}" (ID: ${asgId})`);
+          }
+        }
+
+        // 🆕 Caso B: crear nueva asignación
+        if (!asgId) {
+          asgId = 'asg_exam_' + (Date.now() + idx);
+          state.assignments.push({
+            id: asgId,
+            criterio,
+            nombre: '📝 ' + nombre,
+            fechaInicio: fechaPub,
+            fechaFin: null,
+            esExamen: true,
+            examId,
+            grupoId
+          });
+          console.log(`📝 Nueva evaluación creada para el examen "${nombre}" (ID: ${asgId})`);
+        }
+
+        // Guardar el examen
         state.exams.push({
           id: examId,
           nombre,
@@ -17411,17 +17551,6 @@ function generarPreguntas(texto, cantidad) {
           fechaFin: null,
           tipoExamen,
           criterio
-        });
-
-        state.assignments.push({
-          id: asgId,
-          criterio,
-          nombre: '📝 ' + nombre,
-          fechaInicio: fechaPub,
-          fechaFin: null,
-          esExamen: true,
-          examId,
-          grupoId
         });
 
         state.examResults[examId] = {};
