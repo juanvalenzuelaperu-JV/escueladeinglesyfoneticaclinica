@@ -18323,5 +18323,81 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ Filtro maestro aplicado. Duplicados eliminados.");
 })();
 </script>
+                                                                                                                  <!-- ============================================================
+     FIX DEFINITIVO: Evitar que los exámenes desaparezcan al crearse
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log("🛡️ Aplicando escudo protector para exámenes...");
+
+  // ─── 1. Eliminar el listener de "storage" que causa conflictos entre pestañas ───
+  // Al reescribir la función addEventListener, evitamos que el código original 
+  // reemplace el estado si tienes otra pestaña abierta.
+  const originalAddEventListener = window.addEventListener;
+  window.addEventListener = function (type, listener, options) {
+    if (type === 'storage') {
+      console.log("⚠️ Bloqueado intento de sincronización por 'storage' para evitar borrado de exámenes.");
+      return; 
+    }
+    return originalAddEventListener.call(this, type, listener, options);
+  };
+
+  // ─── 2. Desactivar el "limpiador de duplicados" automático ───
+  // El script al final de tu código borraba exámenes si tenían nombres parecidos.
+  // Lo anulamos para que no interfiera con la creación.
+  window.sanitizeData = function() {
+    console.log("🛡️ Limpieza automática de duplicados desactivada.");
+  };
+
+  // ─── 3. Interceptar la creación del examen para guardarlo INMEDIATAMENTE ───
+  const formExam = document.getElementById("admNewExamForm");
+  if (formExam) {
+    formExam.addEventListener("submit", function(e) {
+      // Esperamos 100ms a que tu código original agregue el examen al 'state'
+      setTimeout(() => {
+        if (typeof saveStateRaw === 'function') {
+          // Forzamos el guardado inmediato en Supabase, sin esperar los 300ms
+          saveStateRaw(state).then(() => {
+            console.log("☁️ Examen guardado en Supabase al instante.");
+            // Refrescamos la vista solo después de que se haya guardado
+            if (typeof renderAdminExams === 'function') renderAdminExams();
+          }).catch(err => console.error("Error guardando examen:", err));
+        }
+      }, 100);
+    }, true);
+  }
+
+  // ─── 4. Arreglar el botón "Actualizar Lista" ───
+  // Si el usuario hace clic en "Actualizar lista", primero guardamos y luego cargamos.
+  const btnActualizar = document.getElementById("btnActualizarListaExams");
+  if (btnActualizar) {
+    // Reemplazamos el botón para quitarle el evento anterior
+    const nuevoBtn = btnActualizar.cloneNode(true);
+    btnActualizar.parentNode.replaceChild(nuevoBtn, btnActualizar);
+    
+    nuevoBtn.addEventListener("click", async () => {
+      if (nuevoBtn) { nuevoBtn.disabled = true; nuevoBtn.textContent = "⏳ Sincronizando..."; }
+      try {
+        // 1. Primero guardamos lo que tengamos en memoria
+        if (typeof saveStateRaw === 'function') await saveStateRaw(state);
+        // 2. Luego traemos los datos frescos
+        if (typeof loadState === 'function') {
+          const fresh = await loadState();
+          if (fresh) state = fresh;
+        }
+        if (typeof renderAdminExams === 'function') renderAdminExams();
+        alert("✅ Lista actualizada y sincronizada con la nube.");
+      } catch (err) {
+        alert("Error al actualizar: " + err.message);
+      } finally {
+        if (nuevoBtn) { nuevoBtn.disabled = false; nuevoBtn.textContent = "🔄 Actualizar lista"; }
+      }
+    });
+  }
+
+  console.log("✅ Escudo protector activado. Los exámenes ya no desaparecerán.");
+})();
+</script>
  </body>
 </html>
