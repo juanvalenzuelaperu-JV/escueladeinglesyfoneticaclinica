@@ -4214,6 +4214,8 @@ function showImageViewer(src) { document.getElementById('imageViewerImg').src = 
    ============================================================ */
 function refreshStudentView() {
   if (!currentStudent) return;
+ try { renderStudentResumen(); } catch (e) { console.warn(e); }
+  renderStudentCalificaciones();
   renderStudentResumen();
   renderStudentCalificaciones();
   try { renderStudentCalendario(); } catch (e) {}
@@ -4223,15 +4225,23 @@ function refreshStudentView() {
   renderStudentLibros();
 }
 function renderStudentResumen() {
-  const prom = promedioGeneral(currentStudentCode);
-  document.getElementById("resumenPromA").textContent = prom !== null ? prom.toFixed(2) : "—";
+  if (!currentStudentCode) return;
+  // Actualizar solo si los elementos existen para evitar que el sistema colapse
+  const elProm = document.getElementById("resumenPromA");
+  if (elProm) elProm.textContent = promedioGeneral(currentStudentCode) !== null ? promedioGeneral(currentStudentCode).toFixed(2) : "—";
+  
   const asis = porcentajeAsistencia(asistenciaDe(currentStudentCode));
-  document.getElementById("resumenAsisA").textContent = asis !== null ? asis + "%" : "—";
+  const elAsis = document.getElementById("resumenAsisA");
+  if (elAsis) elAsis.textContent = asis !== null ? asis + "%" : "—";
+  
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
   const exs = (state.exams || []).filter(ex => !ex.grupoId || myGroups.includes(ex.grupoId));
   const completados = exs.filter(ex => state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode]).length;
-  document.getElementById("resumenExamsA").textContent = `${completados}/${exs.length}`;
-  document.getElementById("resumenActA").textContent = horaActual();
+  const elExams = document.getElementById("resumenExamsA");
+  if (elExams) elExams.textContent = `${completados}/${exs.length}`;
+  
+  const elAct = document.getElementById("resumenActA");
+  if (elAct) elAct.textContent = horaActual();
 }
 function renderStudentCalificaciones() {
   if (!currentStudentCode) return;
