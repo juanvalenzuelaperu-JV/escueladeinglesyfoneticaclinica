@@ -18111,15 +18111,14 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ Sincronización bidireccional configurada correctamente.");
 })();
 </script>
- <!-- ============================================================
-     FIX DEFINITIVO: Ocultar tareas duplicadas en Online Workbook
+<!-- ============================================================
+     FIX MAESTRO: Ocultar duplicados (Tarea vs Examen y Tarea vs Tarea)
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log("🔧 Aplicando filtro inteligente para Online Workbook...");
+  console.log("🔧 Aplicando filtro maestro de deduplicación...");
 
-  // ─── 1. Guardar la función original ───
   const origRenderOW = window.renderStudentOnlineWorkbook;
   
   if (typeof origRenderOW === 'function') {
@@ -18137,37 +18136,54 @@ function generarPreguntas(texto, cantidad) {
         return;
       }
 
-      // Obtener exámenes de tipo OW
-      const owExams = (state.exams || []).filter(ex => {
+      // 1. Obtener exámenes y quitar duplicados exactos
+      const rawExams = (state.exams || []).filter(ex => {
         if (ex.grupoId && !groupIds.includes(ex.grupoId)) return false;
         return (ex.tipoExamen || "final_exam") === "online_workbook";
       });
 
-      // Obtener asignaciones de tipo OW
-      const owAsgs = (state.assignments || []).filter(a => {
+      const owExams = [];
+      const seenExams = new Set();
+      rawExams.forEach(ex => {
+        const key = `${ex.grupoId}|${ex.nombre}|${ex.fechaPublicacion}`;
+        if (!seenExams.has(key)) {
+          seenExams.add(key);
+          owExams.push(ex);
+        }
+      });
+
+      // 2. Obtener asignaciones, quitar duplicados y ocultar las que ya tienen examen
+      const rawAsgs = (state.assignments || []).filter(a => {
         const esOW = a.criterio === "online_homework" || a.criterio === "online_workbook";
         if (!esOW) return false;
         if (a.grupoId && !groupIds.includes(a.grupoId)) return false;
-        if (a.esExamen || a.examId) return false; // Si ya está vinculada a un examen, ignorar
+        if (a.esExamen || a.examId) return false; 
+        return true;
+      });
 
-        // 🆕 FILTRO MAESTRO: Ocultar si el examen ya existe para este grupo
+      const owAsgs = [];
+      const seenAsgs = new Set();
+      
+      rawAsgs.forEach(a => {
+        // A) Evitar duplicados exactos (Tarea vs Tarea)
+        const key = `${a.grupoId}|${a.nombre}|${a.fechaInicio}|${a.fechaFin}`;
+        if (seenAsgs.has(key)) return; // Si ya lo vimos, lo saltamos
+        seenAsgs.add(key);
+
+        // B) Ocultar si el examen ya existe para este grupo (Tarea vs Examen)
         const nombreAsg = (a.nombre || "").toLowerCase();
-        
         const tieneExamenAsociado = owExams.some(ex => {
           if (ex.grupoId !== a.grupoId) return false;
-          
-          // Comparar nombres (ej. "online workbook 1" está dentro de "online workbook 1. unit 4")
           const nombreEx = (ex.nombre || "").toLowerCase();
           return nombreEx.includes(nombreAsg) || nombreAsg.includes(nombreEx);
         });
 
-        // Si el examen existe, ocultamos la tarea pendiente
-        if (tieneExamenAsociado) return false;
-
-        return true;
+        if (!tieneExamenAsociado) {
+          owAsgs.push(a);
+        }
       });
 
-      // ─── AQUÍ EMPIEZA EL RENDERIZADO (Igual que antes pero usando owAsgs filtradas) ───
+      // ─── RENDERIZADO ───
       if (!owAsgs.length && !owExams.length) {
         cont.innerHTML = '<div class="empty-state">📭 Aún no hay Online Workbooks asignados.</div>';
         return;
@@ -18178,7 +18194,7 @@ function generarPreguntas(texto, cantidad) {
       let completados = 0, pendientes = 0, vencidos = 0, suma = 0, conNota = 0;
       let tarjetas = "";
 
-      // Renderizar Exámenes (Tarjeta superior)
+      // Renderizar Exámenes
       owExams.sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
         const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
         const completado = !!result;
@@ -18223,7 +18239,7 @@ function generarPreguntas(texto, cantidad) {
           </div>`;
       });
 
-      // Renderizar Asignaciones normales
+      // Renderizar Asignaciones únicas
       owAsgs.sort((a, b) => (a.fechaFin || a.fechaInicio || "").localeCompare(b.fechaFin || b.fechaInicio || "")).forEach(a => {
         const nota = grades[a.id];
         const calificado = nota !== undefined && nota !== null;
@@ -18265,21 +18281,17 @@ function generarPreguntas(texto, cantidad) {
         ${tarjetas}
       `;
 
-      // Conectar botones
       cont.querySelectorAll("[data-ow-start-exam]").forEach(btn => btn.addEventListener("click", () => abrirExamenDesdeOW(btn.dataset.owStartExam)));
       cont.querySelectorAll("[data-ow-retake-exam]").forEach(btn => btn.addEventListener("click", () => { if (confirm("¿Reintentar?")) abrirExamenDesdeOW(btn.dataset.owRetakeExam); }));
     };
   }
-
-  // ─── 2. Cambiar el texto de "Sin intentos" a "Nota Final" para que se vea más profesional ───
-  // (Esto ya está aplicado en el código de arriba, donde reemplacé el texto de bloqueo)
 
   // Forzar refresco
   if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
     setTimeout(() => { if (typeof refreshStudentView === 'function') refreshStudentView(); }, 500);
   }
 
-  console.log("✅ Filtro inteligente aplicado. Las tareas duplicadas ya no se mostrarán.");
+  console.log("✅ Filtro maestro aplicado. Duplicados eliminados.");
 })();
 </script>
  </body>
