@@ -1505,7 +1505,24 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
               <h4>➕ Crear nuevo examen</h4>
               <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
               <form id="admNewExamForm" class="tform-grid">
-                <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
+               <div class="campo completo">
+  <label>Tipo de examen <span class="req">*</span></label>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 14px;background:#f9fafb;border:1.5px solid var(--borde);border-radius:10px;">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:var(--azul);">
+      <input type="radio" name="admExamTipo" value="final_exam" checked style="width:18px;height:18px;accent-color:var(--azul-medio);">
+      🎯 Examen Final
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:var(--morado);">
+      <input type="radio" name="admExamTipo" value="online_workbook" style="width:18px;height:18px;accent-color:var(--morado);">
+      💻 Online Workbook
+    </label>
+  </div>
+  <small style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">
+    🎯 <strong>Examen Final</strong> → aparece en el tab "Exámenes" del alumno.<br>
+    💻 <strong>Online Workbook</strong> → aparece en el tab "Online Workbook" del alumno.
+  </small>
+</div>
+              <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
                <div class="campo completo">
   <label>Grupos destino <span class="req">*</span></label>
   <div id="admExamGroupsCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;max-height:230px;overflow-y:auto;padding:10px;border:1.5px solid var(--borde);border-radius:10px;background:#f9fafb;"></div>
@@ -4289,7 +4306,13 @@ document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () =
   cont.innerHTML = "";
   cont.style.display = "block";
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
-  const exams = (state.exams || []).filter(ex => !ex.grupoId || myGroups.includes(ex.grupoId));
+  const exams = (state.exams || []).filter(ex => {
+  // Solo grupos del alumno
+  if (ex.grupoId && !myGroups.includes(ex.grupoId)) return false;
+  // 🆕 Solo exámenes tipo final_exam (o antiguos sin tipoExamen, para compatibilidad)
+  const tipo = ex.tipoExamen || "final_exam";
+  return tipo === "final_exam";
+});
   if (!exams.length) {
     cont.innerHTML = `<div class="empty-state">📭 No hay exámenes disponibles.</div>`;
     return;
@@ -5877,38 +5900,51 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
 
     if (!state.examResults) state.examResults = {};
 
-    // 🔁 Crear un examen + asignación por cada grupo seleccionado
-    let creados = 0;
-    grupoIds.forEach((grupoId, idx) => {
-      const examId = "exam_" + (Date.now() + idx);
-      const asgId  = "asg_exam_" + (Date.now() + idx);
+// 🎯 Leer qué tipo de examen eligió el admin
+const tipoExamen = document.querySelector('input[name="admExamTipo"]:checked')?.value || "final_exam";
+// tipoExamen puede ser: "final_exam" | "online_workbook"
 
-      state.exams.push({
-        id: examId,
-        nombre,
-        grupoId,
-        assignmentId: asgId,
-        fechaPublicacion: fechaPub,
-        preguntas: JSON.parse(JSON.stringify(preguntasBase)),   // copia independiente por grupo
-        intentosPermitidos,
-        descripcion,
-        fechaFin
-      });
+// Criterio que se usará en state.assignments
+const criterioAsignacion = tipoExamen === "online_workbook" ? "online_homework" : "final_exam";
 
-      state.assignments.push({
-        id: asgId,
-        criterio: "final_exam",
-        nombre: "📝 " + nombre,
-        fechaInicio: fechaPub,
-        fechaFin,
-        esExamen: true,
-        examId,
-        grupoId
-      });
+// 🔁 Crear un examen + asignación por cada grupo seleccionado
+let creados = 0;
+grupoIds.forEach((grupoId, idx) => {
+  const examId = "exam_" + (Date.now() + idx);
+  const asgId  = "asg_exam_" + (Date.now() + idx);
 
-      state.examResults[examId] = {};
-      creados++;
-    });
+  state.exams.push({
+    id: examId,
+    nombre,
+    grupoId,
+    assignmentId: asgId,
+    fechaPublicacion: fechaPub,
+    preguntas: JSON.parse(JSON.stringify(preguntasBase)),
+    intentosPermitidos,
+    descripcion,
+    fechaFin,
+    tipoExamen,          // 🆕 Guardamos el tipo (final_exam | online_workbook)
+    criterio: criterioAsignacion   // 🆕 Para filtrado posterior
+  });
+
+  state.assignments.push({
+    id: asgId,
+    criterio: criterioAsignacion,  // ✅ Dinámico en lugar de "final_exam" fijo
+    nombre: "📝 " + nombre,
+    fechaInicio: fechaPub,
+    fechaFin,
+    esExamen: true,
+    examId,
+    grupoId
+  });
+
+  state.examResults[examId] = {};
+  creados++;
+});
+
+// Reset del radio al valor por defecto
+const radioReset = document.querySelector('input[name="admExamTipo"][value="final_exam"]');
+if (radioReset) radioReset.checked = true;
 
     saveState();
 
@@ -16384,6 +16420,7 @@ function renderStudentOnlineWorkbook() {
     return;
   }
 
+  // ── 1) Asignaciones OW (las tradicionales, sin examen) ──
   const owAsgs = (state.assignments || []).filter(a => {
     const esOW = a.criterio === "online_homework" || a.criterio === "online_workbook";
     if (!esOW) return false;
@@ -16391,22 +16428,79 @@ function renderStudentOnlineWorkbook() {
     return true;
   });
 
-  if (!owAsgs.length) {
+  // ── 2) Exámenes OW (creados desde Coordinación con tipo online_workbook) ──
+  const owExams = (state.exams || []).filter(ex => {
+    if (ex.grupoId && !groupIds.includes(ex.grupoId)) return false;
+    const tipo = ex.tipoExamen || "final_exam";
+    return tipo === "online_workbook";
+  });
+
+  if (!owAsgs.length && !owExams.length) {
     cont.innerHTML = '<div class="empty-state">📭 Aún no hay Online Workbooks asignados. Vuelve a revisar pronto.</div>';
     return;
   }
 
+  const hoy = new Date().toISOString().slice(0, 10);
+  const grades = state.grades[currentStudentCode] || {};
+
+  let completados = 0, pendientes = 0, vencidos = 0, suma = 0, conNota = 0;
+  let tarjetas = "";
+
+  // ── A) Renderizar EXÁMENES OW (con botón "Iniciar") ──
+  owExams.sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || ""));
+  owExams.forEach(ex => {
+    const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+    const completado = !!result;
+    const maxIntentos = ex.intentosPermitidos || 1;
+    const realizados = result?.intentos || (completado ? 1 : 0);
+    const puedeReintentar = completado && realizados < maxIntentos;
+    const grupo = (state.groups || []).find(g => g.id === ex.grupoId);
+
+    if (completado) { completados++; suma += Number(result.nota); conNota++; }
+    else pendientes++;
+
+    let accionesHtml = "";
+    if (!completado) {
+      accionesHtml = `<button class="btn btn-mini btn-verde" data-ow-start-exam="${ex.id}">▶️ Iniciar examen</button>`;
+    } else if (puedeReintentar) {
+      accionesHtml = `
+        <div style="text-align:right;">
+          <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div>
+          <div style="font-size:.72rem;color:var(--gris);margin-top:2px;">Intento ${realizados} de ${maxIntentos}</div>
+          <button class="btn btn-mini btn-azul" data-ow-retake-exam="${ex.id}">🔄 Reintentar</button>
+        </div>`;
+    } else {
+      accionesHtml = `
+        <div style="text-align:right;">
+          <div style="font-size:.78rem;color:var(--verde);font-weight:700;">✅ Completado</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--azul);">${result.nota} / 20</div>
+          <div style="font-size:.72rem;color:var(--gris);margin-top:2px;">Intento ${realizados} de ${maxIntentos}</div>
+          <div style="font-size:.72rem;color:var(--rojo);font-weight:700;margin-top:4px;">🔒 Sin intentos</div>
+        </div>`;
+    }
+
+    tarjetas += `
+      <div class="exam-link-card" style="align-items:center;">
+        <div class="exam-link-info" style="flex:1;">
+          <h4>📝 ${ex.nombre} <span style="display:inline-block;padding:2px 8px;background:#ede9fe;color:#6d28d9;border-radius:50px;font-size:.65rem;font-weight:800;margin-left:6px;">EXAMEN</span></h4>
+          <p>${grupo ? grupo.nombre : "—"}</p>
+          <small>📅 ${formatearFecha(ex.fechaPublicacion)} · ${ex.preguntas.length} preguntas · Intentos: ${maxIntentos}</small>
+        </div>
+        <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
+          ${accionesHtml}
+        </div>
+      </div>`;
+  });
+
+  // ── B) Renderizar ASIGNACIONES OW (las tradicionales) ──
   owAsgs.sort((a, b) => {
     const fa = a.fechaFin || a.fechaInicio || "";
     const fb = b.fechaFin || b.fechaInicio || "";
     return fa.localeCompare(fb);
   });
 
-  const hoy = new Date().toISOString().slice(0, 10);
-  const grades = state.grades[currentStudentCode] || {};
-
-  let completados = 0, pendientes = 0, vencidos = 0, suma = 0, conNota = 0;
-  const tarjetas = owAsgs.map(a => {
+  owAsgs.forEach(a => {
     const nota = grades[a.id];
     const calificado = nota !== undefined && nota !== null;
     const vencido = a.fechaFin && a.fechaFin < hoy && !calificado;
@@ -16437,7 +16531,7 @@ function renderStudentOnlineWorkbook() {
       ? '<span style="display:inline-block;padding:2px 8px;background:#fee2e2;color:#b91c1c;border-radius:50px;font-size:.68rem;font-weight:800;margin-left:6px;">Vencido</span>'
       : "";
 
-    return `
+    tarjetas += `
       <div class="exam-link-card" style="align-items:center;">
         <div class="exam-link-info" style="flex:1;">
           <h4>💻 ${a.nombre || "Online Workbook"} ${badgeVencida}</h4>
@@ -16450,7 +16544,7 @@ function renderStudentOnlineWorkbook() {
           ${urlWorkbook ? `<a href="${urlWorkbook}" target="_blank" rel="noopener" class="btn btn-mini btn-azul">🔗 Ir al Workbook</a>` : ""}
         </div>
       </div>`;
-  }).join("");
+  });
 
   const promedio = conNota ? (suma / conNota).toFixed(2) : "—";
 
@@ -16463,9 +16557,37 @@ function renderStudentOnlineWorkbook() {
     </div>
     ${tarjetas}
   `;
+
+  // ── C) Conectar los botones de los exámenes OW ──
+  cont.querySelectorAll("[data-ow-start-exam]").forEach(btn =>
+    btn.addEventListener("click", () => abrirExamenDesdeOW(btn.dataset.owStartExam))
+  );
+  cont.querySelectorAll("[data-ow-retake-exam]").forEach(btn =>
+    btn.addEventListener("click", () => {
+      if (confirm("¿Reintentar?")) abrirExamenDesdeOW(btn.dataset.owRetakeExam);
+    })
+  );
 }
 
-document.querySelectorAll('#dashboardAlumno [data-atab="online_workbook"]').forEach(tab => {
+/* Helper: abre el runner del examen desde el tab OW */
+function abrirExamenDesdeOW(examId) {
+  const exam = (state.exams || []).find(e => e.id === examId);
+  if (!exam) { alert("Examen no encontrado."); return; }
+
+  // 1. Cambiar automáticamente al tab "examenes" (donde vive el runner)
+  document.querySelectorAll('#dashboardAlumno .dash-tab').forEach(t => t.classList.remove('activo'));
+  document.querySelectorAll('#dashboardAlumno .panel').forEach(p => p.classList.remove('activo'));
+  const tabBtn = document.querySelector('#dashboardAlumno [data-atab="examenes"]');
+  if (tabBtn) tabBtn.classList.add('activo');
+  const panel = document.getElementById('panel-examenes');
+  if (panel) panel.classList.add('activo');
+
+  // 2. Iniciar el examen
+  if (typeof iniciarExamen === 'function') {
+    iniciarExamen(examId);
+  }
+}
+ document.querySelectorAll('#dashboardAlumno [data-atab="online_workbook"]').forEach(tab => {
   tab.addEventListener("click", () => setTimeout(renderStudentOnlineWorkbook, 40));
 });
 
