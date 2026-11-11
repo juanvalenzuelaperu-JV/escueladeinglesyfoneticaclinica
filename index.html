@@ -17129,8 +17129,7 @@ function generarPreguntas(texto, cantidad) {
     // 4.2 Detectar opciones con regex flexible
     //     Acepta: "A) x"  "A. x"  "A: x"  "(A) x"  "a) x"
     //     Opciones inline y multiline
-    const reOpcion = /[\(\[]?([A-Da-d])[\)\]\.\:]\s*([^A-D\)\]\.\:]+?)(?=\s*[\(\[]?[A-Da-d][\)\]\.\:]|\s*(?:Answer|Respuesta|Correct|Corr|R)\s*[:\-]|$)/gi;
-
+   const reOpcion = /[\(\[]?([A-Da-d])[\)\]\.\:]\s*([\s\S]+?)(?=\s*[\(\[]?[A-Da-d][\)\]\.\:]\s|\s*(?:Answer|Respuesta|Correct|Corr|R)\s*[:\-]|$)/gi;
     const ops = [];
     let m;
     while ((m = reOpcion.exec(cuerpo)) !== null) {
