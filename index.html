@@ -17841,5 +17841,173 @@ function generarPreguntas(texto, cantidad) {
   }
 })();
 </script>
+                                                                                                                  <!-- ============================================================
+     FIX DEFINITIVO: Eliminar duplicados en Evaluaciones, Exámenes 
+     y Online Workbook
+     ============================================================ -->
+<script>
+(function() {
+  'use strict';
+  console.log("🔧 Aplicando FIX definitivo para duplicados...");
+
+  // ─── 1. Función para limpiar los datos actuales en la base de datos ───
+  function sanitizeData() {
+    if (!state) return;
+    let cambios = 0;
+
+    // Limpiar calendarEvents duplicados (mismo día, grupo, tipo y nombre)
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      const evs = state.calendarEvents[fecha] || [];
+      const seen = new Set();
+      const unique = [];
+      evs.forEach(ev => {
+        const key = `${ev.grupoId || 'global'}|${ev.tipo}|${ev.nombre}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(ev);
+        } else {
+          cambios++;
+        }
+      });
+      state.calendarEvents[fecha] = unique;
+    });
+
+    // Limpiar asignaciones (evaluaciones) duplicadas
+    if (Array.isArray(state.assignments)) {
+      const seen = new Set();
+      const unique = [];
+      state.assignments.forEach(a => {
+        const key = `${a.grupoId || 'global'}|${a.criterio}|${a.nombre}|${a.fechaInicio}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(a);
+        } else {
+          cambios++;
+        }
+      });
+      state.assignments = unique;
+    }
+
+    // Limpiar exámenes duplicados
+    if (Array.isArray(state.exams)) {
+      const seen = new Set();
+      const unique = [];
+      state.exams.forEach(ex => {
+        const key = `${ex.grupoId || 'global'}|${ex.nombre}|${ex.tipoExamen || 'final_exam'}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(ex);
+        } else {
+          cambios++;
+        }
+      });
+      state.exams = unique;
+    }
+
+    if (cambios > 0) {
+      console.log(`🧹 Se eliminaron ${cambios} registros duplicados del estado.`);
+      if (typeof saveState === 'function') saveState(); // Guarda la limpieza en Supabase
+    }
+  }
+
+  // Ejecutar la limpieza inmediatamente al cargar
+  setTimeout(sanitizeData, 1000);
+
+  // ─── 2. Helpers para deduplicar en tiempo real ───
+  function deduplicarAsignaciones(asgs) {
+    const seen = new Set();
+    return asgs.filter(a => {
+      const key = `${a.grupoId || 'global'}|${a.criterio}|${a.nombre}|${a.fechaInicio}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function deduplicarExamenes(exams) {
+    const seen = new Set();
+    return exams.filter(ex => {
+      const key = `${ex.grupoId || 'global'}|${ex.nombre}|${ex.tipoExamen || 'final_exam'}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  // ─── 3. Sobrescribir funciones de renderizado para blindarlas ───
+  
+  // A. Online Workbook del Alumno
+  const origOW = window.renderStudentOnlineWorkbook;
+  if (typeof origOW === 'function') {
+    window.renderStudentOnlineWorkbook = function() {
+      const origExams = state.exams;
+      const origAsgs = state.assignments;
+      state.exams = deduplicarExamenes(state.exams || []);
+      state.assignments = deduplicarAsignaciones(state.assignments || []);
+      try {
+        return origOW.apply(this, arguments);
+      } finally {
+        state.exams = origExams;
+        state.assignments = origAsgs;
+      }
+    };
+  }
+
+  // B. Mis Calificaciones del Alumno
+  const origCalif = window.renderStudentCalificaciones;
+  if (typeof origCalif === 'function') {
+    window.renderStudentCalificaciones = function() {
+      const origAsgs = state.assignments;
+      state.assignments = deduplicarAsignaciones(state.assignments || []);
+      try {
+        return origCalif.apply(this, arguments);
+      } finally {
+        state.assignments = origAsgs;
+      }
+    };
+  }
+
+  // C. Exámenes Finales del Alumno
+  const origExams = window.renderStudentExams;
+  if (typeof origExams === 'function') {
+    window.renderStudentExams = function() {
+      const origEx = state.exams;
+      state.exams = deduplicarExamenes(state.exams || []);
+      try {
+        return origExams.apply(this, arguments);
+      } finally {
+        state.exams = origEx;
+      }
+    };
+  }
+
+  // D. Fix para la libreta de notas del docente (evita que se dupliquen las columnas)
+  const origGetEvents = window.getCalEventsForGroup;
+  if (typeof origGetEvents === 'function') {
+    window.getCalEventsForGroup = function(gid, onlyEval) {
+      const events = origGetEvents(gid, onlyEval);
+      const uniqueEvents = [];
+      const seen = new Set();
+      events.forEach(ev => {
+        const key = `${ev.fecha}|${ev.tipo}|${ev.nombre}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueEvents.push(ev);
+        }
+      });
+      return uniqueEvents;
+    };
+  }
+
+  // Forzar refresco si el alumno ya está logueado
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(() => {
+      if (typeof refreshStudentView === 'function') refreshStudentView();
+    }, 1500);
+  }
+
+  console.log("✅ FIX de duplicados aplicado exitosamente.");
+})();
+</script>
  </body>
 </html>
