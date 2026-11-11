@@ -714,6 +714,66 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
   .slider-prev { left: 6px; }
   .slider-next { right: 6px; }
 }
+ /* ===== ESTILOS MAPA DE RUTA ===== */
+.mapa-header {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+  background: linear-gradient(135deg, #f8fafc, #eef2ff);
+  padding: 20px 24px; border-radius: 16px; margin-bottom: 30px;
+  border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+.mapa-header-left { display: flex; align-items: center; gap: 16px; }
+.mapa-teacher-photo {
+  width: 60px; height: 60px; border-radius: 50%; background: #ede9fe;
+  display: grid; place-items: center; font-size: 1.8rem; border: 3px solid var(--morado); overflow: hidden;
+}
+.mapa-header-right { display: flex; gap: 30px; }
+.mapa-stat { display: flex; flex-direction: column; }
+.mapa-stat .label { font-size: .75rem; color: var(--gris); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;}
+.mapa-stat .value { font-size: 2rem; font-weight: 800; color: var(--azul); line-height: 1; }
+.mapa-stat .status { font-size: .85rem; font-weight: 800; padding: 4px 12px; border-radius: 50px; display: inline-block; margin-top: 4px;}
+
+.mapa-timeline { position: relative; padding-left: 30px; margin-bottom: 30px; }
+.mapa-timeline::before {
+  content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px; width: 4px;
+  background: #e2e8f0; border-radius: 4px;
+}
+.timeline-item { position: relative; margin-bottom: 24px; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -28px; top: 18px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff; border: 3px solid #cbd5e1; z-index: 2;
+}
+.timeline-item.completado::before { border-color: var(--verde); background: var(--verde); }
+.timeline-item.riesgo::before { border-color: var(--rojo); background: var(--rojo); }
+.timeline-item.curso::before { border-color: var(--acento); background: var(--acento); }
+
+.timeline-card {
+  background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 18px 22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: transform .2s;
+}
+.timeline-card:hover { transform: translateX(4px); border-color: var(--azul-claro); }
+
+.timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+.timeline-title { font-weight: 800; font-size: 1.05rem; color: var(--slate); display: flex; align-items: center; gap: 8px;}
+.timeline-nota { font-weight: 800; font-size: 1.1rem; padding: 4px 12px; border-radius: 8px; background: #f1f5f9; color: var(--gris); }
+.timeline-nota.verde { background: #dcfce7; color: #15803d; }
+.timeline-nota.rojo { background: #fee2e2; color: #b91c1c; }
+.timeline-nota.amarillo { background: #fef3c7; color: #b45309; }
+
+.progress-wrap { background: #f1f5f9; height: 8px; border-radius: 4px; overflow: hidden; margin: 12px 0; }
+.progress-bar { height: 100%; border-radius: 4px; background: #cbd5e1; transition: width .5s ease; }
+.progress-bar.verde { background: var(--verde); }
+.progress-bar.rojo { background: var(--rojo); }
+.progress-bar.amarillo { background: var(--acento); }
+
+.timeline-msg { font-size: .88rem; color: var(--gris); line-height: 1.5; }
+.timeline-msg strong { color: var(--texto); }
+
+.mapa-proyeccion {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe); border-left: 5px solid var(--azul-medio);
+  padding: 24px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(37,99,235,.1);
+}
+.mapa-proyeccion h4 { color: var(--azul); font-size: 1.1rem; margin-bottom: 8px; font-weight: 800;}
+.mapa-proyeccion p { color: var(--slate-medio); font-size: .95rem; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -884,30 +944,38 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
         <button class="dash-tab" data-atab="reportcard">📄 Recojo de Report Card</button> 
       </div>
       <div class="dash-contenido">
-        <div class="resumen-grid">
-          <div class="resumen-card verde"><div class="et">Promedio general</div><div class="val" id="resumenPromA">—</div></div>
-          <div class="resumen-card azul"><div class="et">Asistencia</div><div class="val" id="resumenAsisA">—</div></div>
-          <div class="resumen-card morado"><div class="et">Exámenes completados</div><div class="val" id="resumenExamsA">—</div></div>
-          <div class="resumen-card amarillo"><div class="et">Actualización</div><div class="val" id="resumenActA" style="font-size:1.05rem;">--:--:--</div></div>
-        </div>
         <div class="panel activo" id="panel-calificaciones">
-          <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:20px;">
-            <div id="califTeacherPhotoBox" style="flex-shrink:0;text-align:center;">
-              <div id="califTeacherPhoto" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#ddd6fe);display:grid;place-items:center;font-size:2rem;border:3px solid var(--morado);overflow:hidden;">👨‍🏫</div>
-              <div id="califTeacherName" style="font-size:.78rem;font-weight:700;color:var(--morado);margin-top:6px;max-width:100px;">Docente</div>
+          <!-- CABECERA DEL MAPA -->
+          <div class="mapa-header">
+            <div class="mapa-header-left">
+              <div id="califTeacherPhoto" class="mapa-teacher-photo">👨‍🏫</div>
+              <div>
+                <div style="font-size:.75rem; color:var(--gris); text-transform:uppercase; font-weight:700;">Docente del curso</div>
+                <div id="califTeacherName" style="font-weight:800; font-size:1.1rem; color:var(--azul);">Docente</div>
+              </div>
             </div>
-            <div style="flex:1;min-width:220px;">
-              <div class="calif-summary" style="margin-bottom:0;">
-                <div class="calif-summary-item"><span class="calif-label">Promedio general</span><span class="calif-promedio" id="califPromedioA">—</span></div>
-                <div class="calif-summary-item"><span class="calif-label">Mínimo aprobatorio</span><span class="calif-min">14.00</span></div>
-                <div class="calif-summary-item"><span class="calif-label">Estado del curso</span><span class="calif-estado pendiente" id="califEstadoA">Pendiente</span></div>
+            <div class="mapa-header-right">
+              <div class="mapa-stat">
+                <span class="label">Promedio Actual</span>
+                <span class="value" id="califPromedioA">—</span>
+              </div>
+              <div class="mapa-stat">
+                <span class="label">Estado</span>
+                <span class="status" id="califEstadoA" style="background:#fef3c7; color:#b45309;">🟡 EN CURSO</span>
               </div>
             </div>
           </div>
-          <div id="califVencimientosBox" style="margin-bottom:18px;"></div>
-          <div class="criteria-grid" id="criteriaGridA"></div>
-          <h4 style="color:var(--azul);font-size:1rem;font-weight:800;margin-bottom:16px;">Detalle de evaluaciones por criterio</h4>
-          <div id="detalleCriteriosA"></div>
+
+          <!-- LÍNEA DE TIEMPO (MAPA DE RUTA) -->
+          <h4 style="color:var(--azul); font-size:1.1rem; font-weight:800; margin-bottom:20px;">🗺️ Tu ruta de aprendizaje</h4>
+          <div class="mapa-timeline" id="mapaTimelineA">
+            <!-- Aquí JavaScript inyectará los criterios -->
+          </div>
+
+          <!-- PROYECCIÓN FINAL -->
+          <div class="mapa-proyeccion" id="mapaProyeccionA">
+            <!-- Aquí JavaScript inyectará el mensaje final -->
+          </div>
         </div>
         <div class="panel" id="panel-calendario">
           <h4 style="color:var(--azul);margin-bottom:8px;font-size:1rem;font-weight:800;">📅 Calendario académico</h4>
@@ -4162,219 +4230,140 @@ function renderStudentResumen() {
 function renderStudentCalificaciones() {
   if (!currentStudentCode) return;
 
-  // 🔒 SOLO grupos activos (no cerrados)
   const allGroups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
   const groups = allGroups.filter(g => !g.cerrado);
   const myGroupIds = groups.map(g => g.id);
 
-  // Promedio general (ya respeta grupos activos vía promedioGeneral)
+  // 1. Promedio general
   const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
   const elProm = document.getElementById('califPromedioA');
-  const elRes = document.getElementById('resumenPromA');
   if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
-  if (elRes) elRes.textContent = prom !== null ? prom.toFixed(2) : '—';
 
-  const est = typeof estadoCurso === 'function' ? estadoCurso(currentStudentCode) : { texto: 'Pendiente', clase: 'pendiente' };
+  // 2. Estado (Siempre "En Curso" durante el ciclo)
   const elEst = document.getElementById('califEstadoA');
-  if (elEst) { elEst.textContent = est.texto; elEst.className = 'calif-estado ' + est.clase; }
+  if (elEst) {
+    elEst.textContent = '🟡 EN CURSO';
+    elEst.style.background = '#fef3c7';
+    elEst.style.color = '#b45309';
+  }
 
-  // Foto del docente (del primer grupo activo)
+  // 3. Foto del Docente
   const photoEl = document.getElementById('califTeacherPhoto');
   const nameEl = document.getElementById('califTeacherName');
   let teacher = null;
   if (groups.length) {
-    const g = groups[0];
-    teacher = state.teachers[g.teacherCode];
+    teacher = state.teachers[groups[0].teacherCode];
   }
   if (photoEl) {
     if (teacher && teacher.formalPhoto) {
-      photoEl.innerHTML = `<img src="${teacher.formalPhoto}" alt="Docente" style="width:100%;height:100%;object-fit:cover;">`;
-      photoEl.style.padding = '0';
+      photoEl.innerHTML = `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`;
     } else {
       photoEl.innerHTML = '👨‍🏫';
-      photoEl.style.padding = '';
     }
   }
   if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
 
-  // Vencimientos (solo grupos activos)
-  const vencBox = document.getElementById('califVencimientosBox');
-  if (vencBox) {
-    const hoy = new Date().toISOString().slice(0, 10);
+  // 4. Generar Mapa de Ruta (Timeline)
+  const timeline = document.getElementById('mapaTimelineA');
+  if (!timeline) return;
+  timeline.innerHTML = '';
 
-    // Sin grupos activos → vacío
-    if (!myGroupIds.length) {
-      vencBox.innerHTML = '';
-    } else {
-      const proximas = (state.assignments || []).filter(a => {
-        if (!a.fechaFin) return false;
-        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
-        return a.fechaFin >= hoy;
-      }).sort((a, b) => a.fechaFin.localeCompare(b.fechaFin));
+  let sumaProyeccion = 0;
+  let criteriosEvaluados = 0;
 
-      const vencidasSinNota = (state.assignments || []).filter(a => {
-        if (!a.fechaFin || a.fechaFin >= hoy) return false;
-        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
-        const nota = (state.grades[currentStudentCode] || {})[a.id];
-        return nota === undefined || nota === null;
-      });
-
-      let html = '';
-      if (proximas.length) {
-        html += '<div style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
-        html += '<div style="font-weight:800;color:#b45309;margin-bottom:8px;font-size:.9rem;">⏰ Evaluaciones con fecha de caducidad</div>';
-        proximas.slice(0, 6).forEach(a => {
-          const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
-          const days = Math.ceil((new Date(a.fechaFin) - new Date(hoy)) / 86400000);
-          const urg = days <= 3 ? 'color:#b91c1c;font-weight:800;' : 'color:#92400e;';
-          html += `<div style="font-size:.88rem;margin:4px 0;${urg}">📌 ${crit.nombre}: <strong>${a.nombre}</strong> — vence ${formatearFecha(a.fechaFin)} (${days === 0 ? 'hoy' : days + ' día(s)'})</div>`;
-        });
-        html += '</div>';
-      }
-      if (vencidasSinNota.length) {
-        html += '<div style="background:#fee2e2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
-        html += '<div style="font-weight:800;color:#b91c1c;margin-bottom:8px;font-size:.9rem;">⚠️ Evaluaciones vencidas sin nota</div>';
-        vencidasSinNota.slice(0, 4).forEach(a => {
-          const crit = CRITERIOS.find(x => x.id === a.criterio) || { nombre: a.criterio };
-          html += `<div style="font-size:.88rem;margin:4px 0;color:#991b1b;">${crit.nombre}: ${a.nombre} (venció ${formatearFecha(a.fechaFin)})</div>`;
-        });
-        html += '</div>';
-      }
-      vencBox.innerHTML = html;
+  CRITERIOS.forEach(c => {
+    // Calcular promedio del criterio
+    let p = promedioCriterio(currentStudentCode, c.id);
+    if (p === null && c.id === 'online_homework') {
+      p = promedioCriterio(currentStudentCode, 'online_workbook');
     }
-  }
 
-  // Criterios
-  const grid = document.getElementById('criteriaGridA');
-  if (grid) {
-    grid.innerHTML = '';
-    CRITERIOS.forEach(c => {
-      const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
-      let p = promC;
-      if (p === null && c.id === 'online_homework' && typeof promedioCriterio === 'function') {
-        p = promedioCriterio(currentStudentCode, 'online_workbook');
-      }
-      const card = document.createElement('div');
-      card.className = 'criterion-card ' + c.id;
-      card.innerHTML = `<div class="c-label">${c.nombre}</div><div class="c-valor${p === null ? ' vacio' : ''}">${p !== null ? p.toFixed(2) : '—'}</div>`;
-      grid.appendChild(card);
-    });
-  }
-
-   // ============================================
-  // DETALLE POR CRITERIO → GRÁFICA DE BARRAS HORIZONTAL
-  // ============================================
-  const det = document.getElementById('detalleCriteriosA');
-  if (det) {
-    det.innerHTML = '';
-
-    // 1) Recopilar criterios con nota (solo grupos activos)
-    const criteriosConNota = [];
-    CRITERIOS.forEach(c => {
-      const promC = typeof promedioCriterio === 'function' ? promedioCriterio(currentStudentCode, c.id) : null;
-      let p = promC;
-      if (p === null && c.id === 'online_homework' && typeof promedioCriterio === 'function') {
-        p = promedioCriterio(currentStudentCode, 'online_workbook');
-      }
-      if (p !== null) {
-        criteriosConNota.push({ id: c.id, nombre: c.nombre, valor: p });
-      }
+    // Buscar asignaciones de este criterio
+    const asgs = (state.assignments || []).filter(a => {
+      const matchCrit = a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook');
+      return matchCrit && (!a.grupoId || myGroupIds.includes(a.grupoId));
     });
 
-    if (!criteriosConNota.length) {
-      det.innerHTML = '<div class="empty-state">Aún no hay evaluaciones registradas.</div>';
-    } else {
-      // 2) Contenedor con altura dinámica
-      const altura = Math.max(180, criteriosConNota.length * 50);
-      det.innerHTML = `
-        <div style="background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px 22px 10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-            <span style="font-size:.82rem;color:var(--gris);font-weight:600;">Nota obtenida por criterio · máximo 20</span>
-            <span style="font-size:.75rem;color:var(--gris);">
-              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981;margin-right:4px;"></span>Aprobado
-              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin:0 4px 0 10px;"></span>En riesgo
-              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;margin:0 4px 0 10px;"></span>Desaprobado
-            </span>
-          </div>
-          <div style="position:relative;height:${altura}px;width:100%;">
-            <canvas id="studentCriteriaChart"></canvas>
-          </div>
-        </div>`;
+    const grades = state.grades[currentStudentCode] || {};
+    const completadas = asgs.filter(a => grades[a.id] !== undefined && grades[a.id] !== null).length;
+    const total = asgs.length;
+    
+    // Calcular porcentaje
+    const pct = total > 0 ? Math.round((completadas / total) * 100) : 0;
+    
+    // Definir color, clase y mensaje
+    let colorClass = 'pending';
+    let notaClass = '';
+    let barClass = '';
+    let mensaje = 'Aún no hay evaluaciones registradas para este criterio.';
+    let icono = '⚪';
 
-      // 3) Destruir la instancia anterior si existía
-      if (window._studentCriteriaChart) {
-        try { window._studentCriteriaChart.destroy(); } catch (e) {}
-        window._studentCriteriaChart = null;
-      }
-
-      // 4) Crear el chart solo si el contenedor está visible
-      const crearChart = () => {
-        const canvas = document.getElementById('studentCriteriaChart');
-        if (!canvas || !canvas.offsetParent) return;
-
-        window._studentCriteriaChart = new Chart(canvas, {
-          type: 'bar',
-          data: {
-            labels: criteriosConNota.map(c => c.nombre),
-            datasets: [{
-              label: 'Nota',
-              data: criteriosConNota.map(c => c.valor),
-              backgroundColor: criteriosConNota.map(c =>
-                c.valor >= 14 ? '#10b981' : c.valor >= 11 ? '#f59e0b' : '#dc2626'
-              ),
-              borderRadius: 8,
-              borderSkipped: false,
-              barThickness: 22
-            }]
-          },
-          options: {
-            indexAxis: 'y',              // 👈 horizontal
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 600 },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => `Nota: ${Number(ctx.parsed.x).toFixed(2)} / 20`
-                }
-              }
-            },
-            scales: {
-              x: {
-                beginAtZero: true,
-                max: 20,
-                ticks: {
-                  stepSize: 2,
-                  color: '#6b7280',
-                  font: { size: 11 }
-                },
-                grid: { color: 'rgba(0,0,0,0.06)' }
-              },
-              y: {
-                ticks: {
-                  color: '#1f2937',
-                  font: { size: 12, weight: '600' }
-                },
-                grid: { display: false }
-              }
-            }
-          }
-        });
-      };
-
-      // Pequeño delay para asegurar que el DOM del panel ya tiene tamaño
-      if (det.offsetParent !== null) {
-        setTimeout(crearChart, 30);
+    if (p !== null) {
+      sumaProyeccion += p;
+      criteriosEvaluados++;
+      
+      if (p >= 14) {
+        colorClass = 'completado';
+        notaClass = 'verde';
+        barClass = 'verde';
+        icono = '🟢';
+        mensaje = `¡Buen trabajo! Llevas ${completadas} de ${total} evaluaciones.`;
+      } else if (p >= 11) {
+        colorClass = 'curso';
+        notaClass = 'amarillo';
+        barClass = 'amarillo';
+        icono = '🟠';
+        mensaje = `Estás en riesgo. Has completado ${completadas} de ${total} evaluaciones. ¡Esfuérzate más!`;
       } else {
-        // Panel oculto (ej. alumno está en otra pestaña) → se creará al hacer clic
-        setTimeout(() => { if (det.offsetParent !== null) crearChart(); }, 250);
+        colorClass = 'riesgo';
+        notaClass = 'rojo';
+        barClass = 'rojo';
+        icono = '🔴';
+        mensaje = `¡Punto crítico! Has completado ${completadas} de ${total} evaluaciones. Necesitas subir esta nota.`;
       }
+    } else if (total > 0) {
+      mensaje = `Tienes ${total} evaluación(es) pendiente(s) en este criterio.`;
+      icono = '⏳';
+    }
+
+    const notaTxt = p !== null ? p.toFixed(2) : '—';
+
+    const item = document.createElement('div');
+    item.className = `timeline-item ${colorClass}`;
+    item.innerHTML = `
+      <div class="timeline-card">
+        <div class="timeline-header">
+          <div class="timeline-title">${icono} ${c.nombre}</div>
+          <div class="timeline-nota ${notaClass}">${notaTxt} / 20</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar ${barClass}" style="width: ${pct}%;"></div>
+        </div>
+        <div class="timeline-msg">${mensaje}</div>
+      </div>
+    `;
+    timeline.appendChild(item);
+  });
+
+  // 5. Proyección Final
+  const proyeccion = document.getElementById('mapaProyeccionA');
+  if (proyeccion) {
+    if (criteriosEvaluados > 0) {
+      const promProyectado = (sumaProyeccion / criteriosEvaluados).toFixed(2);
+      proyeccion.innerHTML = `
+        <h4>🎯 ¿Cuál será mi nota final?</h4>
+        <p>Si mantienes tus notas actuales y rindes el examen final, tu promedio proyectado será de <strong>${promProyectado}</strong>.</p>
+        <p style="font-size:.8rem; margin-top:8px; color:var(--gris);">⚠️ Recuerda: El estado oficial de "Aprobado" se emitirá al finalizar el ciclo.</p>
+      `;
+    } else {
+      proyeccion.innerHTML = `
+        <h4>🎯 ¿Cuál será mi nota final?</h4>
+        <p>Aún no tienes notas registradas. ¡Empieza a rendir tus evaluaciones para ver tu proyección!</p>
+      `;
     }
   }
 }
-
-/* ===== Calendario del alumno (solo lectura, desde Calendarización) ===== */
+ /* ===== Calendario del alumno (solo lectura, desde Calendarización) ===== */
 let alumnoCalSelectedDate = null;
 
 function getStudentRelevantCalEvents(fechaKey) {
