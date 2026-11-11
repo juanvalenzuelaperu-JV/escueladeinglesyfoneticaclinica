@@ -18009,5 +18009,107 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ FIX de duplicados aplicado exitosamente.");
 })();
 </script>
+ <!-- ============================================================
+     SINCRONIZACIÓN BIDIRECCIONAL DE NOTAS (Alumno <-> Docente)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log("🔗 Iniciando módulo de sincronización de notas...");
+
+  // ─── 1. FUNCIÓN PARA VINCULAR LA NOTA DEL EXAMEN CON LA LIBRETA DEL DOCENTE ───
+  // Esta función se ejecuta justo después de que el alumno termina un examen
+  function sincronizarNotaExamen(examId, studentCode, nota) {
+    const exam = (state.exams || []).find(e => e.id === examId);
+    if (!exam || !exam.assignmentId) return;
+
+    // Si la nota no está en la libreta general, la inyectamos
+    if (!state.grades[studentCode]) state.grades[studentCode] = {};
+    
+    // Guardamos la nota usando el ID de la asignación (que es lo que lee el docente)
+    state.grades[studentCode][exam.assignmentId] = nota;
+    
+    // 🆕 Guardamos un registro de que esta nota fue automática para pintar el icono
+    if (!state.autoGrades) state.autoGrades = {};
+    if (!state.autoGrades[exam.assignmentId]) state.autoGrades[exam.assignmentId] = {};
+    state.autoGrades[exam.assignmentId][studentCode] = true;
+
+    console.log(`✅ Nota ${nota} del alumno ${studentCode} sincronizada con la libreta del docente.`);
+  }
+
+  // ─── 2. INTERCEPTAR LA ENTREGA DEL EXAMEN DEL ALUMNO ───
+  // Secuestramos el evento submit original del formulario para inyectar la nota
+  const formRunner = document.getElementById("runnerFormA");
+  if (formRunner) {
+    formRunner.addEventListener("submit", function (e) {
+      // Esperamos un milisegundo a que el código original procese y calcule la nota
+      setTimeout(() => {
+        if (testActual && currentStudentCode) {
+          // Leemos la nota que el sistema original acaba de calcular
+          const result = state.examResults[testActual.id] && state.examResults[testActual.id][currentStudentCode];
+          if (result && result.nota !== undefined) {
+            sincronizarNotaExamen(testActual.id, currentStudentCode, result.nota);
+            if (typeof saveState === "function") saveState();
+          }
+        }
+      }, 100);
+    }, true); // 'true' para capturar el evento antes de que se cierre
+  }
+
+  // ─── 3. MOSTRAR ETIQUETA "🤖 AUTO" EN LA LIBRETA DEL DOCENTE ───
+  // Modificamos la función que dibuja las notas del docente
+  const origRenderTeacherAsignaciones = window.renderTeacherAsignaciones;
+  if (typeof origRenderTeacherAsignaciones === 'function') {
+    window.renderTeacherAsignaciones = function () {
+      origRenderTeacherAsignaciones.apply(this, arguments);
+
+      // Buscar todos los inputs de notas que se acaban de dibujar
+      document.querySelectorAll('#dAsignacionesLista input[data-grade-student]').forEach(input => {
+        const studentCode = input.dataset.gradeStudent;
+        const asgId = input.dataset.gradeAsg;
+
+        // Verificar si esta nota fue puesta por el sistema
+        const isAuto = state.autoGrades && state.autoGrades[asgId] && state.autoGrades[asgId][studentCode];
+
+        if (isAuto) {
+          // Deshabilitar el input para que el docente no la borre por accidente
+          // (Opcional: si quieres que el docente pueda sobrescribirla, quita esta línea)
+          // input.disabled = true;
+          
+          // Cambiar el color del texto y poner el icono
+          input.style.color = '#7c3aed'; // Morado
+          input.style.fontWeight = 'bold';
+          input.style.background = '#f5f3ff';
+
+          // Agregar un pequeño texto al lado si no existe
+          if (!input.nextElementSibling || !input.nextElementSibling.classList.contains('auto-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'auto-badge';
+            badge.innerHTML = '🤖 Auto';
+            badge.style.cssText = 'font-size:0.7rem; color:#7c3aed; font-weight:bold; margin-left:6px; background:#ede9fe; padding:2px 6px; border-radius:4px;';
+            input.parentNode.insertBefore(badge, input.nextSibling);
+          }
+        }
+      });
+    };
+  }
+
+  // ─── 4. SINCRONIZACIÓN DOCENTE ➔ ALUMNO (Ya casi funcionaba) ───
+  // Nos aseguramos de que cuando el docente guarde sus notas, el alumno se entere
+  const btnGuardarNotas = document.getElementById('btnGuardarRegistroNotas');
+  if (btnGuardarNotas) {
+    btnGuardarNotas.addEventListener('click', function() {
+      // Al hacer clic en guardar, forzamos un refresco inmediato en el portal del alumno
+      setTimeout(() => {
+        if (typeof refreshStudentView === 'function' && currentStudentCode) {
+          refreshStudentView();
+        }
+      }, 500);
+    });
+  }
+
+  console.log("✅ Sincronización bidireccional configurada correctamente.");
+})();
+</script>
  </body>
 </html>
