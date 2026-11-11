@@ -1505,8 +1505,8 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
           <div class="panel" id="adm-panel-examenes">
            <!-- 🆕 SUB-TABS: Manual vs Importar -->
 <div class="dash-tabs sub-tabs" style="margin-bottom:18px;">
-  <button type="button" class="dash-tab activo" data-admExamTab="manual">📝 Crear manualmente</button>
-  <button type="button" class="dash-tab" data-admExamTab="importar">📄 Importar documento</button>
+<button type="button" class="dash-tab activo" data-adm-exam-tab="manual">📝 Crear manualmente</button>
+<button type="button" class="dash-tab" data-adm-exam-tab="importar">📄 Importar documento</button>
 </div>
 
 <!-- 🆕 VISTA 1: Manual (envolviendo tu formulario actual) -->
@@ -1559,7 +1559,6 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
                 <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
               </form>
   <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
-</div>
 </div><!-- ✅ cierra el div admin-form -->
 
 </div><!-- ✅ cierra admExamVistaManual -->
@@ -16798,7 +16797,7 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
   'use strict';
 
   function setupExamSubTabs() {
-    const tabs = document.querySelectorAll('[data-admExamTab]');
+    const tabs = document.querySelectorAll('[data-adm-exam-tab]');
     if (!tabs.length) return;
 
     tabs.forEach(tab => {
@@ -17310,7 +17309,7 @@ console.log("✅ Tab Online Workbook del alumno cargado.");
     });
 
     // Recargar grupos al entrar al tab
-    document.querySelectorAll('[data-admExamTab="importar"]').forEach(tab => {
+    document.querySelectorAll('[data-adm-exam-tab="importar"]').forEach(tab => {
       tab.addEventListener('click', () => setTimeout(cargarGruposDestino, 80));
     });
 
