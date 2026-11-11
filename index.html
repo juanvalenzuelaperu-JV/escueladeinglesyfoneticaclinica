@@ -18009,106 +18009,135 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ FIX de duplicados aplicado exitosamente.");
 })();
 </script>
- <!-- ============================================================
-     SINCRONIZACIÓN BIDIRECCIONAL DE NOTAS (Alumno <-> Docente)
+<!-- ============================================================
+     FIX MAESTRO DEFINITIVO: Sincronización Bidireccional (Puente)
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log("🔗 Iniciando módulo de sincronización de notas...");
+  console.log("🔗 Iniciando Puente de Sincronización de Notas...");
 
-  // ─── 1. FUNCIÓN PARA VINCULAR LA NOTA DEL EXAMEN CON LA LIBRETA DEL DOCENTE ───
-  // Esta función se ejecuta justo después de que el alumno termina un examen
-  function sincronizarNotaExamen(examId, studentCode, nota) {
-    const exam = (state.exams || []).find(e => e.id === examId);
-    if (!exam || !exam.assignmentId) return;
+  // ─── Helper: Encontrar el examen que corresponde a una columna de la libreta ───
+  function getExamForColumn(gid, col) {
+    return (state.exams || []).find(ex => {
+      // 1. Coincidencia de Grupo
+      if (ex.grupoId && ex.grupoId !== gid) return false;
+      
+      // 2. Coincidencia de Tipo (Final Exam u Online Workbook)
+      let colType = col.tipo;
+      if (colType === 'online_homework') colType = 'online_workbook';
+      const exType = ex.tipoExamen || 'final_exam';
+      if (colType !== exType) return false;
 
-    // Si la nota no está en la libreta general, la inyectamos
-    if (!state.grades[studentCode]) state.grades[studentCode] = {};
-    
-    // Guardamos la nota usando el ID de la asignación (que es lo que lee el docente)
-    state.grades[studentCode][exam.assignmentId] = nota;
-    
-    // 🆕 Guardamos un registro de que esta nota fue automática para pintar el icono
-    if (!state.autoGrades) state.autoGrades = {};
-    if (!state.autoGrades[exam.assignmentId]) state.autoGrades[exam.assignmentId] = {};
-    state.autoGrades[exam.assignmentId][studentCode] = true;
-
-    console.log(`✅ Nota ${nota} del alumno ${studentCode} sincronizada con la libreta del docente.`);
+      // 3. Coincidencia de Nombre (Limpiando espacios y caracteres especiales)
+      const n1 = (ex.nombre || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const n2 = (col.nombre || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Si el nombre del examen contiene el nombre del evento (o viceversa), son el mismo
+      return n1.includes(n2) || n2.includes(n1);
+    });
   }
 
-  // ─── 2. INTERCEPTAR LA ENTREGA DEL EXAMEN DEL ALUMNO ───
-  // Secuestramos el evento submit original del formulario para inyectar la nota
-  const formRunner = document.getElementById("runnerFormA");
-  if (formRunner) {
-    formRunner.addEventListener("submit", function (e) {
-      // Esperamos un milisegundo a que el código original procese y calcule la nota
-      setTimeout(() => {
-        if (testActual && currentStudentCode) {
-          // Leemos la nota que el sistema original acaba de calcular
-          const result = state.examResults[testActual.id] && state.examResults[testActual.id][currentStudentCode];
-          if (result && result.nota !== undefined) {
-            sincronizarNotaExamen(testActual.id, currentStudentCode, result.nota);
-            if (typeof saveState === "function") saveState();
-          }
-        }
-      }, 100);
-    }, true); // 'true' para capturar el evento antes de que se cierre
-  }
+  // ══════════════════════════════════════════════════════════
+  // FLUJO 1: ALUMNO ➔ DOCENTE (El docente ve la nota del alumno)
+  // ══════════════════════════════════════════════════════════
+  const origBuildNotas = window.buildNotasTableFromCalendar;
+  if (typeof origBuildNotas === 'function') {
+    window.buildNotasTableFromCalendar = function () {
+      // 1. Ejecutamos la función original que dibuja la tabla vacía
+      origBuildNotas.apply(this, arguments);
 
-  // ─── 3. MOSTRAR ETIQUETA "🤖 AUTO" EN LA LIBRETA DEL DOCENTE ───
-  // Modificamos la función que dibuja las notas del docente
-  const origRenderTeacherAsignaciones = window.renderTeacherAsignaciones;
-  if (typeof origRenderTeacherAsignaciones === 'function') {
-    window.renderTeacherAsignaciones = function () {
-      origRenderTeacherAsignaciones.apply(this, arguments);
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      if (!gid) return;
 
-      // Buscar todos los inputs de notas que se acaban de dibujar
-      document.querySelectorAll('#dAsignacionesLista input[data-grade-student]').forEach(input => {
-        const studentCode = input.dataset.gradeStudent;
-        const asgId = input.dataset.gradeAsg;
+      const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
+      
+      // 2. Recorremos las columnas dibujadas para inyectar notas de exámenes
+      (typeof notasCalColumns !== 'undefined' ? notasCalColumns : []).forEach((col, i) => {
+        const idx = i + 1;
+        const exam = getExamForColumn(gid, col);
+        
+        if (exam) {
+          codes.forEach(c => {
+            const res = state.examResults?.[exam.id]?.[c];
+            const input = document.querySelector(`[data-notas-st="${c}"][data-notas-cl="${idx}"]`);
+            
+            // Si el alumno ya rindió el examen y el input del docente está vacío
+            if (res && res.nota !== undefined && input && (!input.value || input.value === '')) {
+              input.value = res.nota;
+              input.style.background = '#f5f3ff'; // Pintamos de morado claro
+              input.style.borderColor = '#c4b5fd';
+              input.style.color = '#6d28d9';
+              input.style.fontWeight = 'bold';
+              input.title = "Nota ingresada automáticamente por el alumno";
 
-        // Verificar si esta nota fue puesta por el sistema
-        const isAuto = state.autoGrades && state.autoGrades[asgId] && state.autoGrades[asgId][studentCode];
-
-        if (isAuto) {
-          // Deshabilitar el input para que el docente no la borre por accidente
-          // (Opcional: si quieres que el docente pueda sobrescribirla, quita esta línea)
-          // input.disabled = true;
-          
-          // Cambiar el color del texto y poner el icono
-          input.style.color = '#7c3aed'; // Morado
-          input.style.fontWeight = 'bold';
-          input.style.background = '#f5f3ff';
-
-          // Agregar un pequeño texto al lado si no existe
-          if (!input.nextElementSibling || !input.nextElementSibling.classList.contains('auto-badge')) {
-            const badge = document.createElement('span');
-            badge.className = 'auto-badge';
-            badge.innerHTML = '🤖 Auto';
-            badge.style.cssText = 'font-size:0.7rem; color:#7c3aed; font-weight:bold; margin-left:6px; background:#ede9fe; padding:2px 6px; border-radius:4px;';
-            input.parentNode.insertBefore(badge, input.nextSibling);
-          }
+              // 🆕 Guardamos también en las notas generales por debajo, para que el promedio general lo detecte de inmediato
+              if (!state.grades[c]) state.grades[c] = {};
+              state.grades[c][notasAsgId(gid, col, idx)] = res.nota;
+            }
+          });
         }
       });
     };
   }
 
-  // ─── 4. SINCRONIZACIÓN DOCENTE ➔ ALUMNO (Ya casi funcionaba) ───
-  // Nos aseguramos de que cuando el docente guarde sus notas, el alumno se entere
-  const btnGuardarNotas = document.getElementById('btnGuardarRegistroNotas');
-  if (btnGuardarNotas) {
-    btnGuardarNotas.addEventListener('click', function() {
-      // Al hacer clic en guardar, forzamos un refresco inmediato en el portal del alumno
+  // ══════════════════════════════════════════════════════════
+  // FLUJO 2: DOCENTE ➔ ALUMNO (El docente modifica y se actualiza)
+  // ══════════════════════════════════════════════════════════
+  const btnGuardar = document.getElementById('btnGuardarRegistroNotas');
+  if (btnGuardar) {
+    btnGuardar.addEventListener('click', function () {
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      if (!gid) return;
+
+      // Esperamos 150ms a que la función original del botón "Guardar" termine su trabajo
       setTimeout(() => {
-        if (typeof refreshStudentView === 'function' && currentStudentCode) {
-          refreshStudentView();
+        let cambios = false;
+        
+        (typeof notasCalColumns !== 'undefined' ? notasCalColumns : []).forEach((col, i) => {
+          const idx = i + 1;
+          const exam = getExamForColumn(gid, col);
+          
+          if (exam) {
+            document.querySelectorAll(`[data-notas-cl="${idx}"]`).forEach(inp => {
+              const code = inp.dataset.notasSt;
+              const val = inp.value.trim();
+              
+              if (val !== '') {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                  // Actualizamos el resultado del examen para que el alumno lo vea
+                  if (!state.examResults[exam.id]) state.examResults[exam.id] = {};
+                  if (!state.examResults[exam.id][code]) state.examResults[exam.id][code] = { intentos: 1 };
+                  
+                  state.examResults[exam.id][code].nota = num;
+                  state.examResults[exam.id][code].fecha = new Date().toISOString().slice(0, 10);
+                  cambios = true;
+                }
+              }
+            });
+          }
+        });
+
+        if (cambios) {
+          if (typeof saveState === 'function') saveState();
+          console.log("✅ Sincronizado: Notas del docente guardadas en el portal del alumno.");
+          
+          // Recargar la libreta visualmente para consolidar los cambios
+          if (typeof buildNotasTableFromCalendar === 'function') {
+            buildNotasTableFromCalendar();
+          }
         }
-      }, 500);
+      }, 150); 
     });
   }
 
-  console.log("✅ Sincronización bidireccional configurada correctamente.");
+  // Forzar un primer renderizado si el docente ya está en la vista
+  if (document.getElementById('dNotasGrupo')?.value) {
+    setTimeout(() => { if (typeof buildNotasTableFromCalendar === 'function') buildNotasTableFromCalendar(); }, 500);
+  }
+
+  console.log("✅ Puente de Sincronización Bidireccional configurado correctamente.");
 })();
 </script>
 <!-- ============================================================
