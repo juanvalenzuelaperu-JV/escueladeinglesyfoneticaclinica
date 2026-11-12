@@ -18401,12 +18401,12 @@ function generarPreguntas(texto, cantidad) {
 </script>
                                                                                                                   <!-- ============================================================
 <!-- ============================================================
-     FIX MAESTRO: Ruta de Aprendizaje EXCLUSIVAMENTE al Registro Docente
+     FIX DEFINITIVO: Ruta de Aprendizaje es ESPEJO EXACTO del Docente
      ============================================================ -->
 <script>
 (function () {
   'use strict';
-  console.log("🗺️ Conectando Ruta de Aprendizaje EXCLUSIVAMENTE con el Registro Docente (sin fantasmas)...");
+  console.log("🗺️ Conectando Ruta de Aprendizaje estrictamente al Registro Docente...");
 
   window.renderStudentCalificaciones = function () {
     if (!currentStudentCode) return;
@@ -18453,113 +18453,85 @@ function generarPreguntas(texto, cantidad) {
     
     let sumaProyeccion = 0;
     let criteriosEvaluados = 0;
+    const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
 
-    // 4. Recorrer cada criterio para extraer las notas reales del docente
     todosLosCriterios.forEach(c => {
       const evaluacionesCriterio = [];
-      const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
 
-      // A. Desde el calendario (la fuente de verdad del docente)
+      // A. Extraer SOLO los eventos que el docente programó en el calendario
       Object.keys(state.calendarEvents || {}).forEach(fecha => {
         (state.calendarEvents[fecha] || []).forEach(ev => {
+          // Filtro estricto de grupo
           if (ev.grupoId && !myGroupIds.includes(ev.grupoId)) return;
+          
+          // Filtro estricto de tipo de evaluación
           const isCustom = (state.customCriterios || []).some(cust => cust.id === ev.tipo);
           if (!evalTypes.includes(ev.tipo) && !isCustom) return;
-          
+
           const critNorm = ev.tipo === 'online_workbook' ? 'online_homework' : ev.tipo;
           if (critNorm === c.id) {
-            evaluacionesCriterio.push({
-              id: ev.id,
-              fecha: fecha,
-              grupoId: ev.grupoId,
-              nombre: ev.nombre || critNorm
-            });
+            // Evitar duplicados exactos en la misma fecha
+            const yaExiste = evaluacionesCriterio.some(e => e.grupoId === ev.grupoId && e.fecha === fecha);
+            if (!yaExiste) {
+              evaluacionesCriterio.push({
+                id: ev.id,
+                fecha: fecha,
+                grupoId: ev.grupoId,
+                nombre: ev.nombre || ev.tipo,
+                tipo: critNorm,
+                nota: null
+              });
+            }
           }
         });
       });
 
-      // B. Desde exámenes (por si no están en el calendario)
-      (state.exams || []).forEach(ex => {
-        if (ex.grupoId && !myGroupIds.includes(ex.grupoId)) return;
-        const critNorm = ex.tipoExamen === 'online_workbook' ? 'online_homework' : (ex.criterio || 'final_exam');
-        if (critNorm === c.id) {
-          const yaExiste = evaluacionesCriterio.some(e => e.grupoId === ex.grupoId && e.nombre === ex.nombre);
-          if (!yaExiste) {
-             evaluacionesCriterio.push({
-               id: ex.assignmentId || ex.id,
-               fecha: ex.fechaPublicacion,
-               grupoId: ex.grupoId,
-               nombre: ex.nombre,
-               examId: ex.id
-             });
-          }
-        }
-      });
-
-      // C. Contar notas de estas evaluaciones reales
-      let sumaCriterio = 0;
-      let notasCount = 0;
-      
+      // B. Buscar las notas reales para esos eventos
       evaluacionesCriterio.forEach(ev => {
-        let nota = grades[ev.id];
-        
-        // Buscar en asignaciones por fecha y grupo (creadas por el docente al calificar)
-        if (nota === undefined || nota === null) {
-           const asg = (state.assignments || []).find(a => 
-             a.grupoId === ev.grupoId && 
-             a.fechaInicio === ev.fecha && 
-             (a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook'))
-           );
-           if (asg) nota = grades[asg.id];
+        // 1. Buscar la asignación del docente
+        const asg = (state.assignments || []).find(a => 
+          a.grupoId === ev.grupoId && 
+          a.fechaInicio === ev.fecha && 
+          (a.criterio === ev.tipo || (ev.tipo === 'online_homework' && a.criterio === 'online_workbook'))
+        );
+        if (asg) {
+          ev.nota = grades[asg.id];
+          ev.asgId = asg.id;
         }
 
-        // Si es examen, buscar en examResults
-        if ((nota === undefined || nota === null) && ev.examId) {
-           const res = state.examResults?.[ev.examId]?.[currentStudentCode];
-           if (res) nota = res.nota;
-        }
-
-        if (nota !== undefined && nota !== null && nota !== '') {
-          sumaCriterio += parseFloat(nota);
-          notasCount++;
-        }
-      });
-
-      // D. También considerar notas huérfanas (asignaciones que ya no están en el calendario pero el docente ya calificó)
-      (state.assignments || []).forEach(a => {
-        const matchCrit = a.criterio === c.id || (c.id === 'online_homework' && a.criterio === 'online_workbook');
-        if (!matchCrit) return;
-        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return;
-        
-        const nota = grades[a.id];
-        if (nota !== undefined && nota !== null && nota !== '') {
-          // Verificar si ya lo contamos
-          const yaContado = evaluacionesCriterio.some(ev => 
-            ev.id === a.id || 
-            (ev.grupoId === a.grupoId && ev.fecha === a.fechaInicio)
-          );
-          if (!yaContado) {
-            evaluacionesCriterio.push({
-              id: a.id,
-              fecha: a.fechaInicio,
-              grupoId: a.grupoId,
-              nombre: a.nombre,
-              esHuerfana: true
-            });
-            sumaCriterio += parseFloat(nota);
-            notasCount++;
+        // 2. Buscar si hay examen (y sobreescribir con la nota del examen si existe)
+        const ex = (state.exams || []).find(x => 
+          x.grupoId === ev.grupoId && 
+          (x.tipoExamen === 'online_workbook' ? 'online_homework' : (x.criterio || 'final_exam')) === ev.tipo &&
+          (x.fechaPublicacion === ev.fecha || (asg && x.assignmentId === asg.id) || x.nombre === ev.nombre)
+        );
+        if (ex) {
+          const res = state.examResults?.[ex.id]?.[currentStudentCode];
+          if (res && res.nota !== undefined && res.nota !== null) {
+            ev.nota = res.nota;
+            ev.examId = ex.id;
           }
         }
       });
 
       const totalAsgs = evaluacionesCriterio.length;
       
-      // Si no hay evaluaciones en absoluto, saltamos el criterio
-      if (totalAsgs === 0) return;
+      // Si el docente no ha programado nada en este criterio, no se muestra al alumno
+      if (totalAsgs === 0) return; 
 
       // Calcular promedio
+      let sumaCriterio = 0;
+      let notasCount = 0;
+      
+      evaluacionesCriterio.forEach(ev => {
+        if (ev.nota !== undefined && ev.nota !== null && ev.nota !== '') {
+          sumaCriterio += parseFloat(ev.nota);
+          notasCount++;
+        }
+      });
+
       const p = notasCount > 0 ? (sumaCriterio / notasCount) : null;
-      const pct = totalAsgs > 0 ? Math.round((notasCount / totalAsgs) * 100) : 0;
+      const pct = Math.round((notasCount / totalAsgs) * 100);
       
       let colorClass = 'pending';
       let notaClass = '';
@@ -18622,14 +18594,14 @@ function generarPreguntas(texto, cantidad) {
     }
   };
 
-  // Forzar el redibujado para que se apliquen los cambios inmediatamente
+  // Forzar el redibujado
   setTimeout(() => {
     if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
       if (typeof renderStudentCalificaciones === 'function') renderStudentCalificaciones();
     }
   }, 500);
 
-  console.log("✅ Ruta de Aprendizaje conectada EXCLUSIVAMENTE al Registro Docente.");
+  console.log("✅ Ruta de Aprendizaje conectada EXCLUSIVAMENTE a los eventos del docente.");
 })();
 </script>
  </body>
