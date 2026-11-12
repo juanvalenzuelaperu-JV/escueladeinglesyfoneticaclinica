@@ -18777,8 +18777,7 @@ function generarPreguntas(texto, cantidad) {
 </script>   
                                                                                                                   <script>
 <script>
-
- (function () {
+(function () {
   'use strict';
   console.log('🔗 Ruta de Aprendizaje con deduplicación de exámenes');
 
@@ -18909,21 +18908,20 @@ function generarPreguntas(texto, cantidad) {
             <div class="progress-bar ${barClass}" style="width:${pct}%;"></div>
           </div>
           <div class="timeline-msg">${mensaje}</div>
-<details style="margin-top:12px;border:1px solid var(--borde);border-radius:8px;overflow:hidden;background:#f8fafc;">
-  <summary style="cursor:pointer;padding:10px 14px;font-size:.85rem;color:var(--azul);font-weight:700;user-select:none;list-style:none;display:flex;justify-content:space-between;align-items:center;">
-    <span>📋 Detalle de evaluaciones (${conNota.length}/${notasDedup.length})</span>
-    <span style="transition:transform .2s;">▼</span>
-  </summary>
-  <div style="padding:10px 14px;display:grid;gap:6px;background:#fff;">
-    ${notasDedup.map(n => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f9fafb;border:1px solid var(--borde);border-radius:6px;font-size:.82rem;">
-        <span>${n.nombre || 'Evaluación'}${n.fecha ? ' · ' + formatearFecha(n.fecha) : ''}</span>
-        <strong style="color:${n.nota === null ? 'var(--gris)' : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)')};">
-          ${n.nota === null ? 'Pendiente' : n.nota.toFixed(1) + '/20'}
-        </strong>
-      </div>`).join('')}
-  </div>
-</details>
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer;font-size:.82rem;color:var(--azul);font-weight:700;">
+              📋 Detalle de evaluaciones (${conNota.length}/${notasDedup.length})
+            </summary>
+            <div style="margin-top:8px;display:grid;gap:4px;">
+              ${notasDedup.map(n => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:#fff;border:1px solid var(--borde);border-radius:6px;font-size:.8rem;">
+                  <span>${n.nombre || 'Evaluación'}${n.fecha ? ' · ' + formatearFecha(n.fecha) : ''}</span>
+                  <strong style="color:${n.nota === null ? 'var(--gris)' : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)')};">
+                    ${n.nota === null ? 'Pendiente' : n.nota.toFixed(1) + '/20'}
+                  </strong>
+                </div>`).join('')}
+            </div>
+          </details>
         </div>`;
       timeline.appendChild(item);
     });
