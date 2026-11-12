@@ -18785,6 +18785,106 @@ function generarPreguntas(texto, cantidad) {
 
   console.log("✅ Puente Definitivo configurado. Las notas ahora viajan en ambas direcciones.");
 })();
-</script>                                                                                                                  
+</script>    
+ <script>
+(function () {
+  'use strict';
+
+  // ─── 1. Poblar el dropdown ───
+  function llenarDocentes() {
+    const sel = document.getElementById('admAccesoDocenteSelect');
+    if (!sel) { console.warn('❌ No existe #admAccesoDocenteSelect'); return; }
+
+    const docentes = (typeof state !== 'undefined' && state.teachers) ? Object.keys(state.teachers) : [];
+    console.log('📋 Docentes en memoria:', docentes.length, docentes);
+
+    sel.innerHTML = '<option value="">Selecciona un docente...</option>';
+
+    if (!docentes.length) {
+      sel.innerHTML += '<option value="" disabled>No hay docentes registrados</option>';
+      return;
+    }
+
+    docentes.forEach(code => {
+      const t = state.teachers[code];
+      if (!t || typeof t !== 'object') return;
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = `${t.nombre || code} (${code})`;
+      sel.appendChild(opt);
+    });
+
+    console.log(`✅ Dropdown poblado: ${sel.options.length - 1} docente(s)`);
+  }
+
+  // ─── 2. Botón "Entrar a la cuenta" ───
+  function entrarDocente() {
+    const sel = document.getElementById('admAccesoDocenteSelect');
+    const code = sel ? sel.value : '';
+
+    console.log('🖱️ Click en Entrar. Código:', code);
+
+    if (!code) { alert('Selecciona un docente del desplegable.'); return; }
+    if (!state.teachers || !state.teachers[code]) {
+      alert('Ese docente no existe en el sistema.');
+      return;
+    }
+    if (typeof loginTeacher !== 'function') {
+      alert('Error interno: loginTeacher no está disponible.');
+      return;
+    }
+
+    try {
+      console.log('➡️ Llamando loginTeacher con:', code);
+      loginTeacher(code);
+      console.log('✅ loginTeacher ejecutado');
+    } catch (err) {
+      console.error('❌ loginTeacher falló:', err);
+      alert('Error al entrar: ' + err.message);
+    }
+  }
+
+  // ─── 3. Enganchar botón (clonando para eliminar listeners viejos) ───
+  function reconectarBoton() {
+    const btn = document.getElementById('btnAdmEntrarDocente');
+    if (!btn) { console.warn('❌ No existe #btnAdmEntrarDocente'); return; }
+    const nuevo = btn.cloneNode(true);
+    btn.parentNode.replaceChild(nuevo, btn);
+    nuevo.addEventListener('click', entrarDocente);
+    console.log('✅ Botón reconectado');
+  }
+
+  // ─── 4. Enganchar tab "Acceso Docente" ───
+  function engancharTab() {
+    document.querySelectorAll('#tal-panel-admin [data-admtab="acceso_docente"]').forEach(tab => {
+      tab.addEventListener('click', () => setTimeout(llenarDocentes, 60));
+    });
+    console.log('✅ Tab enganchado');
+  }
+
+  // ─── 5. Init ───
+  function init() {
+    llenarDocentes();
+    reconectarBoton();
+    engancharTab();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Rellenar al entrar al Portal Talento
+  const origLogin = window.loginTalento;
+  if (typeof origLogin === 'function') {
+    window.loginTalento = function () {
+      const r = origLogin.apply(this, arguments);
+      setTimeout(llenarDocentes, 300);
+      return r;
+    };
+  }
+})();
+</script>
  </body>
 </html>
