@@ -1583,49 +1583,79 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
             <div class="tform admin-form">
               <h4>➕ Crear nuevo examen</h4>
               <p style="color:var(--gris);font-size:.85rem;margin-bottom:14px;">Preguntas de marcación múltiple con audio opcional (≤ 2 MB o URL).</p>
-              <form id="admNewExamForm" class="tform-grid">
-               <div class="campo completo">
-  <label>Tipo de examen <span class="req">*</span></label>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 14px;background:#f9fafb;border:1.5px solid var(--borde);border-radius:10px;">
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:var(--azul);">
-      <input type="radio" name="admExamTipo" value="final_exam" checked style="width:18px;height:18px;accent-color:var(--azul-medio);">
-      🎯 Examen Final
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:var(--morado);">
-      <input type="radio" name="admExamTipo" value="online_workbook" style="width:18px;height:18px;accent-color:var(--morado);">
-      💻 Online Workbook
-    </label>
+            <form id="admNewExamForm" class="tform-grid">
+  <!-- 1. Tipo de examen: 3 opciones -->
+  <div class="campo completo">
+    <label>Tipo de examen <span class="req">*</span></label>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 14px;background:#f9fafb;border:1.5px solid var(--borde);border-radius:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:#0891b2;">
+        <input type="radio" name="admExamTipo" value="readers" style="width:18px;height:18px;accent-color:#0891b2;">
+        📗 Readers
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:var(--morado);">
+        <input type="radio" name="admExamTipo" value="online_workbook" style="width:18px;height:18px;accent-color:var(--morado);">
+        💻 Online Workbook
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.92rem;color:var(--azul);">
+        <input type="radio" name="admExamTipo" value="final_exam" checked style="width:18px;height:18px;accent-color:var(--azul-medio);">
+        🎯 Final Exam
+      </label>
+    </div>
+    <small style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">
+      📗 Readers → se muestra en el tab "Exámenes". ·
+      💻 Online Workbook → se muestra en el tab "Online Workbook". ·
+      🎯 Final Exam → se muestra en el tab "Exámenes".
+    </small>
   </div>
-  <small style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">
-    🎯 <strong>Examen Final</strong> → aparece en el tab "Exámenes" del alumno.<br>
-    💻 <strong>Online Workbook</strong> → aparece en el tab "Online Workbook" del alumno.
-  </small>
-</div>
-              <div class="campo"><label>Nombre <span class="req">*</span></label><input type="text" id="admExamNombre" placeholder="Ej: Quiz de fonética" required></div>
-               <div class="campo completo">
-  <label>Grupos destino <span class="req">*</span></label>
-  <div id="admExamGroupsCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;max-height:230px;overflow-y:auto;padding:10px;border:1.5px solid var(--borde);border-radius:10px;background:#f9fafb;"></div>
-  <small id="admExamGroupsInfo" style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">Selecciona al menos un grupo.</small>
-</div>
-                <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
-                <div class="campo"><label>Fecha publicación</label><input type="date" id="admExamFechaPub"></div>
-                <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
-               <div class="campo">
-  <label>Intentos permitidos <span class="req">*</span></label>
-  <select id="admExamIntentos" required>
-    <option value="1">1 intento (sin repetición)</option>
-    <option value="2">2 intentos (permite reintento)</option>
-  </select>
-</div>
-                <div class="campo completo">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
-                    <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
-                    <button type="button" class="btn btn-mini btn-azul" id="admBtnAddPregunta">+ Agregar pregunta</button>
-                  </div>
-                  <div id="admExamPreguntas"></div>
-                </div>
-                <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
-              </form>
+
+  <!-- 2. Grupos destino (igual que antes) -->
+  <div class="campo completo">
+    <label>Grupos destino <span class="req">*</span></label>
+    <div id="admExamGroupsCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;max-height:230px;overflow-y:auto;padding:10px;border:1.5px solid var(--borde);border-radius:10px;background:#f9fafb;"></div>
+    <small id="admExamGroupsInfo" style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">Selecciona al menos un grupo.</small>
+  </div>
+
+  <!-- 3. NUEVO: evaluación calendarizada -->
+  <div class="campo completo" id="admExamEventWrap">
+    <label>Evaluación calendarizada <span class="req">*</span></label>
+    <select id="admExamEventSelect" required style="width:100%;padding:12px 14px;border:1.5px solid var(--borde);border-radius:10px;font-family:inherit;font-size:.95rem;background:#fff;">
+      <option value="">Primero marca grupo(s) y tipo...</option>
+    </select>
+    <small id="admExamEventInfo" style="color:var(--gris);font-size:.78rem;margin-top:6px;display:block;">Elige a qué evaluación del calendario vincular este examen.</small>
+  </div>
+
+  <!-- 4. Nombre (readonly, autocompletado) -->
+  <div class="campo completo">
+    <label>Nombre del examen <small style="color:var(--gris);font-weight:400;">(auto-generado del evento)</small></label>
+    <input type="text" id="admExamNombre" readonly style="background:#f1f5f9;font-weight:700;color:var(--azul);" placeholder="Se completa al elegir la evaluación">
+  </div>
+
+  <!-- 5. Descripción (igual) -->
+  <div class="campo"><label>Descripción</label><input type="text" id="admExamDesc" placeholder="Ej: Evaluación de diptongos"></div>
+
+  <!-- 6. Fecha límite (fecha publicación SE ELIMINA: viene del evento) -->
+  <div class="campo"><label>Fecha límite</label><input type="date" id="admExamFechaFin"></div>
+
+  <!-- 7. Intentos (igual) -->
+  <div class="campo">
+    <label>Intentos permitidos <span class="req">*</span></label>
+    <select id="admExamIntentos" required>
+      <option value="1">1 intento (sin repetición)</option>
+      <option value="2">2 intentos (permite reintento)</option>
+    </select>
+  </div>
+
+  <!-- 8. Preguntas (igual) -->
+  <div class="campo completo">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;gap:10px;flex-wrap:wrap;">
+      <h5 style="color:var(--slate);font-size:.95rem;font-weight:800;">Preguntas</h5>
+      <button type="button" class="btn btn-mini btn-azul" id="admBtnAddPregunta">+ Agregar pregunta</button>
+    </div>
+    <div id="admExamPreguntas"></div>
+  </div>
+
+  <div class="campo completo"><div class="tform-acciones"><button type="submit" class="btn btn-slate btn-mini">📤 Publicar examen</button></div></div>
+</form>
   <div class="mensaje-exito" id="admExamMsg">✅ Examen publicado.</div>
 </div><!-- ✅ cierra el div admin-form -->
 
@@ -5894,6 +5924,159 @@ function refreshAdminExamGroups() {
   updateExamGroupsInfo();
 }
 
+ // ═══════════════════════════════════════════════════════════
+//  🆕 Poblar el dropdown de evaluaciones calendarizadas
+// ═══════════════════════════════════════════════════════════
+function refreshExamEventsDropdown() {
+  const sel    = document.getElementById('admExamEventSelect');
+  const info   = document.getElementById('admExamEventInfo');
+  const nombre = document.getElementById('admExamNombre');
+  if (!sel) return;
+
+  const tipo = document.querySelector('input[name="admExamTipo"]:checked')?.value || 'final_exam';
+  const grupos = [...document.querySelectorAll('#admExamGroupsCheckboxes input[type="checkbox"]:checked')].map(cb => cb.value);
+
+  // Reset
+  sel.innerHTML = '<option value="">Selecciona la evaluación...</option>';
+  if (nombre) { nombre.value = ''; nombre.setAttribute('readonly', ''); }
+  if (info) { info.textContent = ''; info.style.color = 'var(--gris)'; }
+
+  if (grupos.length === 0) {
+    sel.innerHTML = '<option value="">❌ Primero marca al menos un grupo arriba</option>';
+    return;
+  }
+
+  // Mapeo: tipo examen → tipos de evento en calendarEvents
+  const tipoEventoMap = {
+    final_exam:      ['final_exam'],
+    online_workbook: ['online_workbook', 'online_homework'],
+    readers:         ['readers']
+  };
+  const tiposBuscados = tipoEventoMap[tipo] || [tipo];
+
+  // Recolectar candidatos
+  const candidatos = [];
+  Object.keys(state.calendarEvents || {}).forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => {
+      if (!ev.grupoId || !grupos.includes(ev.grupoId)) return;
+      if (!tiposBuscados.includes(ev.tipo)) return;
+
+      const criterioNorm = ev.tipo === 'online_workbook' ? 'online_homework' : ev.tipo;
+      const asgVinculada = (state.assignments || []).find(a =>
+        a.grupoId === ev.grupoId &&
+        a.fechaInicio === fecha &&
+        (a.criterio === criterioNorm ||
+         (criterioNorm === 'online_homework' && a.criterio === 'online_workbook'))
+      );
+      const examenExistente = asgVinculada?.examId
+        ? (state.exams || []).find(x => x.id === asgVinculada.examId)
+        : null;
+
+      candidatos.push({
+        ev, fecha,
+        grupoId: ev.grupoId,
+        grupoNombre: (state.groups.find(g => g.id === ev.grupoId)?.nombre) || ev.grupoId,
+        examenExistente,
+        asgVinculada
+      });
+    });
+  });
+
+  candidatos.sort((a, b) => {
+    const cmpG = a.grupoNombre.localeCompare(b.grupoNombre);
+    return cmpG !== 0 ? cmpG : a.fecha.localeCompare(b.fecha);
+  });
+
+  // Opción "crear nueva para todos los grupos"
+  const optNueva = document.createElement('option');
+  optNueva.value = '__nueva_para_grupos__';
+  optNueva.textContent = `➕ Crear nueva evaluación para ${grupos.length} grupo(s) sin evento previo`;
+  optNueva.style.color = '#7c3aed';
+  optNueva.style.fontWeight = '700';
+  sel.appendChild(optNueva);
+
+  if (candidatos.length === 0) {
+    if (info) {
+      info.innerHTML = `⚠️ No hay eventos "${tipo.replace('_', ' ')}" en el calendario para estos grupos. Puedes usar la opción "➕ Crear nueva".`;
+      info.style.color = '#b45309';
+    }
+    return;
+  }
+
+  // Agrupar por grupo (con separadores visuales)
+  const gruposUnicos = [...new Set(candidatos.map(c => c.grupoNombre))];
+  const conEncabezados = gruposUnicos.length > 1;
+  let grupoActual = null;
+
+  candidatos.forEach(c => {
+    if (conEncabezados && c.grupoNombre !== grupoActual) {
+      const sep = document.createElement('option');
+      sep.disabled = true;
+      sep.textContent = `── ${c.grupoNombre} ──`;
+      sep.style.fontWeight = '800';
+      sep.style.background = '#f1f5f9';
+      sep.style.color = '#475569';
+      sel.appendChild(sep);
+      grupoActual = c.grupoNombre;
+    }
+
+    const opt = document.createElement('option');
+    opt.value = `${c.grupoId}__${c.ev.id}`;
+    const estado = c.examenExistente ? '🔴 [Ya tiene examen]'
+                  : c.asgVinculada ? '🟢 [Asignación lista]'
+                  : '🟡 [Sin asignación]';
+    opt.textContent = `${estado} · ${c.ev.nombre} · ${formatearFecha(c.fecha)}`;
+    opt.dataset.grupoId     = c.grupoId;
+    opt.dataset.eventId     = c.ev.id;
+    opt.dataset.eventNombre = c.ev.nombre;
+    opt.dataset.eventFecha  = c.fecha;
+    opt.dataset.eventTipo   = c.ev.tipo;
+    opt.dataset.examExistId = c.examenExistente?.id || '';
+    opt.dataset.asgId       = c.asgVinculada?.id || '';
+    if (c.examenExistente) opt.style.color = '#b91c1c';
+    sel.appendChild(opt);
+  });
+
+  // Autocompletar nombre al elegir
+  sel.onchange = () => {
+    const opt = sel.selectedOptions[0];
+    if (!opt) return;
+
+    if (opt.value === '__nueva_para_grupos__') {
+      const tipoLabel = tipo === 'online_workbook' ? 'Online Workbook'
+                       : tipo === 'final_exam' ? 'Final Exam' : 'Readers';
+      if (nombre) { nombre.value = tipoLabel; nombre.removeAttribute('readonly'); }
+      if (info) {
+        info.innerHTML = `🆕 Se creará una <strong>nueva evaluación</strong> llamada "${tipoLabel}" para cada grupo seleccionado.`;
+        info.style.color = 'var(--morado)';
+      }
+      return;
+    }
+
+    if (!opt.dataset.eventId) { if (nombre) nombre.value = ''; return; }
+    if (nombre) { nombre.value = opt.dataset.eventNombre; nombre.setAttribute('readonly', ''); }
+
+    if (info) {
+      if (opt.dataset.examExistId) {
+        info.innerHTML = `⚠️ Esta evaluación <strong>ya tiene un examen creado</strong>. Si continúas, se reemplazará el anterior.`;
+        info.style.color = '#b91c1c';
+      } else if (opt.dataset.asgId) {
+        info.innerHTML = `✅ Se vinculará a la asignación existente (no se duplica).`;
+        info.style.color = '#15803d';
+      } else {
+        info.innerHTML = `🆕 Se creará una nueva asignación en el calendario del ${formatearFecha(opt.dataset.eventFecha)}.`;
+        info.style.color = 'var(--gris)';
+      }
+    }
+  };
+
+  // Auto-seleccionar si hay 1 solo candidato
+  if (candidatos.length === 1) {
+    const idx = [...sel.options].findIndex(o => !o.disabled && o.value !== '__nueva_para_grupos__');
+    if (idx > 0) { sel.selectedIndex = idx; sel.dispatchEvent(new Event('change')); }
+  }
+}
+ 
 function updateExamGroupsInfo() {
   const cont = document.getElementById("admExamGroupsCheckboxes");
   const info = document.getElementById("admExamGroupsInfo");
@@ -6151,18 +6334,27 @@ document.getElementById("admBtnAddPregunta")?.addEventListener("click", () => {
 
   cont.appendChild(div);
 });
-document.getElementById("admNewExamForm").addEventListener("submit", async (e) => {
+
+ document.getElementById("admNewExamForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btnSubmit = e.target.querySelector('button[type="submit"]');
-  const nombre = document.getElementById("admExamNombre").value.trim();
 
-  // 🔑 Multi-grupo
-  const checkedBoxes = [...document.querySelectorAll('#admExamGroupsCheckboxes input[type="checkbox"]:checked')];
-  const grupoIds = checkedBoxes.map(cb => cb.value);
+  // 1. Leer la evaluación elegida
+  const selEvento = document.getElementById('admExamEventSelect');
+  const optElegida = selEvento?.selectedOptions[0];
+  if (!optElegida || !optElegida.value) {
+    alert("❌ Selecciona la evaluación calendarizada o 'Crear nueva'.");
+    return;
+  }
 
-  if (!nombre) { alert("Completa el nombre del examen."); return; }
+  const esNuevaParaGrupos = optElegida.value === '__nueva_para_grupos__';
+  const nombre = (document.getElementById("admExamNombre").value || "").trim();
+  if (!nombre) { alert("El nombre del examen no puede estar vacío."); return; }
+
+  const grupoIds = [...document.querySelectorAll('#admExamGroupsCheckboxes input[type="checkbox"]:checked')].map(cb => cb.value);
   if (!grupoIds.length) { alert("Selecciona al menos un grupo destino."); return; }
 
+  // 2. Validar preguntas
   const blocks = [...document.querySelectorAll("#admExamPreguntas .qblock")];
   if (!blocks.length) { alert("Agrega preguntas."); return; }
 
@@ -6180,8 +6372,9 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
   }
 
   if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = "⏳ Publicando..."; }
+
   try {
-    // Procesar imágenes UNA sola vez (se comparten entre todos los grupos)
+    // 3. Procesar imágenes del contexto
     const preguntasBase = [];
     for (const p of pendientes) {
       let contextoImagen = null;
@@ -6201,52 +6394,162 @@ document.getElementById("admNewExamForm").addEventListener("submit", async (e) =
     const descripcion = (document.getElementById("admExamDesc").value || "").trim() || null;
     const fechaFin = document.getElementById("admExamFechaFin").value || null;
     const intentosPermitidos = parseInt(document.getElementById("admExamIntentos").value, 10) || 1;
-    const fechaPub = new Date().toISOString().slice(0, 10);
+    const tipoExamen = document.querySelector('input[name="admExamTipo"]:checked')?.value || "final_exam";
+    const criterioAsignacion = tipoExamen === "online_workbook" ? "online_homework" : tipoExamen;
 
     if (!state.examResults) state.examResults = {};
 
-// 🎯 Leer qué tipo de examen eligió el admin
-const tipoExamen = document.querySelector('input[name="admExamTipo"]:checked')?.value || "final_exam";
-// tipoExamen puede ser: "final_exam" | "online_workbook"
+    let creados = 0;
+    let reemplazados = 0;
 
-// Criterio que se usará en state.assignments
-const criterioAsignacion = tipoExamen === "online_workbook" ? "online_homework" : "final_exam";
+    if (!esNuevaParaGrupos) {
+      // ═══════ CASO A: vincular a un evento específico ═══════
+      const grupoId      = optElegida.dataset.grupoId;
+      const eventId      = optElegida.dataset.eventId;
+      const eventNombre  = optElegida.dataset.eventNombre;
+      const eventFecha   = optElegida.dataset.eventFecha;
+      const examExistId  = optElegida.dataset.examExistId;
+      const asgPrevia    = optElegida.dataset.asgId;
 
-// 🔁 Crear un examen + asignación por cada grupo seleccionado
-let creados = 0;
-grupoIds.forEach((grupoId, idx) => {
-  const examId = "exam_" + (Date.now() + idx);
-  const asgId  = "asg_exam_" + (Date.now() + idx);
+      if (examExistId) {
+        if (!confirm(`⚠️ La evaluación "${eventNombre}" ya tiene un examen creado.\n\n¿Reemplazarlo con este nuevo?`)) {
+          if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
+          return;
+        }
+        state.exams = state.exams.filter(x => x.id !== examExistId);
+        if (state.examResults) delete state.examResults[examExistId];
+        reemplazados++;
+      }
 
-  state.exams.push({
-    id: examId,
-    nombre,
-    grupoId,
-    assignmentId: asgId,
-    fechaPublicacion: fechaPub,
-    preguntas: JSON.parse(JSON.stringify(preguntasBase)),
-    intentosPermitidos,
-    descripcion,
-    fechaFin,
-    tipoExamen,          // 🆕 Guardamos el tipo (final_exam | online_workbook)
-    criterio: criterioAsignacion   // 🆕 Para filtrado posterior
-  });
+      const examId = 'exam_' + Date.now();
+      let asgId = asgPrevia;
 
-  state.assignments.push({
-    id: asgId,
-    criterio: criterioAsignacion,  // ✅ Dinámico en lugar de "final_exam" fijo
-    nombre: "📝 " + nombre,
-    fechaInicio: fechaPub,
-    fechaFin,
-    esExamen: true,
-    examId,
-    grupoId
-  });
+      if (!asgId) {
+        asgId = 'asg_exam_' + Date.now();
+        state.assignments.push({
+          id: asgId,
+          criterio: criterioAsignacion,
+          nombre: eventNombre,
+          fechaInicio: eventFecha,
+          fechaFin,
+          esExamen: true,
+          examId,
+          grupoId,
+          calendarEventId: eventId,
+          createdBy: 'examen_manual'
+        });
+      } else {
+        const asg = state.assignments.find(a => a.id === asgId);
+        if (asg) {
+          asg.esExamen = true;
+          asg.examId = examId;
+          asg.calendarEventId = eventId;
+          if (fechaFin) asg.fechaFin = fechaFin;
+        }
+      }
 
-  state.examResults[examId] = {};
-  creados++;
+      state.exams.push({
+        id: examId,
+        nombre: eventNombre,
+        grupoId,
+        assignmentId: asgId,
+        calendarEventId: eventId,
+        fechaPublicacion: eventFecha,
+        preguntas: JSON.parse(JSON.stringify(preguntasBase)),
+        intentosPermitidos,
+        descripcion,
+        fechaFin,
+        tipoExamen,
+        criterio: criterioAsignacion
+      });
+
+      state.examResults[examId] = {};
+      creados++;
+
+    } else {
+      // ═══════ CASO B: crear nueva evaluación para cada grupo ═══════
+      const fechaPub = new Date().toISOString().slice(0, 10);
+
+      grupoIds.forEach((grupoId, idx) => {
+        const examId = 'exam_' + (Date.now() + idx);
+        const asgId  = 'asg_exam_' + (Date.now() + idx);
+
+        state.exams.push({
+          id: examId,
+          nombre,
+          grupoId,
+          assignmentId: asgId,
+          calendarEventId: null,
+          fechaPublicacion: fechaPub,
+          preguntas: JSON.parse(JSON.stringify(preguntasBase)),
+          intentosPermitidos,
+          descripcion,
+          fechaFin,
+          tipoExamen,
+          criterio: criterioAsignacion
+        });
+
+        state.assignments.push({
+          id: asgId,
+          criterio: criterioAsignacion,
+          nombre: "📝 " + nombre,
+          fechaInicio: fechaPub,
+          fechaFin,
+          esExamen: true,
+          examId,
+          grupoId,
+          calendarEventId: null,
+          createdBy: 'examen_manual_nuevo'
+        });
+
+        state.examResults[examId] = {};
+        creados++;
+      });
+    }
+
+    // Reset
+    const radioReset = document.querySelector('input[name="admExamTipo"][value="final_exam"]');
+    if (radioReset) radioReset.checked = true;
+
+    saveState();
+    e.target.reset();
+    document.getElementById("admExamPreguntas").innerHTML = "";
+    const nombreInput = document.getElementById("admExamNombre");
+    if (nombreInput) { nombreInput.setAttribute('readonly', ''); }
+
+    refreshAdminExamGroups();
+    refreshExamEventsDropdown();
+
+    document.getElementById("admExamMsg")?.classList.add("visible");
+    setTimeout(() => document.getElementById("admExamMsg")?.classList.remove("visible"), 3000);
+
+    alert(reemplazados > 0
+      ? `✅ Examen publicado. Se reemplazó 1 examen anterior y se creó ${creados} nuevo(s).`
+      : `✅ Examen publicado en ${creados} grupo(s).`);
+
+  } finally {
+    if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
+  }
+});
+ // ═══════════════════════════════════════════════════════════
+//  Listeners para refreshExamEventsDropdown
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('input[name="admExamTipo"]').forEach(r =>
+  r.addEventListener('change', refreshExamEventsDropdown));
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.closest('#admExamGroupsCheckboxes')) {
+    refreshExamEventsDropdown();
+  }
 });
 
+document.querySelectorAll('[data-adm-exam-tab="manual"]').forEach(t => {
+  t.addEventListener('click', () => setTimeout(refreshExamEventsDropdown, 100));
+});
+
+document.querySelectorAll('#tal-panel-admin [data-admtab="examenes"]').forEach(tab => {
+  tab.addEventListener('click', () => setTimeout(refreshExamEventsDropdown, 150));
+});
 // Reset del radio al valor por defecto
 const radioReset = document.querySelector('input[name="admExamTipo"][value="final_exam"]');
 if (radioReset) radioReset.checked = true;
@@ -17755,17 +18058,21 @@ function generarPreguntas(texto, cantidad) {
         // 🆕 Caso A: vincular a evaluación existente
         if (evaluacionDestino !== '__nueva__' && cbsMarcados.length === 1) {
           const asgExistente = state.assignments.find(a => a.id === evaluacionDestino && a.grupoId === grupoId);
-          if (asgExistente) {
-            asgId = asgExistente.id;
-            asgExistente.esExamen = true;
-            asgExistente.examId   = examId;
-            if (asgExistente.nombre && !asgExistente.nombre.includes(nombre)) {
-              asgExistente.nombre += ' · ' + nombre;
-            }
-            console.log(`🔗 Examen vinculado a evaluación existente: "${asgExistente.nombre}" (ID: ${asgId})`);
-          }
-        }
+         if (asgExistente) {
+  asgId = asgExistente.id;
+  asgExistente.esExamen = true;
+  asgExistente.examId   = examId;
 
+  // 🆕 Buscar el calendarEvent ANTES de modificar el nombre
+  const nombreOriginal = asgExistente.nombre;
+  const evCalendar = Object.values(state.calendarEvents || {})
+    .flat().find(ev => ev.grupoId === grupoId && ev.nombre === nombreOriginal);
+  asgExistente.calendarEventId = evCalendar?.id || null;
+
+  if (asgExistente.nombre && !asgExistente.nombre.includes(nombre)) {
+    asgExistente.nombre += ' · ' + nombre;
+  }
+}
         // 🆕 Caso B: crear nueva asignación
         if (!asgId) {
           asgId = 'asg_exam_' + (Date.now() + idx);
