@@ -9542,22 +9542,30 @@ function buildNotasTable() {
 document.getElementById('btnGuardarRegistroNotas')?.addEventListener('click', () => {
   const gid = document.getElementById('dNotasGrupo')?.value;
   const nCols = (notasCalColumns && notasCalColumns.length) ? notasCalColumns.length : 0;
-  if (!gid || !nCols) { alert('Selecciona un grupo con evaluaciones calendarizadas.'); return; }
-  if (!state.assignments) state.assignments = [];
+  if (!gid || !nCols) { alert('Selecciona un grupo con evaluaciones.'); return; }
   if (!state.grades) state.grades = {};
 
   for (let i = 1; i <= nCols; i++) {
     const col = notasCalColumns[i - 1];
-    const fecha = col.fecha;                       // bloqueado: viene del calendario
-    const criterio = notasCritNormalizado(col.tipo); // bloqueado: viene del calendario
-    const asgId = notasAsgId(gid, col, i);
-    if (!state.assignments.find(a => a.id === asgId)) {
-      state.assignments.push({
-        id: asgId, grupoId: gid, criterio,
-        nombre: col.nombre || (criterio + ' · ' + fecha),
-        fechaInicio: fecha, fechaFin: fecha,
-        teacherCode: currentTeacherCode, createdBy: 'calendarizacion'
-      });
+    document.querySelectorAll(`[data-notas-cl="${i}"]`).forEach(inp => {
+      const code = inp.dataset.notasSt;
+      if (!state.grades[code]) state.grades[code] = {};
+      if (inp.value === '') {
+        delete state.grades[code][col.asgId]; // 🌟 Guardar usando el ID real
+      } else {
+        const num = parseFloat(inp.value);
+        if (!isNaN(num) && num >= 0 && num <= 20) state.grades[code][col.asgId] = num;
+      }
+    });
+  }
+  saveState();
+  notasEditMode = false;
+  buildNotasTableFromCalendar();
+  notasSyncBotones();
+  document.getElementById('dNotasMsg')?.classList.add('visible');
+  setTimeout(() => document.getElementById('dNotasMsg')?.classList.remove('visible'), 3000);
+  alert('✅ Registro de notas guardado.');
+});
     }
     document.querySelectorAll(`[data-notas-cl="${i}"]`).forEach(inp => {
       const code = inp.dataset.notasSt;
@@ -9817,8 +9825,8 @@ function notasGrupoTieneGuardado(gid) {
   const g = (state.groups || []).find(x => x.id === gid);
   if (!g || !notasCalColumns || !notasCalColumns.length) return false;
   return (g.studentCodes || []).some(code =>
-    notasCalColumns.some((col, i) => {
-      const v = state.grades?.[code]?.[notasAsgId(gid, col, i + 1)];
+    notasCalColumns.some(col => {
+      const v = state.grades?.[code]?.[col.asgId];
       return v !== undefined && v !== null && v !== '';
     })
   );
@@ -9845,33 +9853,38 @@ function loadNotasFromCalendar() {
     notasSyncBotones();
     return;
   }
-  const events = [];
+  
   const evalTypes = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
-  Object.keys(state.calendarEvents || {}).forEach(fecha => {
-    (state.calendarEvents[fecha] || []).forEach(ev => {
-      if (ev.grupoId !== gid) return;
-      const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
-      if (evalTypes.includes(ev.tipo) || isCustom) {
-        events.push({ fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo, id: ev.id });
-      }
-    });
+  
+  // 🆕 Leer directamente de las asignaciones reales
+  const asgs = (state.assignments || []).filter(a => {
+    if (a.grupoId !== gid) return false;
+    const isCustom = (state.customCriterios || []).some(c => c.id === a.criterio);
+    return evalTypes.includes(a.criterio) || isCustom;
   });
-  events.sort((a, b) => a.fecha.localeCompare(b.fecha));
-  if (!events.length) {
-    if (info) info.innerHTML = '⚠️ No hay evaluaciones calendarizadas para este grupo. Programa eventos en <strong>Coordinación Académica → Calendarización</strong>.';
-    notasCalColumns = [];
-    notasClaseCount = 0;
+
+  notasCalColumns = asgs.map(a => ({
+    asgId: a.id, // 🌟 Guardamos el ID real
+    fecha: a.fechaInicio || a.fechaPublicacion || '',
+    tipo: a.criterio,
+    nombre: a.nombre,
+    esExamen: a.esExamen || false
+  }));
+
+  notasCalColumns.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+
+  if (!notasCalColumns.length) {
+    if (info) info.innerHTML = '⚠️ No hay evaluaciones programadas para este grupo.';
     buildNotasTable();
     notasSyncBotones();
     return;
   }
-  notasCalColumns = events;
-  notasClaseCount = events.length;
-  if (info) info.innerHTML = `✅ ${events.length} evaluación(es) cargada(s) desde Calendarización. La fecha y el criterio están bloqueados.`;
+
+  notasClaseCount = notasCalColumns.length;
+  if (info) info.innerHTML = `✅ ${notasClaseCount} evaluación(es) cargada(s). Las fechas están bloqueadas.`;
   buildNotasTableFromCalendar();
   notasSyncBotones();
 }
-
 function buildNotasTableFromCalendar() {
   const gid = document.getElementById('dNotasGrupo')?.value;
   const head = document.getElementById('dNotasHead');
@@ -9880,47 +9893,31 @@ function buildNotasTableFromCalendar() {
   const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
   const bloqueado = !notasEditMode && notasGrupoTieneGuardado(gid);
 
-  // Cabecera: fecha y criterio fijos (solo lectura), texto en blanco
   let th = '<tr><th style="position:sticky;left:0;z-index:1;color:#fff;">Alumnos</th>';
   notasCalColumns.forEach((col, i) => {
     const idx = i + 1;
-    const crit = notasCritNormalizado(col.tipo);
     const label = (typeof calTipoLabel === 'function') ? calTipoLabel(col.tipo, col.nombre) : (col.nombre || col.tipo);
     th += `<th style="min-width:130px;color:#fff;">
       <div style="font-size:.8rem;font-weight:800;color:#fff;">🔒 ${label}</div>
-      <div style="font-size:.78rem;color:#fff;margin-top:4px;font-weight:600;">📅 ${formatearFecha(col.fecha)}</div>
-      <input type="hidden" data-notas-fecha="${idx}" value="${col.fecha}">
-      <input type="hidden" data-notas-crit="${idx}" value="${crit}">
+      <div style="font-size:.78rem;color:#fff;margin-top:4px;font-weight:600;">📅 ${col.fecha ? formatearFecha(col.fecha) : '—'}</div>
+      <input type="hidden" data-notas-fecha="${idx}" value="${col.fecha || ''}">
+      <input type="hidden" data-notas-crit="${idx}" value="${col.tipo}">
     </th>`;
   });
   head.innerHTML = th + '</tr>';
 
-  // Cuerpo: notas ya guardadas se muestran de nuevo
   body.innerHTML = codes.map(c => {
     let tds = `<td style="position:sticky;left:0;background:#fff;z-index:1;"><strong>${state.students[c]?.nombre || c}</strong><br><small>${c}</small></td>`;
     notasCalColumns.forEach((col, i) => {
       const idx = i + 1;
-      const v = state.grades?.[c]?.[notasAsgId(gid, col, idx)];
+      // 🌟 Leer usando el ID real
+      const v = state.grades?.[c]?.[col.asgId];
       const val = (v !== undefined && v !== null) ? v : '';
       tds += `<td><input type="number" min="0" max="20" step="0.5" data-notas-st="${c}" data-notas-cl="${idx}" value="${val}" placeholder="0-20" ${bloqueado ? 'disabled' : ''} style="width:70px;padding:6px;border-radius:6px;border:1.5px solid var(--borde);font-weight:700;text-align:center;"></td>`;
     });
     return `<tr>${tds}</tr>`;
   }).join('') || '<tr><td class="empty-state">Sin alumnos.</td></tr>';
 }
-// Tras guardar asistencia: refrescar historial y no ocultar datos
-const _origAsisSave = document.getElementById('dBtnGuardarAsistencia');
-// Patch after existing handler by listening again
-document.getElementById('dAsisGrupo')?.addEventListener('change', () => {
-  setTimeout(renderAsisHistorial, 50);
-});
-document.querySelectorAll('#dashboardDocente [data-dtab]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    if (tab.dataset.dtab === 'asistencia') setTimeout(() => { fillTeacherGroupSelects(); loadAsisFromCalendar(); }, 60);
-    if (tab.dataset.dtab === 'evaluaciones') setTimeout(() => { fillTeacherGroupSelects(); loadNotasFromCalendar(); }, 60);
-  });
-});
-/* ===== Calendario del docente (solo lectura) ===== */
-let dCalSelected = null;
 
 function fillDCalGrupos() {
   const sel = document.getElementById('dCalGrupo');
@@ -17766,7 +17763,7 @@ function generarPreguntas(texto, cantidad) {
           }
         }
 
-        // 🆕 Caso B: crear nueva asignación
+             // 🆕 Caso B: crear nueva asignación
         if (!asgId) {
           asgId = 'asg_exam_' + (Date.now() + idx);
           state.assignments.push({
@@ -17779,9 +17776,23 @@ function generarPreguntas(texto, cantidad) {
             examId,
             grupoId
           });
+          
+          // 🆕 Sincronizar con el calendario para que aparezca en el mapa de ruta del alumno
+          if (!state.calendarEvents) state.calendarEvents = {};
+          if (!state.calendarEvents[fechaPub]) state.calendarEvents[fechaPub] = [];
+          const tipoEv = criterio === 'online_homework' ? 'online_workbook' : criterio;
+          
+          state.calendarEvents[fechaPub].push({
+            id: 'cev_' + Date.now() + '_' + idx,
+            grupoId,
+            tipo: tipoEv,
+            nombre: nombre,
+            nota: null,
+            createdAt: new Date().toISOString()
+          });
+          
           console.log(`📝 Nueva evaluación creada para el examen "${nombre}" (ID: ${asgId})`);
         }
-
         // Guardar el examen
         state.exams.push({
           id: examId,
