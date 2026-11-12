@@ -19063,5 +19063,261 @@ function generarPreguntas(texto, cantidad) {
 })();
 </script>
 <!-- ══════════ FIN MARCADO PORTAL ALUMNO ══════════ -->
+ <!-- ══════════ RUTA DE APRENDIZAJE v5 — Final Exam conectado ══════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔗 Ruta de Aprendizaje v5 — iniciando...');
+
+  // CSS global para el colapsable
+  if (!document.getElementById('cssDetailsFix')) {
+    const st = document.createElement('style');
+    st.id = 'cssDetailsFix';
+    st.textContent = 'summary::-webkit-details-marker{display:none!important}' +
+      'summary{list-style:none!important}' +
+      'details[open] summary .arrow-colapsable{transform:rotate(180deg)}';
+    document.head.appendChild(st);
+  }
+
+  window.renderStudentCalificaciones = function () {
+    if (typeof currentStudentCode === 'undefined' || !currentStudentCode) return;
+
+    const timeline = document.getElementById('mapaTimelineA');
+    if (!timeline) return;
+
+    const allGroups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+    const groups = allGroups.filter(g => !g.cerrado);
+    const myGroupIds = groups.map(g => g.id);
+
+    // ─── Cabecera ───
+    const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
+    const elProm = document.getElementById('califPromedioA');
+    if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
+
+    const elEst = document.getElementById('califEstadoA');
+    if (elEst) {
+      elEst.textContent = '🟡 EN CURSO';
+      elEst.style.background = '#fef3c7';
+      elEst.style.color = '#b45309';
+    }
+
+    const photoEl = document.getElementById('califTeacherPhoto');
+    const nameEl = document.getElementById('califTeacherName');
+    let teacher = null;
+    if (groups.length) teacher = state.teachers[groups[0].teacherCode];
+    if (photoEl) {
+      photoEl.innerHTML = (teacher && teacher.formalPhoto)
+        ? '<img src="' + teacher.formalPhoto + '" style="width:100%;height:100%;object-fit:cover;">'
+        : '👨‍🏫';
+    }
+    if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+
+    timeline.innerHTML = '';
+
+    const todosLosCriterios = [...CRITERIOS, ...(state.customCriterios || [])];
+    const grades       = state.grades[currentStudentCode] || {};
+    const examResults  = state.examResults || {};
+    const exams        = state.exams || [];
+    const assignments  = state.assignments || [];
+
+    let sumaProyeccion = 0, criteriosEvaluados = 0;
+
+    const norm = function (s) {
+      return String(s || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '').trim();
+    };
+
+    // 🔑 Recolector robusto: asignaciones + exámenes + huérfanos
+    function getEvaluacionesDeCriterio(criterioId) {
+      const result = [];
+      const asgIdsProcesados = {};
+
+      // ── 1) Asignaciones del criterio ──
+      assignments.forEach(function (a) {
+        if (a.grupoId && myGroupIds.indexOf(a.grupoId) === -1) return;
+        const esDelCrit = a.criterio === criterioId ||
+          (criterioId === 'online_homework' && a.criterio === 'online_workbook');
+        if (!esDelCrit) return;
+
+        asgIdsProcesados[a.id] = true;
+
+        let nota = null;
+        const gv = grades[a.id];
+        if (gv !== undefined && gv !== null && gv !== '') nota = parseFloat(gv);
+
+        if (nota === null && a.examId) {
+          const exRes = examResults[a.examId];
+          const res = exRes ? exRes[currentStudentCode] : null;
+          if (res && res.nota !== undefined && res.nota !== null) {
+            nota = parseFloat(res.nota);
+          }
+        }
+
+        result.push({
+          asgId: a.id,
+          nombre: a.nombre || 'Evaluación',
+          fecha: a.fechaInicio,
+          nota: nota,
+          esExamen: !!a.examId
+        });
+      });
+
+      // ── 2) Exámenes directos (huérfanos o con asignación) ──
+      const tipoExamenBuscado = criterioId === 'online_homework' ? 'online_workbook' : criterioId;
+
+      exams.forEach(function (ex) {
+        if (ex.grupoId && myGroupIds.indexOf(ex.grupoId) === -1) return;
+        const exTipo = ex.tipoExamen || 'final_exam';
+        if (exTipo !== tipoExamenBuscado) return;
+
+        // Si el examen ya fue procesado por asignación, saltarlo
+        if (ex.assignmentId && asgIdsProcesados[ex.assignmentId]) return;
+
+        const exRes = examResults[ex.id];
+        const res = exRes ? exRes[currentStudentCode] : null;
+        const nota = (res && res.nota !== undefined && res.nota !== null)
+          ? parseFloat(res.nota)
+          : null;
+
+        result.push({
+          asgId: ex.assignmentId || ('examonly_' + ex.id),
+          nombre: ex.nombre || 'Examen',
+          fecha: ex.fechaPublicacion,
+          nota: nota,
+          esExamen: true
+        });
+      });
+
+      return result;
+    }
+
+    // ─── Iterar todos los criterios ───
+    todosLosCriterios.forEach(function (c) {
+      const evaluaciones = getEvaluacionesDeCriterio(c.id);
+      if (!evaluaciones.length) return;
+
+      // Deduplicar por nombre normalizado
+      const vistos = {};
+      const dedup = [];
+      evaluaciones.forEach(function (n) {
+        const key = norm(n.nombre) || ('__' + n.asgId + '__');
+        if (vistos[key] !== undefined) {
+          const idx = vistos[key];
+          const previo = dedup[idx];
+          if (previo.nota === null && n.nota !== null) dedup[idx] = n;
+          else if (previo.nota !== null && n.nota !== null && n.nota > previo.nota) dedup[idx] = n;
+        } else {
+          vistos[key] = dedup.length;
+          dedup.push(n);
+        }
+      });
+
+      const conNota = dedup.filter(function (n) { return n.nota !== null; });
+      const p = conNota.length > 0
+        ? +(conNota.reduce(function (s, v) { return s + v.nota; }, 0) / conNota.length).toFixed(2)
+        : null;
+
+      if (p !== null) { sumaProyeccion += p; criteriosEvaluados++; }
+
+      const pct = Math.round((conNota.length / dedup.length) * 100);
+
+      let colorClass = 'pending', notaClass = '', barClass = '', icono = '⏳';
+      let mensaje = 'Tienes ' + dedup.length + ' evaluación(es) pendiente(s).';
+
+      if (p !== null) {
+        if (p >= 14) { colorClass='completado'; notaClass='verde'; barClass='verde'; icono='🟢'; mensaje='¡Buen trabajo! Llevas ' + conNota.length + ' de ' + dedup.length + ' aprobadas.'; }
+        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje='Estás en riesgo. Completaste ' + conNota.length + ' de ' + dedup.length + '.'; }
+        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje='¡Punto crítico! Solo ' + conNota.length + ' de ' + dedup.length + ' completadas.'; }
+      }
+
+      // Filas del detalle
+      const filas = dedup.map(function (n) {
+        const colorNota = n.nota === null ? 'var(--gris)'
+          : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)');
+        const textoNota = n.nota === null ? 'Pendiente' : n.nota.toFixed(1) + '/20';
+        const sufijoFecha = n.fecha ? ' · ' + formatearFecha(n.fecha) : '';
+        const iconoEx = n.esExamen ? ' 🎯' : '';
+        const badgeExamen = n.esExamen
+          ? '<span style="display:inline-block;padding:1px 6px;background:#ede9fe;color:#6d28d9;border-radius:50px;font-size:.6rem;font-weight:800;margin-left:4px;">EXAMEN</span>'
+          : '';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f9fafb;border:1px solid var(--borde);border-radius:6px;font-size:.82rem;margin-bottom:6px;">' +
+          '<span>' + (n.nombre || 'Evaluación') + badgeExamen + iconoEx + sufijoFecha + '</span>' +
+          '<strong style="color:' + colorNota + ';">' + textoNota + '</strong>' +
+          '</div>';
+      }).join('');
+
+      console.log('🗂️ ' + c.id + ': ' + dedup.length + ' eval, ' + conNota.length + ' calificadas');
+
+      const item = document.createElement('div');
+      item.className = 'timeline-item ' + colorClass;
+      item.innerHTML =
+        '<div class="timeline-card">' +
+          '<div class="timeline-header">' +
+            '<div class="timeline-title">' + icono + ' ' + c.nombre + '</div>' +
+            '<div class="timeline-nota ' + notaClass + '">' + (p !== null ? p.toFixed(2) : '—') + ' / 20</div>' +
+          '</div>' +
+          '<div class="progress-wrap">' +
+            '<div class="progress-bar ' + barClass + '" style="width:' + pct + '%;"></div>' +
+          '</div>' +
+          '<div class="timeline-msg">' + mensaje + '</div>' +
+          '<details style="margin-top:12px;border:1px solid var(--borde);border-radius:8px;overflow:hidden;background:#f8fafc;">' +
+            '<summary style="cursor:pointer;padding:10px 14px;font-size:.85rem;color:var(--azul);font-weight:700;">' +
+              '<span class="arrow-colapsable" style="display:inline-block;transition:transform .2s;float:right;">▼</span>' +
+              '<span>📋 Detalle de evaluaciones (' + conNota.length + '/' + dedup.length + ')</span>' +
+            '</summary>' +
+            '<div style="padding:10px 14px;background:#fff;">' + filas + '</div>' +
+          '</details>' +
+        '</div>';
+      timeline.appendChild(item);
+    });
+
+    // ─── Proyección final ───
+    const proyeccion = document.getElementById('mapaProyeccionA');
+    if (proyeccion) {
+      if (criteriosEvaluados > 0) {
+        const promProy = (sumaProyeccion / criteriosEvaluados).toFixed(2);
+        proyeccion.innerHTML =
+          '<h4>🎯 ¿Cuál será mi nota final?</h4>' +
+          '<p>Si mantienes tus notas actuales, tu promedio proyectado será <strong>' + promProy + '</strong>.</p>' +
+          '<p style="font-size:.8rem;margin-top:8px;color:var(--gris);">⚠️ El estado oficial se emitirá al finalizar el ciclo.</p>';
+      } else {
+        proyeccion.innerHTML =
+          '<h4>🎯 ¿Cuál será mi nota final?</h4>' +
+          '<p>Aún no tienes notas registradas. ¡Empieza a rendir tus evaluaciones!</p>';
+      }
+    }
+
+    console.log('✅ Ruta dibujada. Details creados: ' + timeline.querySelectorAll('details').length);
+  };
+
+  // ─── Re-render automático cuando el alumno envía un examen ───
+  document.addEventListener('submit', function (e) {
+    if (!e.target || e.target.id !== 'runnerFormA') return;
+    setTimeout(function () {
+      try { renderStudentCalificaciones(); } catch (err) { console.warn(err); }
+    }, 400);
+  }, true);
+
+  // ─── Botón "Volver a la lista" → re-render ───
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'btnVolverTestsA') {
+      setTimeout(function () {
+        try { renderStudentCalificaciones(); } catch (err) {}
+      }, 200);
+    }
+  }, true);
+
+  // ─── Render inicial si ya hay alumno logueado ───
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(function () {
+      try { renderStudentCalificaciones(); } catch (e) { console.warn(e); }
+    }, 300);
+  }
+
+  console.log('✅ Ruta de Aprendizaje v5 lista — Final Exam conectado');
+})();
+</script>
+<!-- ══════════ FIN RUTA DE APRENDIZAJE v5 ══════════ -->
  </body>
 </html>
