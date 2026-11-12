@@ -17676,29 +17676,33 @@ function generarPreguntas(texto, cantidad) {
     .replace(/^\s*(?:Escuela[^\n]{0,80}|Jotavalenzuela[^\n]{0,80})\s*$/gim, '');
 
   // ═══════════════════════════════════════════════════════
-  // 2) DETECTAR "ANSWER KEY" AL FINAL
-  //    Ej: "ANSWER KEY\n1.B 2.C 3.A" o "Respuestas: 1-b, 2-c"
+  // 2) DETECTAR "ANSWER KEY" AL FINAL (versión mejorada)
+  //    Solo acepta si hay >=3 respuestas Y está en el último 40% del doc
   // ═══════════════════════════════════════════════════════
   let mainText = t;
   const answerKey = {};
 
-  const keyMarkerRe = /\n\s*(?:ANSWER\s*KEY|CLAVE\s+DE\s+RESPUESTAS|RESPUESTAS|ANSWERS|SOLUCIONARIO)\s*[:\-\n]/i;
+  const keyMarkerRe = /\n\s*(?:ANSWER\s*KEY|CLAVE\s+DE\s+RESPUESTAS|ANSWERS|SOLUCIONARIO)\s*[:\-\n]/i;
   const keyMatch = t.match(keyMarkerRe);
 
   if (keyMatch) {
     const keyIdx = keyMatch.index;
-    mainText = t.slice(0, keyIdx);
-    const keyText = t.slice(keyIdx);
+    const despues = t.slice(keyIdx);
+    const resRe = /(\d{1,3})\s*[\.\)\-\:]?\s*([A-Da-d])(?=\s|$|[\d.,;])/g;
+    const respuestas = (despues.match(resRe) || []).length;
+    const estaAlFinal = keyIdx > t.length * 0.6;
 
-    // Acepta: "1.B", "1) B", "1 - B", "1: B", "1 B"
-    const re = /(\d{1,3})\s*[\.\)\-\:]?\s*([A-Da-d])(?=\s|$|[\d.,;])/g;
-    let m;
-    while ((m = re.exec(keyText)) !== null) {
-      answerKey[parseInt(m[1], 10)] = m[2].toUpperCase();
+    if (respuestas >= 3 && estaAlFinal) {
+      mainText = t.slice(0, keyIdx);
+      let m;
+      while ((m = resRe.exec(despues)) !== null) {
+        answerKey[parseInt(m[1], 10)] = m[2].toUpperCase();
+      }
+      console.log(`🗝️ Answer key detectada: ${Object.keys(answerKey).length} respuestas`);
+    } else {
+      console.log(`⚠️ Se detectó "${keyMatch[0].trim()}" pero NO es answer key (respuestas: ${respuestas}, alFinal: ${estaAlFinal}). Se ignora.`);
     }
-    console.log(`🗝️ Answer key detectada al final: ${Object.keys(answerKey).length} respuestas`);
   }
-
     // ═══════════════════════════════════════════════════════
     // 3) DIVIDIR EN BLOQUES (v3 — combina 3 estrategias)
     // ═══════════════════════════════════════════════════════
@@ -17751,12 +17755,13 @@ function generarPreguntas(texto, cantidad) {
     const numMatch = bloque.match(/^\s*(?:Question\s+(\d+)|Q\s*(\d+)|(\d{1,3}))\s*[\.\)\:]\s*/i);
     if (!numMatch) continue;
 
-    const numPregunta = parseInt(numMatch[1] || numMatch[2] || numMatch[3], 10);
+       const numPregunta = parseInt(numMatch[1] || numMatch[2] || numMatch[3], 10);
 
-    // Evitar duplicados si el split dejó el mismo número dos veces
-    if (usados.has(numPregunta)) continue;
-    usados.add(numPregunta);
-
+    // Evitar duplicados REALES (mismo número Y mismo inicio de texto)
+    const cuerpoPreview = bloque.slice(0, 60).replace(/\s+/g, ' ');
+    const clave = `${numPregunta}|${cuerpoPreview}`;
+    if (usados.has(clave)) continue;
+    usados.add(clave);
     const cuerpo = bloque.slice(numMatch[0].length).trim();
 
     // 4.2 Detectar opciones con regex flexible
