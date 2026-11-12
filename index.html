@@ -17789,7 +17789,15 @@ if (!numMatch) {
     }
 
     // 4.3 Si no encontramos 4 opciones → rechazar
-    if (ops.length < 4) {
+       if (ops.length < 4) {
+      // 🔴 DIAGNÓSTICO: volcar cuerpo completo a la consola
+      console.log(`╔══════════════════════════════════════════════════════════`);
+      console.log(`║ 🔴 Q${numPregunta} FALLA — solo ${ops.length} opciones detectadas`);
+      console.log(`║ Letras detectadas: ${ops.map(o => o.letra).join(', ')}`);
+      console.log(`║ Cuerpo completo (${cuerpo.length} chars):`);
+      console.log(`║ "${cuerpo}"`);
+      console.log(`╚══════════════════════════════════════════════════════════`);
+      
       rechazadas.push({ num: numPregunta, motivo: `Solo ${ops.length} opción(es) detectada(s)`, muestra: cuerpo.slice(0, 80) });
       continue;
     }
