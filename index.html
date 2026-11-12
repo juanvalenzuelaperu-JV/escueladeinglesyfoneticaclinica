@@ -17752,8 +17752,16 @@ function generarPreguntas(texto, cantidad) {
     if (!bloque) continue;
 
     // 4.1 Extraer número de pregunta
-    const numMatch = bloque.match(/^\s*(?:Question\s+(\d+)|Q\s*(\d+)|(\d{1,3}))\s*[\.\)\:]\s*/i);
-    if (!numMatch) continue;
+const numMatch = bloque.match(/^\s*(?:Question\s+(\d+)|Q\s*(\d+)|(\d{1,3}))\s*[\.\)\:]\s*/i);
+if (!numMatch) {
+  // 🆕 Registrar el bloque fantasma para diagnóstico (antes se saltaba silenciosamente)
+  rechazadas.push({ 
+    num: '?', 
+    motivo: 'Bloque sin número de pregunta', 
+    muestra: bloque.slice(0, 100) 
+  });
+  continue;
+}
 
        const numPregunta = parseInt(numMatch[1] || numMatch[2] || numMatch[3], 10);
 
@@ -17767,7 +17775,7 @@ function generarPreguntas(texto, cantidad) {
     // 4.2 Detectar opciones con regex flexible
     //     Acepta: "A) x"  "A. x"  "A: x"  "(A) x"  "a) x"
     //     Opciones inline y multiline
-   const reOpcion = /[\(\[]?([A-Da-d])[\)\]\.\:]\s*([\s\S]+?)(?=\s*[\(\[]?[A-Da-d][\)\]\.\:]\s|\s*(?:Answer|Respuesta|Correct|Corr|R)\s*[:\-]|$)/gi;
+      const reOpcion = /[\(\[]?([A-Da-d])\s*[\)\]\.\:\-\u2013\u2014]\s*([\s\S]+?)(?=\s*[\(\[]?[A-Da-d]\s*[\)\]\.\:\-\u2013\u2014]\s|\s*(?:Answer|Respuesta|Correct|Correcta|Corr)\s*[:\-]|$)/gi;
     const ops = [];
     let m;
     while ((m = reOpcion.exec(cuerpo)) !== null) {
@@ -19070,7 +19078,7 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ Puente Definitivo configurado. Las notas ahora viajan en ambas direcciones.");
 })();
 </script>   
-                                                                                                                  <script>
+
 <script>
 (function () {
   'use strict';
