@@ -18774,6 +18774,150 @@ function generarPreguntas(texto, cantidad) {
 
   console.log("✅ Puente Definitivo configurado. Las notas ahora viajan en ambas direcciones.");
 })();
-</script>                                                                                                                  
+</script>   
+                                                                                                                  <script>
+(function () {
+  'use strict';
+  console.log('🔗 Conectando Registro de Notas → Ruta de Aprendizaje');
+
+  window.renderStudentCalificaciones = function () {
+    if (!currentStudentCode) return;
+
+    const allGroups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+    const groups = allGroups.filter(g => !g.cerrado);
+    const myGroupIds = groups.map(g => g.id);
+
+    // ── Cabecera ──
+    const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
+    const elProm = document.getElementById('califPromedioA');
+    if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
+
+    const elEst = document.getElementById('califEstadoA');
+    if (elEst) {
+      elEst.textContent = '🟡 EN CURSO';
+      elEst.style.background = '#fef3c7';
+      elEst.style.color = '#b45309';
+    }
+
+    const photoEl = document.getElementById('califTeacherPhoto');
+    const nameEl = document.getElementById('califTeacherName');
+    let teacher = null;
+    if (groups.length) teacher = state.teachers[groups[0].teacherCode];
+    if (photoEl) {
+      photoEl.innerHTML = (teacher && teacher.formalPhoto)
+        ? `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`
+        : '👨‍🏫';
+    }
+    if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+
+    // ── Timeline ──
+    const timeline = document.getElementById('mapaTimelineA');
+    if (!timeline) return;
+    timeline.innerHTML = '';
+
+    const todosLosCriterios = [...CRITERIOS, ...(state.customCriterios || [])];
+    const grades = state.grades[currentStudentCode] || {};
+    const examResults = state.examResults || {};
+
+    let sumaProyeccion = 0, criteriosEvaluados = 0;
+
+    todosLosCriterios.forEach(c => {
+      // 🎯 Leer asignaciones REALES del alumno (misma fuente que el docente)
+      const asgs = (state.assignments || []).filter(a => {
+        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
+        return a.criterio === c.id ||
+          (c.id === 'online_homework' && a.criterio === 'online_workbook');
+      });
+
+      if (!asgs.length) return;
+
+      // 🔑 Leer notas por asgId REAL (donde el docente las guarda)
+      const notas = asgs.map(a => {
+        const n = grades[a.id];
+        if (n !== undefined && n !== null && n !== '') {
+          return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: parseFloat(n) };
+        }
+        // Fallback: si es examen y el alumno lo rindió
+        if (a.examId) {
+          const res = examResults[a.examId]?.[currentStudentCode];
+          if (res && res.nota !== undefined && res.nota !== null) {
+            return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: parseFloat(res.nota) };
+          }
+        }
+        return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: null };
+      });
+
+      const conNota = notas.filter(n => n.nota !== null);
+      const p = conNota.length > 0
+        ? +(conNota.reduce((s, v) => s + v.nota, 0) / conNota.length).toFixed(2)
+        : null;
+
+      if (p !== null) { sumaProyeccion += p; criteriosEvaluados++; }
+
+      const pct = Math.round((conNota.length / notas.length) * 100);
+
+      let colorClass = 'pending', notaClass = '', barClass = '', icono = '⏳';
+      let mensaje = `Tienes ${notas.length} evaluación(es) pendiente(s) en este criterio.`;
+
+      if (p !== null) {
+        if (p >= 14) { colorClass='completado'; notaClass='verde';    barClass='verde';    icono='🟢'; mensaje=`¡Buen trabajo! Llevas ${conNota.length} de ${notas.length} evaluaciones aprobadas.`; }
+        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje=`Estás en riesgo. Has completado ${conNota.length} de ${notas.length} evaluaciones.`; }
+        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje=`¡Punto crítico! Solo ${conNota.length} de ${notas.length} evaluaciones completadas.`; }
+      }
+
+      const item = document.createElement('div');
+      item.className = `timeline-item ${colorClass}`;
+      item.innerHTML = `
+        <div class="timeline-card">
+          <div class="timeline-header">
+            <div class="timeline-title">${icono} ${c.nombre}</div>
+            <div class="timeline-nota ${notaClass}">${p !== null ? p.toFixed(2) : '—'} / 20</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar ${barClass}" style="width:${pct}%;"></div>
+          </div>
+          <div class="timeline-msg">${mensaje}</div>
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer;font-size:.82rem;color:var(--azul);font-weight:700;">
+              📋 Detalle de evaluaciones (${conNota.length}/${notas.length})
+            </summary>
+            <div style="margin-top:8px;display:grid;gap:4px;">
+              ${notas.map(n => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:#fff;border:1px solid var(--borde);border-radius:6px;font-size:.8rem;">
+                  <span>${n.nombre || 'Evaluación'}${n.fecha ? ' · ' + formatearFecha(n.fecha) : ''}</span>
+                  <strong style="color:${n.nota === null ? 'var(--gris)' : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)')};">
+                    ${n.nota === null ? 'Pendiente' : n.nota.toFixed(1) + '/20'}
+                  </strong>
+                </div>`).join('')}
+            </div>
+          </details>
+        </div>`;
+      timeline.appendChild(item);
+    });
+
+    const proyeccion = document.getElementById('mapaProyeccionA');
+    if (proyeccion) {
+      if (criteriosEvaluados > 0) {
+        const promProy = (sumaProyeccion / criteriosEvaluados).toFixed(2);
+        proyeccion.innerHTML = `
+          <h4>🎯 ¿Cuál será mi nota final?</h4>
+          <p>Si mantienes tus notas actuales, tu promedio proyectado será <strong>${promProy}</strong>.</p>
+          <p style="font-size:.8rem;margin-top:8px;color:var(--gris);">⚠️ El estado oficial se emitirá al finalizar el ciclo.</p>`;
+      } else {
+        proyeccion.innerHTML = `
+          <h4>🎯 ¿Cuál será mi nota final?</h4>
+          <p>Aún no tienes notas registradas. ¡Empieza a rendir tus evaluaciones!</p>`;
+      }
+    }
+  };
+
+  // ── Refrescar si hay un alumno logueado ──
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(() => { try { renderStudentCalificaciones(); } catch (e) {} }, 300);
+  }
+
+  console.log('✅ Ruta de Aprendizaje conectada con el Registro de Notas del docente');
+})();
+</script>
  </body>
 </html>
