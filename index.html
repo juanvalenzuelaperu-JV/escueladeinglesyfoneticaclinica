@@ -17775,7 +17775,7 @@ if (!numMatch) {
     // 4.2 Detectar opciones con regex flexible
     //     Acepta: "A) x"  "A. x"  "A: x"  "(A) x"  "a) x"
     //     Opciones inline y multiline
-      const reOpcion = /[\(\[]?([A-Da-d])\s*[\)\]\.\:\-\u2013\u2014]\s*([\s\S]+?)(?=\s*[\(\[]?[A-Da-d]\s*[\)\]\.\:\-\u2013\u2014]\s|\s*(?:Answer|Respuesta|Correct|Correcta|Corr)\s*[:\-]|$)/gi;
+    const reOpcion = /(?:^|\s+|\(|\[)([A-Da-d])\s*[\)\]\.\:\-\u2013\u2014]\s*([\s\S]+?)(?=\s*[\(\[]?[A-Da-d]\s*[\)\]\.\:\-\u2013\u2014]\s|\s*(?:Answer|Respuesta|Correct|Correcta|Corr)\s*[:\-]|$)/gi;
     const ops = [];
     let m;
     while ((m = reOpcion.exec(cuerpo)) !== null) {
