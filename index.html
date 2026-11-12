@@ -19064,6 +19064,7 @@ function generarPreguntas(texto, cantidad) {
 </script>
 <!-- ══════════ FIN MARCADO PORTAL ALUMNO ══════════ -->
  <!-- ══════════ RUTA DE APRENDIZAJE v5 — Final Exam conectado ══════════ -->
+
 <script>
 (function () {
   'use strict';
@@ -19319,5 +19320,70 @@ function generarPreguntas(texto, cantidad) {
 })();
 </script>
 <!-- ══════════ FIN RUTA DE APRENDIZAJE v5 ══════════ -->
+ <script>
+(function () {
+  'use strict';
+  console.log('🩹 Fix v6 — Refresco de notas antes de dibujar la ruta');
+
+  const renderOriginal = window.renderStudentCalificaciones;
+  if (typeof renderOriginal !== 'function') {
+    console.warn('⚠️ renderStudentCalificaciones no existe aún');
+    return;
+  }
+
+  window.renderStudentCalificaciones = async function () {
+    if (typeof currentStudentCode === 'undefined' || !currentStudentCode) return;
+
+    // 1. Traer datos frescos desde Supabase
+    try {
+      const { data, error } = await supabase
+        .from('app_state')
+        .select('data')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (!error && data && data.data) {
+        const remoto = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+
+        if (Array.isArray(remoto.assignments)) state.assignments = remoto.assignments;
+        if (remoto.grades && typeof remoto.grades === 'object') state.grades = remoto.grades;
+        if (Array.isArray(remoto.exams)) state.exams = remoto.exams;
+        if (remoto.examResults && typeof remoto.examResults === 'object') state.examResults = remoto.examResults;
+        if (remoto.calendarEvents && typeof remoto.calendarEvents === 'object') state.calendarEvents = remoto.calendarEvents;
+        if (Array.isArray(remoto.customCriterios)) state.customCriterios = remoto.customCriterios;
+
+        console.log('🔄 Notas refrescadas desde Supabase');
+      }
+    } catch (e) {
+      console.warn('⚠️ No se pudo refrescar:', e);
+    }
+
+    // 2. Dibujar con datos frescos
+    try {
+      await renderOriginal.apply(this, arguments);
+    } catch (e) {
+      console.error('❌ Error dibujando ruta:', e);
+    }
+  };
+
+  // 3. Refrescar al hacer clic en el tab Calificaciones
+  document.querySelectorAll('#dashboardAlumno [data-atab="calificaciones"]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setTimeout(() => { try { window.renderStudentCalificaciones(); } catch(e){} }, 100);
+    });
+  });
+
+  // 4. Refrescar cada 60s si el alumno está mirando la ruta
+  setInterval(() => {
+    if (typeof currentStudentCode === 'undefined' || !currentStudentCode) return;
+    const panel = document.getElementById('panel-calificaciones');
+    if (panel && panel.classList.contains('activo')) {
+      try { window.renderStudentCalificaciones(); } catch(e){}
+    }
+  }, 60000);
+
+  console.log('✅ Fix v6 listo');
+})();
+</script>
  </body>
 </html>
