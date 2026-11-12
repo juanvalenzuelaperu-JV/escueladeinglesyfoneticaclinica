@@ -4575,7 +4575,7 @@ document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () =
   const exams = (state.exams || []).filter(ex => {
   // Solo grupos del alumno
   if (ex.grupoId && !myGroups.includes(ex.grupoId)) return false;
-  // 🆕 Solo exámenes tipo final_exam (o antiguos sin tipoExamen, para compatibilidad)
+  // Solo exámenes tipo final_exam (o antiguos sin tipoExamen)
   const tipo = ex.tipoExamen || "final_exam";
   return tipo === "final_exam";
 });
@@ -4584,7 +4584,15 @@ document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () =
     return;
   }
   [...exams].sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
-    const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+    // 🆕 SALVAVIDAS: Buscar en examResults o, si falla, en las notas normales
+    let result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+    if (!result && ex.assignmentId) {
+      const notaGuardada = state.grades[currentStudentCode]?.[ex.assignmentId];
+      if (notaGuardada !== undefined && notaGuardada !== null) {
+        result = { nota: notaGuardada, intentos: 1 };
+      }
+    }
+    
     const completado = !!result;
     const maxIntentos = ex.intentosPermitidos || 1;
     const realizados = result?.intentos || (completado ? 1 : 0);
@@ -18225,7 +18233,15 @@ function generarPreguntas(texto, cantidad) {
 
       // Renderizar Exámenes
       owExams.sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || "")).forEach(ex => {
-        const result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+        // 🆕 SALVAVIDAS: Buscar en examResults o, si falla, en las notas normales
+        let result = state.examResults[ex.id] && state.examResults[ex.id][currentStudentCode];
+        if (!result && ex.assignmentId) {
+          const notaGuardada = state.grades[currentStudentCode]?.[ex.assignmentId];
+          if (notaGuardada !== undefined && notaGuardada !== null) {
+            result = { nota: notaGuardada, intentos: 1 };
+          }
+        }
+        
         const completado = !!result;
         const maxIntentos = ex.intentosPermitidos || 1;
         const realizados = result?.intentos || (completado ? 1 : 0);
@@ -18320,7 +18336,7 @@ function generarPreguntas(texto, cantidad) {
     setTimeout(() => { if (typeof refreshStudentView === 'function') refreshStudentView(); }, 500);
   }
 
-  console.log("✅ Filtro maestro aplicado. Duplicados eliminados.");
+  console.log("✅ Filtro maestro aplicado. Duplicados eliminados y comunicación asegurada.");
 })();
 </script>
                                                                                                                   <!-- ============================================================
