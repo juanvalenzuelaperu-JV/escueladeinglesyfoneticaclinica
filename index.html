@@ -18779,7 +18779,7 @@ function generarPreguntas(texto, cantidad) {
 <script>
 (function () {
   'use strict';
-  console.log('🔗 Ruta de Aprendizaje con deduplicación de exámenes');
+  console.log('🔗 Conectando Registro de Notas → Ruta de Aprendizaje');
 
   window.renderStudentCalificaciones = function () {
     if (!currentStudentCode) return;
@@ -18822,14 +18822,8 @@ function generarPreguntas(texto, cantidad) {
 
     let sumaProyeccion = 0, criteriosEvaluados = 0;
 
-    // 🔑 Normalizador: minúsculas, sin acentos, sin espacios, sin símbolos
-    const norm = s => String(s || '')
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '')
-      .trim();
-
     todosLosCriterios.forEach(c => {
+      // 🎯 Leer asignaciones REALES del alumno (misma fuente que el docente)
       const asgs = (state.assignments || []).filter(a => {
         if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
         return a.criterio === c.id ||
@@ -18838,12 +18832,13 @@ function generarPreguntas(texto, cantidad) {
 
       if (!asgs.length) return;
 
-      // 🔑 Construir notas con asgId REAL
+      // 🔑 Leer notas por asgId REAL (donde el docente las guarda)
       const notas = asgs.map(a => {
         const n = grades[a.id];
         if (n !== undefined && n !== null && n !== '') {
           return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: parseFloat(n) };
         }
+        // Fallback: si es examen y el alumno lo rindió
         if (a.examId) {
           const res = examResults[a.examId]?.[currentStudentCode];
           if (res && res.nota !== undefined && res.nota !== null) {
@@ -18853,47 +18848,22 @@ function generarPreguntas(texto, cantidad) {
         return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: null };
       });
 
-      // 🔑 DEDUPLICAR por nombre normalizado
-      const vistos = new Map();
-      const notasDedup = [];
-      notas.forEach(n => {
-        const key = norm(n.nombre) || `__${n.asgId}__`;
-
-        if (vistos.has(key)) {
-          const idx = vistos.get(key);
-          const previo = notasDedup[idx];
-
-          // Preferir el que TIENE nota
-          if (previo.nota === null && n.nota !== null) {
-            notasDedup[idx] = n;
-          }
-          // Si ambos tienen nota, quedarse con la más alta
-          else if (previo.nota !== null && n.nota !== null && n.nota > previo.nota) {
-            notasDedup[idx] = n;
-          }
-          // Si previo tiene nota y el nuevo no → dejar previo
-        } else {
-          vistos.set(key, notasDedup.length);
-          notasDedup.push(n);
-        }
-      });
-
-      const conNota = notasDedup.filter(n => n.nota !== null);
+      const conNota = notas.filter(n => n.nota !== null);
       const p = conNota.length > 0
         ? +(conNota.reduce((s, v) => s + v.nota, 0) / conNota.length).toFixed(2)
         : null;
 
       if (p !== null) { sumaProyeccion += p; criteriosEvaluados++; }
 
-      const pct = Math.round((conNota.length / notasDedup.length) * 100);
+      const pct = Math.round((conNota.length / notas.length) * 100);
 
       let colorClass = 'pending', notaClass = '', barClass = '', icono = '⏳';
-      let mensaje = `Tienes ${notasDedup.length} evaluación(es) pendiente(s) en este criterio.`;
+      let mensaje = `Tienes ${notas.length} evaluación(es) pendiente(s) en este criterio.`;
 
       if (p !== null) {
-        if (p >= 14) { colorClass='completado'; notaClass='verde';    barClass='verde';    icono='🟢'; mensaje=`¡Buen trabajo! Llevas ${conNota.length} de ${notasDedup.length} evaluaciones aprobadas.`; }
-        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje=`Estás en riesgo. Has completado ${conNota.length} de ${notasDedup.length} evaluaciones.`; }
-        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje=`¡Punto crítico! Solo ${conNota.length} de ${notasDedup.length} evaluaciones completadas.`; }
+        if (p >= 14) { colorClass='completado'; notaClass='verde';    barClass='verde';    icono='🟢'; mensaje=`¡Buen trabajo! Llevas ${conNota.length} de ${notas.length} evaluaciones aprobadas.`; }
+        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje=`Estás en riesgo. Has completado ${conNota.length} de ${notas.length} evaluaciones.`; }
+        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje=`¡Punto crítico! Solo ${conNota.length} de ${notas.length} evaluaciones completadas.`; }
       }
 
       const item = document.createElement('div');
@@ -18910,10 +18880,10 @@ function generarPreguntas(texto, cantidad) {
           <div class="timeline-msg">${mensaje}</div>
           <details style="margin-top:10px;">
             <summary style="cursor:pointer;font-size:.82rem;color:var(--azul);font-weight:700;">
-              📋 Detalle de evaluaciones (${conNota.length}/${notasDedup.length})
+              📋 Detalle de evaluaciones (${conNota.length}/${notas.length})
             </summary>
             <div style="margin-top:8px;display:grid;gap:4px;">
-              ${notasDedup.map(n => `
+              ${notas.map(n => `
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:#fff;border:1px solid var(--borde);border-radius:6px;font-size:.8rem;">
                   <span>${n.nombre || 'Evaluación'}${n.fecha ? ' · ' + formatearFecha(n.fecha) : ''}</span>
                   <strong style="color:${n.nota === null ? 'var(--gris)' : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)')};">
@@ -18942,11 +18912,12 @@ function generarPreguntas(texto, cantidad) {
     }
   };
 
+  // ── Refrescar si hay un alumno logueado ──
   if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
     setTimeout(() => { try { renderStudentCalificaciones(); } catch (e) {} }, 300);
   }
 
-  console.log('✅ Ruta de Aprendizaje con deduplicación activa');
+  console.log('✅ Ruta de Aprendizaje conectada con el Registro de Notas del docente');
 })();
 </script>
  </body>
