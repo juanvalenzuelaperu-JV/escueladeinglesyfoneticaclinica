@@ -18920,5 +18920,148 @@ function generarPreguntas(texto, cantidad) {
   console.log('✅ Ruta de Aprendizaje conectada con el Registro de Notas del docente');
 })();
 </script>
+                                                                                                                  <!-- ══════════ MARCADO PORTAL ALUMNO → REGISTRO DOCENTE ══════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔗 Conectando envío de examen → Registro Docente...');
+
+  // ─── 1. Inicializar meta en el estado ───
+  function ensureMeta() {
+    if (typeof state === 'undefined' || !state) return null;
+    if (!state.gradesMeta) state.gradesMeta = {};
+    return state.gradesMeta;
+  }
+
+  // ─── 2. Escuchar el submit del alumno ───
+  function setupSubmitListener() {
+    const form = document.getElementById('runnerFormA');
+    if (!form) { setTimeout(setupSubmitListener, 500); return; }
+    if (form.dataset.portalMarkerAttached === '1') return;
+    form.dataset.portalMarkerAttached = '1';
+
+    form.addEventListener('submit', function () {
+      // El handler original corre primero (bubble). Esperamos 150ms extra por seguridad.
+      setTimeout(function () {
+        if (typeof testActual === 'undefined' || !testActual) return;
+        if (typeof currentStudentCode === 'undefined' || !currentStudentCode) return;
+        if (!testActual.assignmentId) {
+          console.warn('⚠️ Examen sin assignmentId: no se puede vincular al registro docente.');
+          return;
+        }
+
+        const meta = ensureMeta();
+        if (!meta) return;
+        if (!meta[currentStudentCode]) meta[currentStudentCode] = {};
+
+        const notaGuardada = state.grades &&
+          state.grades[currentStudentCode] &&
+          state.grades[currentStudentCode][testActual.assignmentId];
+
+        meta[currentStudentCode][testActual.assignmentId] = {
+          origen: 'portal_alumno',
+          valorOriginal: notaGuardada,
+          fecha: new Date().toISOString(),
+          examenNombre: testActual.nombre || 'Examen',
+          examenId: testActual.id
+        };
+
+        // Marcar también en examResults
+        if (state.examResults && state.examResults[testActual.id] && state.examResults[testActual.id][currentStudentCode]) {
+          state.examResults[testActual.id][currentStudentCode].origen = 'portal_alumno';
+        }
+
+        if (typeof saveState === 'function') saveState();
+
+        console.log('✅ Nota marcada como subida desde el Portal del Alumno:', {
+          asignacion: testActual.assignmentId,
+          nota: notaGuardada,
+          examen: testActual.nombre
+        });
+      }, 150);
+    });
+  }
+  setupSubmitListener();
+
+  // ─── 3. Patch del registro de notas del docente ───
+  function patchTeacherTable() {
+    const orig = window.buildNotasTableFromCalendar;
+    if (typeof orig !== 'function') { setTimeout(patchTeacherTable, 400); return; }
+    if (orig._portalPatched) return;
+
+    window.buildNotasTableFromCalendar = function () {
+      orig.apply(this, arguments);
+
+      const gid = document.getElementById('dNotasGrupo') && document.getElementById('dNotasGrupo').value;
+      if (!gid) return;
+      if (typeof notasCalColumns === 'undefined' || !notasCalColumns || !notasCalColumns.length) return;
+
+      const meta = state.gradesMeta || {};
+      let aplicados = 0;
+
+      document.querySelectorAll('#dNotasBody input[data-notas-st]').forEach(function (input) {
+        const code = input.dataset.notasSt;
+        const clIdx = parseInt(input.dataset.notasCl, 10);
+        const col = notasCalColumns[clIdx - 1];
+        if (!col || !col.asgId) return;
+
+        const metaItem = meta[code] && meta[code][col.asgId];
+        if (!metaItem || metaItem.origen !== 'portal_alumno') return;
+
+        const valorActual = (input.value !== '') ? parseFloat(input.value) : null;
+        const sinCambios = (metaItem.valorOriginal === undefined) || (valorActual === metaItem.valorOriginal);
+
+        const colorBg    = sinCambios ? '#f5f3ff' : '#fef3c7';
+        const colorBorde = sinCambios ? '#a78bfa' : '#fcd34d';
+        const colorTxt   = sinCambios ? '#6d28d9' : '#92400e';
+        const etiqueta   = sinCambios ? '📥 Portal Alumno' : '✏️ Modificado';
+
+        const fechaSubida = metaItem.fecha ? formatearFecha(metaItem.fecha.slice(0, 10)) : '';
+
+        input.style.background   = colorBg;
+        input.style.borderColor  = colorBorde;
+        input.style.color        = colorTxt;
+        input.style.fontWeight   = 'bold';
+
+        input.title = sinCambios
+          ? '📥 Nota subida automáticamente desde el Portal del Alumno\nExamen: ' +
+            (metaItem.examenNombre || '') + '\nFecha: ' + fechaSubida
+          : '✏️ Nota originalmente subida desde el Portal del Alumno\nValor original: ' +
+            metaItem.valorOriginal + '\nValor actual: ' + valorActual;
+
+        // Badge debajo del input
+        const parent = input.parentElement;
+        if (parent) {
+          let badge = parent.querySelector('.badge-portal-alumno');
+          if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'badge-portal-alumno';
+            badge.style.cssText =
+              'font-size:.62rem;font-weight:800;text-align:center;' +
+              'margin-top:3px;letter-spacing:.02em;line-height:1.2;';
+            parent.appendChild(badge);
+          }
+          badge.textContent = etiqueta;
+          badge.style.color = colorTxt;
+          badge.title = input.title;
+        }
+
+        aplicados++;
+      });
+
+      if (aplicados > 0) {
+        console.log('✅ Registro docente: ' + aplicados + ' nota(s) marcada(s) como Portal Alumno.');
+      }
+    };
+
+    window.buildNotasTableFromCalendar._portalPatched = true;
+    console.log('✅ Patch del registro docente instalado.');
+  }
+  patchTeacherTable();
+
+  console.log('✅ Puente portal-alumno → registro-docente listo.');
+})();
+</script>
+<!-- ══════════ FIN MARCADO PORTAL ALUMNO ══════════ -->
  </body>
 </html>
