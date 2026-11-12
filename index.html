@@ -18778,32 +18778,18 @@ function generarPreguntas(texto, cantidad) {
                                                                                                                   <script>
 <script>
 
-<!-- ══════════ RUTA DE APRENDIZAJE v4 — COLAPSABLE ══════════ -->
-<script>
-(function () {
+ (function () {
   'use strict';
-  console.log('🔗 Ruta de Aprendizaje v4 — cargando...');
-
-  // CSS global: oculta flechita nativa
-  if (!document.getElementById('cssDetailsFix')) {
-    const st = document.createElement('style');
-    st.id = 'cssDetailsFix';
-    st.textContent = 'summary::-webkit-details-marker{display:none!important}' +
-      'summary{list-style:none!important}' +
-      'details[open] summary .arrow-colapsable{transform:rotate(180deg)}';
-    document.head.appendChild(st);
-  }
+  console.log('🔗 Ruta de Aprendizaje con deduplicación de exámenes');
 
   window.renderStudentCalificaciones = function () {
-    if (typeof currentStudentCode === 'undefined' || !currentStudentCode) return;
-
-    const timeline = document.getElementById('mapaTimelineA');
-    if (!timeline) { console.warn('❌ #mapaTimelineA no existe'); return; }
+    if (!currentStudentCode) return;
 
     const allGroups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
     const groups = allGroups.filter(g => !g.cerrado);
     const myGroupIds = groups.map(g => g.id);
 
+    // ── Cabecera ──
     const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
     const elProm = document.getElementById('califPromedioA');
     if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
@@ -18821,11 +18807,14 @@ function generarPreguntas(texto, cantidad) {
     if (groups.length) teacher = state.teachers[groups[0].teacherCode];
     if (photoEl) {
       photoEl.innerHTML = (teacher && teacher.formalPhoto)
-        ? '<img src="' + teacher.formalPhoto + '" style="width:100%;height:100%;object-fit:cover;">'
+        ? `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`
         : '👨‍🏫';
     }
     if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
 
+    // ── Timeline ──
+    const timeline = document.getElementById('mapaTimelineA');
+    if (!timeline) return;
     timeline.innerHTML = '';
 
     const todosLosCriterios = [...CRITERIOS, ...(state.customCriterios || [])];
@@ -18834,29 +18823,30 @@ function generarPreguntas(texto, cantidad) {
 
     let sumaProyeccion = 0, criteriosEvaluados = 0;
 
-    const norm = function (s) {
-      return String(s || '').toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/g, '').trim();
-    };
+    // 🔑 Normalizador: minúsculas, sin acentos, sin espacios, sin símbolos
+    const norm = s => String(s || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
 
-    todosLosCriterios.forEach(function (c) {
-      const asgs = (state.assignments || []).filter(function (a) {
-        if (a.grupoId && myGroupIds.indexOf(a.grupoId) === -1) return false;
+    todosLosCriterios.forEach(c => {
+      const asgs = (state.assignments || []).filter(a => {
+        if (a.grupoId && !myGroupIds.includes(a.grupoId)) return false;
         return a.criterio === c.id ||
           (c.id === 'online_homework' && a.criterio === 'online_workbook');
       });
 
       if (!asgs.length) return;
 
-      const notas = asgs.map(function (a) {
+      // 🔑 Construir notas con asgId REAL
+      const notas = asgs.map(a => {
         const n = grades[a.id];
         if (n !== undefined && n !== null && n !== '') {
           return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: parseFloat(n) };
         }
         if (a.examId) {
-          const ex = examResults[a.examId];
-          const res = ex ? ex[currentStudentCode] : null;
+          const res = examResults[a.examId]?.[currentStudentCode];
           if (res && res.nota !== undefined && res.nota !== null) {
             return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: parseFloat(res.nota) };
           }
@@ -18864,25 +18854,34 @@ function generarPreguntas(texto, cantidad) {
         return { asgId: a.id, nombre: a.nombre, fecha: a.fechaInicio, nota: null };
       });
 
-      // Deduplicar
-      const vistos = {};
+      // 🔑 DEDUPLICAR por nombre normalizado
+      const vistos = new Map();
       const notasDedup = [];
-      notas.forEach(function (n) {
-        const key = norm(n.nombre) || ('__' + n.asgId + '__');
-        if (vistos[key] !== undefined) {
-          const idx = vistos[key];
+      notas.forEach(n => {
+        const key = norm(n.nombre) || `__${n.asgId}__`;
+
+        if (vistos.has(key)) {
+          const idx = vistos.get(key);
           const previo = notasDedup[idx];
-          if (previo.nota === null && n.nota !== null) notasDedup[idx] = n;
-          else if (previo.nota !== null && n.nota !== null && n.nota > previo.nota) notasDedup[idx] = n;
+
+          // Preferir el que TIENE nota
+          if (previo.nota === null && n.nota !== null) {
+            notasDedup[idx] = n;
+          }
+          // Si ambos tienen nota, quedarse con la más alta
+          else if (previo.nota !== null && n.nota !== null && n.nota > previo.nota) {
+            notasDedup[idx] = n;
+          }
+          // Si previo tiene nota y el nuevo no → dejar previo
         } else {
-          vistos[key] = notasDedup.length;
+          vistos.set(key, notasDedup.length);
           notasDedup.push(n);
         }
       });
 
-      const conNota = notasDedup.filter(function (n) { return n.nota !== null; });
+      const conNota = notasDedup.filter(n => n.nota !== null);
       const p = conNota.length > 0
-        ? +(conNota.reduce(function (s, v) { return s + v.nota; }, 0) / conNota.length).toFixed(2)
+        ? +(conNota.reduce((s, v) => s + v.nota, 0) / conNota.length).toFixed(2)
         : null;
 
       if (p !== null) { sumaProyeccion += p; criteriosEvaluados++; }
@@ -18890,48 +18889,42 @@ function generarPreguntas(texto, cantidad) {
       const pct = Math.round((conNota.length / notasDedup.length) * 100);
 
       let colorClass = 'pending', notaClass = '', barClass = '', icono = '⏳';
-      let mensaje = 'Tienes ' + notasDedup.length + ' evaluación(es) pendiente(s).';
+      let mensaje = `Tienes ${notasDedup.length} evaluación(es) pendiente(s) en este criterio.`;
 
       if (p !== null) {
-        if (p >= 14) { colorClass='completado'; notaClass='verde';    barClass='verde';    icono='🟢'; mensaje='¡Buen trabajo! Llevas ' + conNota.length + ' de ' + notasDedup.length + ' aprobadas.'; }
-        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje='Estás en riesgo. Completaste ' + conNota.length + ' de ' + notasDedup.length + '.'; }
-        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje='¡Punto crítico! Solo ' + conNota.length + ' de ' + notasDedup.length + ' completadas.'; }
+        if (p >= 14) { colorClass='completado'; notaClass='verde';    barClass='verde';    icono='🟢'; mensaje=`¡Buen trabajo! Llevas ${conNota.length} de ${notasDedup.length} evaluaciones aprobadas.`; }
+        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje=`Estás en riesgo. Has completado ${conNota.length} de ${notasDedup.length} evaluaciones.`; }
+        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje=`¡Punto crítico! Solo ${conNota.length} de ${notasDedup.length} evaluaciones completadas.`; }
       }
 
-      // Filas del detalle
-      const filas = notasDedup.map(function (n) {
-        const colorNota = n.nota === null ? 'var(--gris)'
-          : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)');
-        const textoNota = n.nota === null ? 'Pendiente' : n.nota.toFixed(1) + '/20';
-        const sufijoFecha = n.fecha ? ' · ' + formatearFecha(n.fecha) : '';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f9fafb;border:1px solid var(--borde);border-radius:6px;font-size:.82rem;margin-bottom:6px;">' +
-          '<span>' + (n.nombre || 'Evaluación') + sufijoFecha + '</span>' +
-          '<strong style="color:' + colorNota + ';">' + textoNota + '</strong>' +
-          '</div>';
-      }).join('');
-
-      console.log('🗂️ ' + c.id + ': ' + notasDedup.length + ' eval, ' + conNota.length + ' calificadas');
-
       const item = document.createElement('div');
-      item.className = 'timeline-item ' + colorClass;
-      item.innerHTML =
-        '<div class="timeline-card">' +
-          '<div class="timeline-header">' +
-            '<div class="timeline-title">' + icono + ' ' + c.nombre + '</div>' +
-            '<div class="timeline-nota ' + notaClass + '">' + (p !== null ? p.toFixed(2) : '—') + ' / 20</div>' +
-          '</div>' +
-          '<div class="progress-wrap">' +
-            '<div class="progress-bar ' + barClass + '" style="width:' + pct + '%;"></div>' +
-          '</div>' +
-          '<div class="timeline-msg">' + mensaje + '</div>' +
-          '<details style="margin-top:12px;border:1px solid var(--borde);border-radius:8px;overflow:hidden;background:#f8fafc;">' +
-            '<summary style="cursor:pointer;padding:10px 14px;font-size:.85rem;color:var(--azul);font-weight:700;">' +
-              '<span class="arrow-colapsable" style="display:inline-block;transition:transform .2s;float:right;">▼</span>' +
-              '<span>📋 Detalle de evaluaciones (' + conNota.length + '/' + notasDedup.length + ')</span>' +
-            '</summary>' +
-            '<div style="padding:10px 14px;background:#fff;">' + filas + '</div>' +
-          '</details>' +
-        '</div>';
+      item.className = `timeline-item ${colorClass}`;
+      item.innerHTML = `
+        <div class="timeline-card">
+          <div class="timeline-header">
+            <div class="timeline-title">${icono} ${c.nombre}</div>
+            <div class="timeline-nota ${notaClass}">${p !== null ? p.toFixed(2) : '—'} / 20</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar ${barClass}" style="width:${pct}%;"></div>
+          </div>
+          <div class="timeline-msg">${mensaje}</div>
+<details style="margin-top:12px;border:1px solid var(--borde);border-radius:8px;overflow:hidden;background:#f8fafc;">
+  <summary style="cursor:pointer;padding:10px 14px;font-size:.85rem;color:var(--azul);font-weight:700;user-select:none;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+    <span>📋 Detalle de evaluaciones (${conNota.length}/${notasDedup.length})</span>
+    <span style="transition:transform .2s;">▼</span>
+  </summary>
+  <div style="padding:10px 14px;display:grid;gap:6px;background:#fff;">
+    ${notasDedup.map(n => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f9fafb;border:1px solid var(--borde);border-radius:6px;font-size:.82rem;">
+        <span>${n.nombre || 'Evaluación'}${n.fecha ? ' · ' + formatearFecha(n.fecha) : ''}</span>
+        <strong style="color:${n.nota === null ? 'var(--gris)' : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)')};">
+          ${n.nota === null ? 'Pendiente' : n.nota.toFixed(1) + '/20'}
+        </strong>
+      </div>`).join('')}
+  </div>
+</details>
+        </div>`;
       timeline.appendChild(item);
     });
 
@@ -18939,29 +18932,24 @@ function generarPreguntas(texto, cantidad) {
     if (proyeccion) {
       if (criteriosEvaluados > 0) {
         const promProy = (sumaProyeccion / criteriosEvaluados).toFixed(2);
-        proyeccion.innerHTML =
-          '<h4>🎯 ¿Cuál será mi nota final?</h4>' +
-          '<p>Si mantienes tus notas actuales, tu promedio proyectado será <strong>' + promProy + '</strong>.</p>' +
-          '<p style="font-size:.8rem;margin-top:8px;color:var(--gris);">⚠️ El estado oficial se emitirá al finalizar el ciclo.</p>';
+        proyeccion.innerHTML = `
+          <h4>🎯 ¿Cuál será mi nota final?</h4>
+          <p>Si mantienes tus notas actuales, tu promedio proyectado será <strong>${promProy}</strong>.</p>
+          <p style="font-size:.8rem;margin-top:8px;color:var(--gris);">⚠️ El estado oficial se emitirá al finalizar el ciclo.</p>`;
       } else {
-        proyeccion.innerHTML =
-          '<h4>🎯 ¿Cuál será mi nota final?</h4>' +
-          '<p>Aún no tienes notas registradas. ¡Empieza a rendir tus evaluaciones!</p>';
+        proyeccion.innerHTML = `
+          <h4>🎯 ¿Cuál será mi nota final?</h4>
+          <p>Aún no tienes notas registradas. ¡Empieza a rendir tus evaluaciones!</p>`;
       }
     }
-
-    console.log('✅ Ruta dibujada. Details creados: ' + timeline.querySelectorAll('details').length);
   };
 
   if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
-    setTimeout(function () {
-      try { renderStudentCalificaciones(); } catch (e) { console.error('❌', e); }
-    }, 300);
+    setTimeout(() => { try { renderStudentCalificaciones(); } catch (e) {} }, 300);
   }
 
-  console.log('✅ Ruta de Aprendizaje v4 lista');
+  console.log('✅ Ruta de Aprendizaje con deduplicación activa');
 })();
 </script>
-<!-- ══════════ FIN RUTA DE APRENDIZAJE ══════════ -->
  </body>
 </html>
