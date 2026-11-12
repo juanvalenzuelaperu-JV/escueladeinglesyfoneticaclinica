@@ -4602,12 +4602,11 @@ document.getElementById('btnAlumnoCalCerrarDia')?.addEventListener('click', () =
   cont.innerHTML = "";
   cont.style.display = "block";
   const myGroups = getStudentGroups(currentStudentCode).map(g => g.id);
-  const exams = (state.exams || []).filter(ex => {
-  // Solo grupos del alumno
+const exams = (state.exams || []).filter(ex => {
   if (ex.grupoId && !myGroups.includes(ex.grupoId)) return false;
-  // Solo exámenes tipo final_exam (o antiguos sin tipoExamen)
   const tipo = ex.tipoExamen || "final_exam";
-  return tipo === "final_exam";
+  // Mostrar final_exam Y readers (todo excepto online_workbook)
+  return tipo !== "online_workbook";
 });
   if (!exams.length) {
     cont.innerHTML = `<div class="empty-state">📭 No hay exámenes disponibles.</div>`;
@@ -6550,25 +6549,7 @@ document.querySelectorAll('[data-adm-exam-tab="manual"]').forEach(t => {
 document.querySelectorAll('#tal-panel-admin [data-admtab="examenes"]').forEach(tab => {
   tab.addEventListener('click', () => setTimeout(refreshExamEventsDropdown, 150));
 });
-// Reset del radio al valor por defecto
-const radioReset = document.querySelector('input[name="admExamTipo"][value="final_exam"]');
-if (radioReset) radioReset.checked = true;
 
-    saveState();
-
-    // Reset del formulario
-    e.target.reset();
-    document.getElementById("admExamPreguntas").innerHTML = "";
-    document.getElementById("admExamMsg")?.classList.add("visible");
-    setTimeout(() => document.getElementById("admExamMsg")?.classList.remove("visible"), 3000);
-    refreshAdminExamGroups();
-
-    const nombresGrupos = grupoIds.map(id => state.groups.find(g => g.id === id)?.nombre || id).join(", ");
-    alert(`✅ Examen publicado para ${creados} grupo(s):\n\n${nombresGrupos}`);
-  } finally {
-    if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = "📤 Publicar examen"; }
-  }
-});
 function renderAdminCourses() {
   const cont = document.getElementById("admCoursesList");
   if (!cont) return;
@@ -18062,8 +18043,7 @@ function generarPreguntas(texto, cantidad) {
   asgId = asgExistente.id;
   asgExistente.esExamen = true;
   asgExistente.examId   = examId;
-
-  // 🆕 Buscar el calendarEvent ANTES de modificar el nombre
+            // 🆕 Buscar el calendarEvent ANTES de modificar el nombre
   const nombreOriginal = asgExistente.nombre;
   const evCalendar = Object.values(state.calendarEvents || {})
     .flat().find(ev => ev.grupoId === grupoId && ev.nombre === nombreOriginal);
@@ -18071,9 +18051,11 @@ function generarPreguntas(texto, cantidad) {
 
   if (asgExistente.nombre && !asgExistente.nombre.includes(nombre)) {
     asgExistente.nombre += ' · ' + nombre;
+  } 
   }
 }
-        // 🆕 Caso B: crear nueva asignación
+
+ // 🆕 Caso B: crear nueva asignación
         if (!asgId) {
           asgId = 'asg_exam_' + (Date.now() + idx);
           state.assignments.push({
@@ -18101,7 +18083,8 @@ function generarPreguntas(texto, cantidad) {
           descripcion: 'Importado desde documento',
           fechaFin: null,
           tipoExamen,
-          criterio
+          criterio,
+          calendarEventId: (state.assignments.find(a => a.id === asgId)?.calendarEventId) || null  // 🆕
         });
 
         state.examResults[examId] = {};
