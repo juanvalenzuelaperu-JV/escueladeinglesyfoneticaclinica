@@ -18641,5 +18641,139 @@ function generarPreguntas(texto, cantidad) {
   console.log("✅ Ruta de Aprendizaje conectada. Readers limitado a 3.");
 })();
 </script>
+ <!-- ============================================================
+     PUENTE DEFINITIVO E INFAIBLE: Sincronización Exámenes Online
+     Alumno ↔ Docente
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log("🌉 Iniciando Puente Definitivo de Sincronización...");
+
+  // ─── Helper 1: Encontrar el examen que corresponde a una columna del docente ───
+  function getExamForColumn(gid, col) {
+    return (state.exams || []).find(ex => {
+      // 1. Mismo grupo o global
+      if (ex.grupoId && ex.grupoId !== gid) return false;
+      
+      // 2. Tipo compatible (normalizando online_workbook a online_homework)
+      let colTipo = col.tipo === 'online_workbook' ? 'online_homework' : col.tipo;
+      let exTipo = ex.tipoExamen === 'online_workbook' ? 'online_homework' : (ex.tipoExamen || 'final_exam');
+      if (colTipo !== exTipo) return false;
+
+      // 3. Nombre compatible (limpiando espacios y símbolos)
+      const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const nCol = norm(col.nombre);
+      const nEx = norm(ex.nombre);
+      
+      return nCol.includes(nEx) || nEx.includes(nCol) || nCol === nEx;
+    });
+  }
+
+  // ─── FASE 1: Docente abre su Registro de Notas (Alumno ➔ Docente) ───
+  // Interceptamos la función que dibuja la tabla para inyectar notas de exámenes.
+  const origBuildNotas = window.buildNotasTableFromCalendar;
+  if (typeof origBuildNotas === 'function') {
+    window.buildNotasTableFromCalendar = function () {
+      // 1. Primero dibuja la tabla normal (con las evaluaciones del calendario)
+      origBuildNotas.apply(this, arguments);
+
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      if (!gid) return;
+
+      const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
+      
+      // 2. Recorremos cada columna de la tabla y buscamos si es un examen
+      (typeof notasCalColumns !== 'undefined' ? notasCalColumns : []).forEach((col, i) => {
+        const idx = i + 1;
+        const exam = getExamForColumn(gid, col);
+        
+        if (exam) {
+          codes.forEach(c => {
+            // 3. Buscamos si el alumno tiene nota en ese examen
+            const res = state.examResults?.[exam.id]?.[c];
+            const input = document.querySelector(`[data-notas-st="${c}"][data-notas-cl="${idx}"]`);
+            
+            // 4. Si tiene nota y el input del docente está vacío, la inyectamos
+            if (res && res.nota !== undefined && input && (!input.value || input.value === '')) {
+              input.value = res.nota;
+              input.style.background = '#f5f3ff'; // Pintamos de morado
+              input.style.borderColor = '#c4b5fd';
+              input.style.color = '#6d28d9';
+              input.style.fontWeight = 'bold';
+              input.title = "Nota subida automáticamente por el alumno";
+
+              // Guardamos también en las notas generales para que el promedio se actualice
+              const asgId = typeof notasAsgId === 'function' ? notasAsgId(gid, col, idx) : (col.fecha + '_' + col.tipo);
+              if (!state.grades[c]) state.grades[c] = {};
+              state.grades[c][asgId] = res.nota;
+            }
+          });
+        }
+      });
+    };
+  }
+
+  // ─── FASE 2: Docente modifica/guarda (Docente ➔ Alumno) ───
+  // Interceptamos el botón de guardar para actualizar el examen del alumno.
+  const btnGuardar = document.getElementById('btnGuardarRegistroNotas');
+  if (btnGuardar) {
+    btnGuardar.addEventListener('click', function () {
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      if (!gid) return;
+
+      // Esperamos 200ms a que el sistema original guarde las notas normales
+      setTimeout(() => {
+        let cambios = false;
+        
+        (typeof notasCalColumns !== 'undefined' ? notasCalColumns : []).forEach((col, i) => {
+          const idx = i + 1;
+          const exam = getExamForColumn(gid, col);
+          
+          if (exam) {
+            // Leemos el input del docente
+            document.querySelectorAll(`[data-notas-cl="${idx}"]`).forEach(inp => {
+              const code = inp.dataset.notasSt;
+              const val = inp.value.trim();
+              
+              if (val !== '') {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                  // Actualizamos el resultado del examen del alumno
+                  if (!state.examResults[exam.id]) state.examResults[exam.id] = {};
+                  if (!state.examResults[exam.id][code]) state.examResults[exam.id][code] = { intentos: 1 };
+                  
+                  state.examResults[exam.id][code].nota = num;
+                  state.examResults[exam.id][code].fecha = new Date().toISOString().slice(0, 10);
+                  cambios = true;
+                }
+              }
+            });
+          }
+        });
+
+        if (cambios) {
+          if (typeof saveState === 'function') saveState();
+          console.log("✅ Sincronizado: Notas del docente guardadas en el portal del alumno.");
+          
+          // Volvemos a dibujar la tabla para asegurar que los cambios se vean
+          if (typeof buildNotasTableFromCalendar === 'function') {
+            buildNotasTableFromCalendar();
+          }
+        }
+      }, 200); 
+    });
+  }
+
+  // Si el docente ya está en la vista, forzamos un primer renderizado
+  if (document.getElementById('dNotasGrupo')?.value) {
+    setTimeout(() => { 
+      if (typeof buildNotasTableFromCalendar === 'function') buildNotasTableFromCalendar(); 
+    }, 500);
+  }
+
+  console.log("✅ Puente Definitivo configurado. Las notas ahora viajan en ambas direcciones.");
+})();
+</script>                                                                                                                  
  </body>
 </html>
