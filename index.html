@@ -21628,5 +21628,114 @@ if (!numMatch) {
     transform: scale(1.03);
   }
 </style>
+ <!-- ============================================================
+     FIX CRÍTICO: GUARDADO ATÓMICO DE NOTAS DEL DOCENTE
+     Evita que las notas desaparezcan al recargar la página.
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔒 Aplicando FIX CRÍTICO para el guardado de notas...');
+
+  // 1. Función auxiliar para guardar sin debounce y esperar confirmación
+  async function forzarGuardadoNube() {
+    try {
+      if (typeof saveStateRaw === 'function') {
+        console.log('☁️ Enviando notas a Supabase...');
+        await saveStateRaw(state);
+        console.log('✅ ¡Notas guardadas en Supabase exitosamente!');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('❌ Error guardando notas:', e);
+      alert('⚠️ Error de conexión. Las notas NO se guardaron. Revisa tu internet.');
+      return false;
+    }
+  }
+
+  // 2. Interceptar el botón de guardar del docente (en fase de captura para anular el anterior)
+  document.addEventListener('click', async function (e) {
+    if (!e.target || e.target.id !== 'btnGuardarRegistroNotas') return;
+    
+    // Evitar el guardado por defecto (el que tiene el retraso de 300ms)
+    e.preventDefault();
+    e.stopPropagation();
+
+    const btn = e.target;
+    const gid = document.getElementById('dNotasGrupo')?.value;
+    const nCols = (typeof notasCalColumns !== 'undefined' && notasCalColumns) ? notasCalColumns.length : 0;
+
+    if (!gid || !nCols) {
+      alert('Selecciona un grupo con evaluaciones calendarizadas.');
+      return;
+    }
+
+    // UI de carga
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Guardando en la nube...';
+    btn.disabled = true;
+
+    // 3. Recolectar las notas de los inputs
+    if (!state.assignments) state.assignments = [];
+    if (!state.grades) state.grades = {};
+
+    for (let i = 1; i <= nCols; i++) {
+      const col = notasCalColumns[i - 1];
+      const crit = (typeof notasCritNormalizado === 'function') ? notasCritNormalizado(col.tipo) : col.tipo;
+      
+      // Generar el ID Canónico (el mismo que usa la Ruta de Aprendizaje)
+      const asgId = `asg_${gid}_${col.id || (col.fecha + '_' + crit)}`;
+
+      // Asegurar que la asignación exista
+      if (!state.assignments.find(a => a.id === asgId)) {
+        state.assignments.push({
+          id: asgId, grupoId: gid, criterio: crit,
+          nombre: col.nombre || (crit + ' · ' + col.fecha),
+          fechaInicio: col.fecha, fechaFin: col.fecha,
+          teacherCode: currentTeacherCode, createdBy: 'calendarizacion'
+        });
+      }
+
+      // Leer los inputs de esta columna
+      document.querySelectorAll(`[data-notas-cl="${i}"]`).forEach(inp => {
+        const code = inp.dataset.notasSt;
+        if (!state.grades[code]) state.grades[code] = {};
+        
+        if (inp.value.trim() === '') {
+          delete state.grades[code][asgId]; // Si borró la nota, se elimina
+        } else {
+          const n = parseFloat(inp.value);
+          if (!isNaN(n) && n >= 0 && n <= 20) {
+            state.grades[code][asgId] = n;
+          }
+        }
+      });
+    }
+
+    // 4. Guardar en la nube (esperando confirmación real)
+    const exito = await forzarGuardadoNube();
+
+    // 5. Restaurar botón y mostrar mensaje
+    btn.innerHTML = textoOriginal;
+    btn.disabled = false;
+
+    if (exito) {
+      if (typeof notasEditMode !== 'undefined') notasEditMode = false;
+      if (typeof buildNotasTableFromCalendar === 'function') buildNotasTableFromCalendar();
+      
+      const msg = document.getElementById('dNotasMsg');
+      if (msg) {
+        msg.classList.add('visible');
+        msg.textContent = '✅ Notas guardadas en la nube correctamente.';
+        setTimeout(() => msg.classList.remove('visible'), 3000);
+      }
+      alert('✅ Notas guardadas. Ya puedes cerrar sesión o recargar con seguridad.');
+    }
+  }, true); // El 'true' garantiza que anule el comportamiento anterior
+
+  console.log('✅ Escudo de guardado de notas activo.');
+})();
+</script>
  </body>
 </html>
