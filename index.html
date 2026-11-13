@@ -18929,20 +18929,35 @@ if (!numMatch) {
       elEst.style.color = '#b45309';
     }
 
+    // ── FILA 1: Docente ──
     const photoEl = document.getElementById('califTeacherPhoto');
     const nameEl = document.getElementById('califTeacherName');
     let teacher = null;
-    if (groups.length) {
-      teacher = state.teachers[groups[0].teacherCode];
-    }
+    if (groups.length) teacher = state.teachers[groups[0].teacherCode];
     if (photoEl) {
-      if (teacher && teacher.formalPhoto) {
-        photoEl.innerHTML = `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`;
-      } else {
-        photoEl.innerHTML = '👨‍🏫';
-      }
+      photoEl.innerHTML = (teacher && teacher.formalPhoto)
+        ? `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`
+        : '👨‍🏫';
     }
     if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+
+    // ── FILA 2: Perfil del Alumno (Foto, Nombre y Programa) ──
+    const studentPhotoEl = document.getElementById('califStudentPhoto');
+    const studentNameEl = document.getElementById('califStudentName');
+    const studentProgramEl = document.getElementById('califStudentProgram');
+    
+    if (studentPhotoEl && currentStudent) {
+      if (currentStudent.fotoPerfil) {
+        studentPhotoEl.innerHTML = `<img src="${currentStudent.fotoPerfil}" style="width:100%;height:100%;object-fit:cover;">`;
+        studentPhotoEl.style.color = 'transparent';
+      } else {
+        const iniciales = currentStudent.nombre.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+        studentPhotoEl.textContent = iniciales;
+        studentPhotoEl.style.color = 'var(--azul)';
+      }
+    }
+    if (studentNameEl && currentStudent) studentNameEl.textContent = currentStudent.nombre;
+    if (studentProgramEl && currentStudent) studentProgramEl.textContent = 'Programa: ' + (currentStudent.programa || '—');
 
     // 3. Construir la Línea de Tiempo (Timeline)
     const timeline = document.getElementById('mapaTimelineA');
@@ -21391,7 +21406,8 @@ if (!numMatch) {
   console.log('✅ FIX FINAL aplicado. Ruta de Aprendizaje ahora es persistente.');
 })();
 </script>
-                                                                                                                  <!-- ============================================================
+
+ <!-- ============================================================
      SUBIR FOTO DE PERFIL DEL ALUMNO
      ============================================================ -->
 <script>
@@ -21566,5 +21582,32 @@ if (!numMatch) {
   console.log('✅ Módulo "Subir Foto de Alumno" cargado.');
 })();
 </script>
+ <style>
+  /* 1. Agrandar SOLO el círculo de la foto del alumno */
+  #dashAvatarA {
+    width: 85px !important;
+    height: 85px !important;
+    font-size: 2rem !important; /* Por si muestra iniciales */
+    border: 3px solid var(--acento) !important; /* Borde amarillo */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Sombra para que resalte */
+    transition: transform 0.3s ease;
+  }
+
+  /* 2. Mantener el botón de la cámara PEQUEÑO y bien posicionado */
+  .btn-subir-foto-alumno {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 11px !important; /* Emoji de cámara más pequeño */
+    bottom: 0px !important;
+    right: 0px !important;
+    border: 2px solid #fff !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  /* Efecto al pasar el mouse */
+  #dashAvatarA:hover {
+    transform: scale(1.03);
+  }
+</style>
  </body>
 </html>
