@@ -20576,6 +20576,7 @@ if (!numMatch) {
   const gidActivo = document.getElementById('dNotasGrupo')?.value;
   if (gidActivo) setTimeout(() => { if (typeof window.buildNotasTableFromCalendar === 'function') window.buildNotasTableFromCalendar(); }, 500);
 })();
+ </script>
 <!-- ═══════════════════════════════════════════════════════════════
      SISTEMA DE ELIMINACIÓN DIRECTA (SIN ARCHIVAR)
      Garantiza que el botón sea solo Eliminar y borre todo.
@@ -21735,6 +21736,162 @@ if (!numMatch) {
   }, true); // El 'true' garantiza que anule el comportamiento anterior
 
   console.log('✅ Escudo de guardado de notas activo.');
+})();
+</script>
+ <script>
+/* ============================================================
+   FIX DEFINITIVO: PERSISTENCIA DE NOTAS DEL DOCENTE
+   ============================================================ */
+(function () {
+  'use strict';
+  console.log('🩹 FIX PERSISTENCIA DE NOTAS del docente');
+
+  /* ── 1) saveStateRaw debe LANZAR si falla ─────────────── */
+  const _origSave = window.saveStateRaw;
+  window.saveStateRaw = async function (s) {
+    if (!s || typeof s !== 'object') throw new Error('Estado inválido');
+    s._savedAt = new Date().toISOString();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (_) {}
+
+    const jsonStr = JSON.stringify(s);
+    const sizeMB  = jsonStr.length / (1024 * 1024);
+    if (sizeMB > 20) {
+      throw new Error(`Estado ${sizeMB.toFixed(1)} MB (>20 MB). Recorta fotos/PDFs antes de guardar.`);
+    }
+    const sb = window.supabase;
+    if (!sb || typeof sb.from !== 'function') throw new Error('Supabase no inicializado');
+    const { error } = await sb.from('app_state').upsert({
+      id: 'main', data: s, updated_at: new Date().toISOString()
+    });
+    if (error) throw new Error('Supabase: ' + (error.message || JSON.stringify(error)));
+    console.log(`☁️ Guardado OK (${sizeMB.toFixed(2)} MB)`);
+    return true;
+  };
+
+  /* ── 2) loadState: prefiere el más reciente entre remoto y local ─ */
+  window.loadState = async function () {
+    let remote = null, remoteDate = 0, local = null, localDate = 0;
+
+    try {
+      const { data, error } = await supabase.from('app_state')
+        .select('data, updated_at').eq('id', 'main').maybeSingle();
+      if (!error && data && data.data) {
+        remote = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+        remoteDate = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+      }
+    } catch (e) { console.warn('loadState remoto:', e); }
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        local = JSON.parse(raw);
+        localDate = local._savedAt ? new Date(local._savedAt).getTime() : 0;
+      }
+    } catch (_) {}
+
+    let chosen = (remote && local)
+      ? (remoteDate >= localDate ? remote : local)
+      : (remote || local);
+
+    if (!chosen) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    console.log(`📦 Estado desde ${chosen === remote ? 'Supabase' : 'localStorage'}`);
+    return backfillState(chosen);
+  };
+
+  /* ── 3) Reemplaza el botón "Guardar Notas" con versión sin fugas ─ */
+  function reemplazarGuardarNotas() {
+    const btn = document.getElementById('btnGuardarRegistroNotas');
+    if (!btn || btn.dataset.fixNotasPersist === '1') return;
+    const clone = btn.cloneNode(true);
+    clone.dataset.fixNotasPersist = '1';
+    btn.parentNode.replaceChild(clone, btn);
+
+    clone.addEventListener('click', async (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      const nCols = (typeof notasCalColumns !== 'undefined' && notasCalColumns) ? notasCalColumns.length : 0;
+      if (!gid || !nCols) { alert('Selecciona un grupo con evaluaciones calendarizadas.'); return; }
+
+      if (!state.assignments) state.assignments = [];
+      if (!state.grades)      state.grades      = {};
+
+      for (let i = 1; i <= nCols; i++) {
+        const col  = notasCalColumns[i - 1];
+        const crit = (typeof notasCritNormalizado === 'function')
+          ? notasCritNormalizado(col.tipo) : col.tipo;
+        const asgId = `asg_${gid}_${col.id || (col.fecha + '_' + crit)}`;
+
+        if (!state.assignments.find(a => a.id === asgId)) {
+          state.assignments.push({
+            id: asgId, grupoId: gid, criterio: crit,
+            nombre: col.nombre || (crit + ' · ' + col.fecha),
+            fechaInicio: col.fecha, fechaFin: col.fecha,
+            teacherCode: currentTeacherCode, createdBy: 'calendarizacion'
+          });
+        }
+
+        document.querySelectorAll(`[data-notas-cl="${i}"]`).forEach(inp => {
+          const code = inp.dataset.notasSt;
+          if (!state.grades[code]) state.grades[code] = {};
+          if (inp.value.trim() === '') {
+            delete state.grades[code][asgId];
+          } else {
+            const n = parseFloat(inp.value);
+            if (!isNaN(n) && n >= 0 && n <= 20) state.grades[code][asgId] = n;
+          }
+        });
+      }
+
+      const txtOriginal = clone.textContent;
+      clone.disabled = true;
+      clone.textContent = '⏳ Guardando…';
+
+      let ok = false;
+      try {
+        await window.saveStateRaw(state);
+        ok = true;
+      } catch (e) {
+        alert('❌ NO se guardó en Supabase:\n\n' + e.message);
+      } finally {
+        clone.disabled = false;
+        clone.textContent = txtOriginal;
+      }
+
+      if (ok) {
+        if (typeof notasEditMode !== 'undefined') notasEditMode = false;
+        if (typeof buildNotasTableFromCalendar === 'function') buildNotasTableFromCalendar();
+        if (typeof notasSyncBotones === 'function') notasSyncBotones();
+        const msg = document.getElementById('dNotasMsg');
+        if (msg) { msg.classList.add('visible'); msg.textContent = '✅ Notas guardadas en la nube.'; setTimeout(() => msg.classList.remove('visible'), 3000); }
+      }
+    });
+  }
+  setTimeout(reemplazarGuardarNotas, 800);
+  setTimeout(reemplazarGuardarNotas, 2000);
+
+  /* ── 4) Neutraliza el "Puente Estricta" que pisa state.grades ─ */
+  const _origRenderNotas = window.buildNotasTableFromCalendar;
+  if (typeof _origRenderNotas === 'function' && !_origRenderNotas._persistPatched) {
+    window.buildNotasTableFromCalendar = function () {
+      // Backup de lo que el docente ya guardó
+      const backupGrades = JSON.parse(JSON.stringify(state.grades || {}));
+      try { _origRenderNotas.apply(this, arguments); } catch (e) { console.warn(e); }
+
+      // Restaurar: solo se permite AÑADIR notas donde había undefined/null,
+      // nunca sobrescribir lo que el docente ya escribió
+      Object.keys(backupGrades).forEach(code => {
+        if (!state.grades[code]) state.grades[code] = {};
+        Object.keys(backupGrades[code]).forEach(asgId => {
+          if (state.grades[code][asgId] === undefined || state.grades[code][asgId] === null) {
+            state.grades[code][asgId] = backupGrades[code][asgId];
+          }
+        });
+      });
+    };
+    window.buildNotasTableFromCalendar._persistPatched = true;
+  }
+
+  console.log('✅ Fix de persistencia de notas listo.');
 })();
 </script>
  </body>
