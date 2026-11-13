@@ -11576,33 +11576,179 @@ console.log('Planilla lista y visible');
 
   // ─── Override: renderCalEventosDelDia (panel lateral) ──────────────
   window.renderCalEventosDelDia = function (fecha) {
-    const cont = document.getElementById('calEventosDelDia');
-    if (!cont) return;
-    const evs = window.getEventosFiltrados(fecha);
-    if (!evs.length) {
-      cont.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin eventos este día. Agrégalos con el formulario de arriba.</div>';
-      return;
-    }
-    cont.innerHTML = evs.map(ev => {
-      const g = (state.groups || []).find(x => x.id === ev.grupoId);
-      return `<div class="libro-card" style="border-left:4px solid ${calTipoColor(ev.tipo)};">
-        <div class="libro-info">
-          <strong>${calTipoEmoji(ev.tipo)} ${calTipoLabel(ev.tipo, ev.nombre)}</strong>
-          <small style="display:block;color:var(--gris);margin-top:2px;">${g ? g.nombre : 'General'}${ev.nota ? ' · ' + ev.nota : ''}</small>
+  const cont = document.getElementById('calEventosDelDia');
+  if (!cont) return;
+  const evs = window.getEventosFiltrados(fecha);
+
+  if (!evs.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:12px;font-size:.88rem;">Sin eventos este día. Agrégalos con el formulario de arriba.</div>';
+    return;
+  }
+
+  cont.innerHTML = evs.map(ev => {
+    const g = (state.groups || []).find(x => x.id === ev.grupoId);
+    const color = calTipoColor(ev.tipo);
+    return `
+      <div class="libro-card" data-ev-row="${ev.id}" style="border-left:4px solid ${color}; flex-direction:column; align-items:stretch;">
+        <!-- Vista normal -->
+        <div class="ev-view" data-ev-view="${ev.id}" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div class="libro-info" style="flex:1;">
+            <strong>${calTipoEmoji(ev.tipo)} ${calTipoLabel(ev.tipo, ev.nombre)}</strong>
+            <small style="display:block;color:var(--gris);margin-top:2px;">${g ? g.nombre : 'General'}${ev.nota ? ' · ' + ev.nota : ''}</small>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button type="button" class="btn btn-mini btn-azul" data-edit-cev="${ev.id}" data-fecha="${fecha}" title="Editar">✏️</button>
+            <button type="button" class="btn btn-mini btn-rojo" data-del-cev="${ev.id}" data-fecha="${fecha}" title="Eliminar">🗑️</button>
+          </div>
         </div>
-        <button type="button" class="btn btn-mini btn-rojo" data-del-cev="${ev.id}" data-fecha="${fecha}" title="Eliminar">🗑️</button>
-      </div>`;
-    }).join('');
-    cont.querySelectorAll('[data-del-cev]').forEach(b => b.addEventListener('click', () => {
-      if (!confirm('¿Eliminar este evento?')) return;
-      const f = b.dataset.fecha;
-      state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== b.dataset.delCev);
-      if (!state.calendarEvents[f].length) delete state.calendarEvents[f];
-      saveState();
+
+        <!-- Vista edición (oculta al inicio) -->
+        <div class="ev-edit" data-ev-edit="${ev.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--borde);">
+          <div class="campo" style="margin-bottom:8px;">
+            <label style="font-size:.82rem;">Nombre</label>
+            <input type="text" class="ev-edit-nombre" value="${(ev.nombre || '').replace(/"/g, '&quot;')}" style="width:100%;padding:7px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.88rem;">
+          </div>
+          <div class="campo" style="margin-bottom:8px;">
+            <label style="font-size:.82rem;">Notas / detalle</label>
+            <input type="text" class="ev-edit-nota" value="${(ev.nota || '').replace(/"/g, '&quot;')}" style="width:100%;padding:7px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.88rem;">
+          </div>
+          <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px;">
+            <button type="button" class="btn btn-mini btn-slate" data-cancel-edit-cev="${ev.id}">Cancelar</button>
+            <button type="button" class="btn btn-mini btn-verde" data-save-edit-cev="${ev.id}" data-fecha="${fecha}">💾 Guardar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // ── EDITAR: mostrar formulario inline ──
+  cont.querySelectorAll('[data-edit-cev]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const evId = btn.dataset.editCev;
+      const view = cont.querySelector(`[data-ev-view="${evId}"]`);
+      const edit = cont.querySelector(`[data-ev-edit="${evId}"]`);
+      if (view && edit) {
+        view.style.display = 'none';
+        edit.style.display = 'block';
+      }
+    });
+  });
+
+  // ── CANCELAR edición ──
+  cont.querySelectorAll('[data-cancel-edit-cev]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const evId = btn.dataset.cancelEditCev;
+      const view = cont.querySelector(`[data-ev-view="${evId}"]`);
+      const edit = cont.querySelector(`[data-ev-edit="${evId}"]`);
+      if (view && edit) {
+        view.style.display = 'flex';
+        edit.style.display = 'none';
+      }
+    });
+  });
+
+  // ── GUARDAR edición ──
+  cont.querySelectorAll('[data-save-edit-cev]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const evId = btn.dataset.saveEditCev;
+      const f = btn.dataset.fecha;
+      const row = cont.querySelector(`[data-ev-row="${evId}"]`);
+      if (!row) return;
+
+      const nuevoNombre = row.querySelector('.ev-edit-nombre')?.value.trim();
+      const nuevaNota = row.querySelector('.ev-edit-nota')?.value.trim() || null;
+
+      if (!nuevoNombre) { alert('El nombre no puede estar vacío.'); return; }
+
+      // 1. Actualizar en calendarEvents
+      const ev = (state.calendarEvents[f] || []).find(x => x.id === evId);
+      if (ev) {
+        ev.nombre = nuevoNombre;
+        ev.nota = nuevaNota;
+      }
+
+      // 2. Actualizar la asignación vinculada (si existe)
+      if (ev && ev.grupoId) {
+        const criterioNorm = ev.tipo === 'online_workbook' ? 'online_homework' : ev.tipo;
+        const asg = (state.assignments || []).find(a =>
+          a.grupoId === ev.grupoId && a.fechaInicio === f && a.criterio === criterioNorm
+        );
+        if (asg) {
+          asg.nombre = nuevoNombre;
+        }
+      }
+
+      // 3. Guardar INMEDIATAMENTE (sin debounce)
+      try {
+        if (typeof saveStateRaw === 'function') {
+          await saveStateRaw(state);
+          console.log(`✅ Evento "${nuevoNombre}" editado y guardado en Supabase`);
+        } else {
+          saveState();
+        }
+      } catch (err) {
+        console.error('❌ Error guardando edición:', err);
+        alert('Error al guardar: ' + err.message);
+        return;
+      }
+
+      // 4. Re-render
       window.renderCalEventosDelDia(f);
       window.renderCalendarizacion();
-    }));
-  };
+    });
+  });
+
+  // ── ELIMINAR (con borrado inmediato + asignación vinculada) ──
+  cont.querySelectorAll('[data-del-cev]').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar este evento del calendario?')) return;
+      const f = b.dataset.fecha;
+      const evId = b.dataset.delCev;
+
+      const evento = (state.calendarEvents[f] || []).find(x => x.id === evId);
+
+      // 1. Borrar de calendarEvents
+      state.calendarEvents[f] = (state.calendarEvents[f] || []).filter(x => x.id !== evId);
+      if (!state.calendarEvents[f].length) delete state.calendarEvents[f];
+
+      // 2. Borrar la asignación vinculada (si no tiene notas)
+      if (evento && evento.grupoId) {
+        const criterioNorm = evento.tipo === 'online_workbook' ? 'online_homework' : evento.tipo;
+        const asg = (state.assignments || []).find(a =>
+          a.grupoId === evento.grupoId && a.fechaInicio === f && a.criterio === criterioNorm
+        );
+        if (asg) {
+          let tieneNotas = false;
+          Object.keys(state.grades || {}).forEach(code => {
+            if (state.grades[code] && state.grades[code][asg.id] !== undefined) tieneNotas = true;
+          });
+          if (!tieneNotas) {
+            state.assignments = state.assignments.filter(a => a.id !== asg.id);
+            console.log('🗑️ Asignación vinculada eliminada');
+          } else {
+            console.log('⚠️ Asignación NO eliminada (tiene notas registradas)');
+          }
+        }
+      }
+
+      // 3. Guardar INMEDIATAMENTE (sin debounce) — CLAVE para que no reaparezca
+      try {
+        if (typeof saveStateRaw === 'function') {
+          await saveStateRaw(state);
+          console.log('✅ Borrado guardado en Supabase al instante');
+        } else {
+          saveState();
+        }
+      } catch (err) {
+        console.error('❌ Error guardando borrado:', err);
+      }
+
+      // 4. Re-render
+      window.renderCalEventosDelDia(f);
+      window.renderCalendarizacion();
+    });
+  });
+};
 
   // ─── Override: renderCalendarizacion ───────────────────────────────
   window.renderCalendarizacion = function () {
@@ -11788,11 +11934,12 @@ console.log('Planilla lista y visible');
   });
 
   // ─── Reinicializar al abrir la pestaña Calendarización ─────────────
-  document.querySelectorAll('#tal-panel-admin [data-admtab="calendarizacion"]').forEach(tab => {
-    tab.addEventListener('click', () => setTimeout(() => {
-      try { window.renderCalendarizacion(); } catch (e) {}
-    }, 60));
-  });
+ document.querySelectorAll('#tal-panel-admin [data-admtab="calendarizacion"]').forEach(tab => {
+  tab.addEventListener('click', () => setTimeout(() => {
+    // ✅ Solo re-render desde state local. NO recargar de Supabase.
+    try { window.renderCalendarizacion(); } catch (e) {}
+  }, 60));
+});
 
   // ─── Al cargar ─────────────────────────────────────────────────────
   setTimeout(() => {
@@ -19694,6 +19841,155 @@ if (!numMatch) {
   }, 60000);
 
   console.log('✅ Fix v6 listo');
+})();
+</script>
+ <!-- ═══════════════════════════════════════════════════════════════
+     BLINDAJE ANTI-RESURRECCIÓN DE EVENTOS (v1)
+     · Registra tombstones en cada saveStateRaw
+     · Aplica tombstones al cargar
+     · Filtra tombstones en sincronizarCalendarioDesdeNube
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🛡️ Blindaje anti-resurrección iniciando...');
+
+  const TOMBSTONE_TTL = 24 * 60 * 60 * 1000; // 24h
+
+  // ─── 1. Snapshot de lo último guardado ───
+  window._lastSnapshot = window._lastSnapshot || null;
+
+  function updateSnapshot(s) {
+    const eventIds = new Set();
+    Object.values(s.calendarEvents || {}).forEach(arr =>
+      (arr || []).forEach(ev => eventIds.add(ev.id)));
+    const asgIds = new Set((s.assignments || []).map(a => a.id));
+    window._lastSnapshot = { eventIds, asgIds, at: Date.now() };
+  }
+
+  // ─── 2. Registrar tombstones comparando estado actual vs snapshot ───
+  function registerTombstones(s) {
+    if (!window._lastSnapshot) return;
+
+    const currentEventIds = new Set();
+    Object.values(s.calendarEvents || {}).forEach(arr =>
+      (arr || []).forEach(ev => currentEventIds.add(ev.id)));
+    const currentAsgIds = new Set((s.assignments || []).map(a => a.id));
+
+    const delEvents = [...window._lastSnapshot.eventIds]
+      .filter(id => !currentEventIds.has(id));
+    const delAsgs = [...window._lastSnapshot.asgIds]
+      .filter(id => !currentAsgIds.has(id));
+
+    if (delEvents.length) {
+      if (!s._deletedEventIds) s._deletedEventIds = {};
+      delEvents.forEach(id => { s._deletedEventIds[id] = Date.now(); });
+      console.log(`🪦 ${delEvents.length} evento(s) marcado(s) como borrado(s)`);
+    }
+    if (delAsgs.length) {
+      if (!s._deletedAsgIds) s._deletedAsgIds = {};
+      delAsgs.forEach(id => { s._deletedAsgIds[id] = Date.now(); });
+      console.log(`🪦 ${delAsgs.length} asignación(es) marcada(s) como borrada(s)`);
+    }
+  }
+
+  // ─── 3. Limpiar tombstones > 24h ───
+  function cleanTombstones(s) {
+    const now = Date.now();
+    ['_deletedEventIds', '_deletedAsgIds'].forEach(key => {
+      if (!s[key]) return;
+      Object.keys(s[key]).forEach(id => {
+        if (now - s[key][id] > TOMBSTONE_TTL) delete s[key][id];
+      });
+    });
+  }
+
+  // ─── 4. Aplicar tombstones: filtrar todo lo que esté marcado ───
+  function applyTombstones(s) {
+    const tombEv = s._deletedEventIds || {};
+    const tombAsg = s._deletedAsgIds || {};
+    let removed = 0;
+
+    Object.keys(s.calendarEvents || {}).forEach(fecha => {
+      const antes = (s.calendarEvents[fecha] || []).length;
+      s.calendarEvents[fecha] = (s.calendarEvents[fecha] || [])
+        .filter(ev => !tombEv[ev.id]);
+      removed += antes - s.calendarEvents[fecha].length;
+      if (!s.calendarEvents[fecha].length) delete s.calendarEvents[fecha];
+    });
+
+    if (Array.isArray(s.assignments)) {
+      const antes = s.assignments.length;
+      s.assignments = s.assignments.filter(a => !tombAsg[a.id]);
+      removed += antes - s.assignments.length;
+    }
+
+    if (removed) console.log(`🧹 ${removed} elemento(s) fantasma eliminado(s)`);
+  }
+
+  // ─── 5. WRAPPER: saveStateRaw → registra tombstones antes de guardar ───
+  const _origSaveStateRaw = window.saveStateRaw;
+  if (typeof _origSaveStateRaw === 'function') {
+    window.saveStateRaw = async function (s) {
+      if (!s || typeof s !== 'object') return;
+      registerTombstones(s);
+      cleanTombstones(s);
+      const result = await _origSaveStateRaw.call(this, s);
+      updateSnapshot(s);
+      return result;
+    };
+    console.log('✅ saveStateRaw envuelto');
+  }
+
+  // ─── 6. WRAPPER: loadState → aplica tombstones después de cargar ───
+  const _origLoadState = window.loadState;
+  if (typeof _origLoadState === 'function') {
+    window.loadState = async function () {
+      const fresh = await _origLoadState.apply(this, arguments);
+      if (fresh) {
+        applyTombstones(fresh);
+        updateSnapshot(fresh);
+      }
+      return fresh;
+    };
+    console.log('✅ loadState envuelto');
+  }
+
+  // ─── 7. WRAPPER: sincronizarCalendarioDesdeNube → filtra tombstones ───
+  const _origSync = window.sincronizarCalendarioDesdeNube;
+  if (typeof _origSync === 'function') {
+    window.sincronizarCalendarioDesdeNube = async function () {
+      const tombEv = state._deletedEventIds || {};
+      const tombAsg = state._deletedAsgIds || {};
+
+      // Ejecutamos el UNION original
+      await _origSync.apply(this, arguments);
+
+      // Purga de fantasmas que el UNION pudo traer
+      let purged = 0;
+      Object.keys(state.calendarEvents || {}).forEach(fecha => {
+        const antes = state.calendarEvents[fecha].length;
+        state.calendarEvents[fecha] = state.calendarEvents[fecha]
+          .filter(ev => !tombEv[ev.id]);
+        purged += antes - state.calendarEvents[fecha].length;
+        if (!state.calendarEvents[fecha].length) delete state.calendarEvents[fecha];
+      });
+      if (Array.isArray(state.assignments)) {
+        const antes = state.assignments.length;
+        state.assignments = state.assignments.filter(a => !tombAsg[a.id]);
+        purged += antes - state.assignments.length;
+      }
+      if (purged) console.log(`🛡️ Sync bloqueó ${purged} fantasma(s)`);
+    };
+    console.log('✅ sincronizarCalendarioDesdeNube envuelto');
+  }
+
+  // ─── 8. Inicializar snapshot si ya hay estado en memoria ───
+  if (typeof state !== 'undefined' && state) {
+    updateSnapshot(state);
+  }
+
+  console.log('✅ Blindaje activo. Los borrados ya no deberían resucitar.');
 })();
 </script>
  </body>
