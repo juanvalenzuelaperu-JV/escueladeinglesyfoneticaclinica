@@ -20788,5 +20788,228 @@ if (!numMatch) {
   console.log('✅ Blindaje activo. Los exámenes ya no desaparecerán.');
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     FILTROS EN CASCADA PARA EXÁMENES PUBLICADOS
+     · Agrupa por Grupo Vigente y Docente.
+     · Auto-selecciona el docente al elegir el grupo.
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔎 Sistema de Filtros de Exámenes iniciado...');
+
+  // ─── 1. CREAR LA UI DE LOS FILTROS (solo una vez) ───
+  function inyectarFiltrosUI() {
+    if (document.getElementById('admExamsFiltros')) return;
+
+    const listaCont = document.getElementById('admExamsLista');
+    if (!listaCont) return;
+
+    const filtrosHTML = `
+      <div id="admExamsFiltros" class="tform admin-form" style="margin-bottom:18px; background:#fff; border-color:#e5e7eb;">
+        <h4 style="margin:0 0 12px; color:var(--slate); font-size:.95rem;">🔍 Filtrar exámenes</h4>
+        <div class="tform-grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="campo" style="margin:0;">
+            <label>🏫 Grupo Vigente</label>
+            <select id="admFiltroGrupoExam" style="font-weight:700; color:var(--azul);">
+              <option value="">— Todos los grupos —</option>
+            </select>
+          </div>
+          <div class="campo" style="margin:0;">
+            <label>👨‍🏫 Docente</label>
+            <select id="admFiltroDocenteExam" style="font-weight:700; color:var(--morado);">
+              <option value="">— Todos los docentes —</option>
+            </select>
+          </div>
+        </div>
+        <div id="admExamsFiltrosBadge" style="margin-top:10px; display:none; font-size:.85rem; color:var(--gris); padding:6px 12px; background:#f8fafc; border-radius:8px; border-left:4px solid var(--azul);"></div>
+      </div>
+    `;
+
+    listaCont.insertAdjacentHTML('beforebegin', filtrosHTML);
+    vincularEventosFiltros();
+  }
+
+  // ─── 2. POBLAR LOS DESPLEGABLES ───
+  function poblarDesplegables() {
+    const selGrupo = document.getElementById('admFiltroGrupoExam');
+    const selDocente = document.getElementById('admFiltroDocenteExam');
+    if (!selGrupo || !selDocente) return;
+
+    // Guardar selección actual para no perderla al repintar
+    const currentGrupo = selGrupo.value;
+    const currentDocente = selDocente.value;
+
+    // Poblar Grupos (solo vigentes)
+    const gruposVigentes = (state.groups || []).filter(g => !g.cerrado)
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    
+    selGrupo.innerHTML = '<option value="">— Todos los grupos —</option>';
+    gruposVigentes.forEach(g => {
+      const teacher = state.teachers[g.teacherCode];
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = `${g.nombre || g.programa} ${teacher ? '· ' + teacher.nombre : ''}`;
+      selGrupo.appendChild(opt);
+    });
+
+    // Poblar Docentes
+    const docentes = Object.keys(state.teachers || {}).sort((a, b) => 
+      (state.teachers[a].nombre || '').localeCompare(state.teachers[b].nombre || '')
+    );
+
+    selDocente.innerHTML = '<option value="">— Todos los docentes —</option>';
+    docentes.forEach(code => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = state.teachers[code].nombre || code;
+      selDocente.appendChild(opt);
+    });
+
+    // Restaurar selección
+    if (currentGrupo) selGrupo.value = currentGrupo;
+    if (currentDocente) selDocente.value = currentDocente;
+  }
+
+  // ─── 3. VINCULAR LOS EVENTOS DE LOS FILTROS ───
+  function vincularEventosFiltros() {
+    const selGrupo = document.getElementById('admFiltroGrupoExam');
+    const selDocente = document.getElementById('admFiltroDocenteExam');
+
+    if (selGrupo) {
+      selGrupo.addEventListener('change', () => {
+        const gid = selGrupo.value;
+        if (gid) {
+          // Si elige un grupo, auto-seleccionar su docente
+          const grupo = state.groups.find(g => g.id === gid);
+          if (grupo && grupo.teacherCode && selDocente) {
+            selDocente.value = grupo.teacherCode;
+          }
+        }
+        window.renderAdminExams(); // Redibujar la lista
+      });
+    }
+
+    if (selDocente) {
+      selDocente.addEventListener('change', () => {
+        window.renderAdminExams(); // Redibujar la lista
+      });
+    }
+  }
+
+  // ─── 4. SOBRESCRIBIR LA FUNCIÓN DE RENDERIZADO ───
+  const _origRenderAdminExams = window.renderAdminExams;
+  
+  window.renderAdminExams = function () {
+    // 1. Asegurar que los filtros existan
+    inyectarFiltrosUI();
+    poblarDesplegables();
+
+    const selGrupo = document.getElementById('admFiltroGrupoExam');
+    const selDocente = document.getElementById('admFiltroDocenteExam');
+    const badge = document.getElementById('admExamsFiltrosBadge');
+    const cont = document.getElementById("admExamsLista");
+    
+    if (!cont) return;
+
+    const filtroGrupoId = selGrupo ? selGrupo.value : '';
+    const filtroDocenteCode = selDocente ? selDocente.value : '';
+
+    // 2. Filtrar exámenes
+    let exams = [...(state.exams || [])];
+
+    if (filtroGrupoId) {
+      exams = exams.filter(ex => ex.grupoId === filtroGrupoId);
+    } else if (filtroDocenteCode) {
+      // Si no hay grupo específico pero sí docente, traer todos los grupos de ese docente
+      const gruposDelDocente = (state.groups || []).filter(g => g.teacherCode === filtroDocenteCode).map(g => g.id);
+      exams = exams.filter(ex => gruposDelDocente.includes(ex.grupoId));
+    }
+
+    // 3. Mostrar el "Badge" con la información actual
+    if (badge) {
+      if (filtroGrupoId || filtroDocenteCode) {
+        badge.style.display = 'block';
+        let grupoNombre = 'Todos';
+        let docenteNombre = 'Todos';
+        
+        if (filtroGrupoId) {
+          const g = state.groups.find(x => x.id === filtroGrupoId);
+          if (g) {
+            grupoNombre = g.nombre;
+            if (g.teacherCode && state.teachers[g.teacherCode]) {
+              docenteNombre = state.teachers[g.teacherCode].nombre;
+            }
+          }
+        } else if (filtroDocenteCode) {
+          if (state.teachers[filtroDocenteCode]) {
+            docenteNombre = state.teachers[filtroDocenteCode].nombre;
+          }
+        }
+        badge.innerHTML = `🔎 Mostrando exámenes de: <strong>${grupoNombre}</strong> (Docente: <strong>${docenteNombre}</strong>)`;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // 4. Ordenar por fecha de publicación (más reciente primero)
+    exams.sort((a, b) => (b.fechaPublicacion || "").localeCompare(a.fechaPublicacion || ""));
+
+    // 5. Renderizar
+    if (!exams.length) {
+      cont.innerHTML = `<div class="empty-state" style="padding:30px; background:#f9fafb; border-radius:12px; border:1px dashed #cbd5e1;">
+        📭 No hay exámenes publicados que coincidan con los filtros seleccionados.
+      </div>`;
+      return;
+    }
+
+    let html = '';
+    exams.forEach(ex => {
+      const grupo = (state.groups || []).find(g => g.id === ex.grupoId);
+      const grupoNombre = grupo ? grupo.nombre : "Sin grupo";
+      const totalAlumnos = grupo ? (grupo.studentCodes || []).length : 0;
+      const resultados = (state.examResults && state.examResults[ex.id]) || {};
+      const rendidos = Object.values(resultados).filter(r => r && r.nota !== undefined).length;
+      const intentosMax = ex.intentosPermitidos || 1;
+      const descripcion = ex.descripcion ? ` · ${ex.descripcion}` : "";
+
+      html += `
+        <div class="exam-link-card" style="align-items:center;">
+          <div class="exam-link-info" style="flex:1;">
+            <h4>📝 ${ex.nombre}</h4>
+            <p>${(ex.preguntas || []).length} pregunta(s) · Intentos: ${intentosMax}${descripcion}</p>
+            <small>
+              📅 Publicado: ${formatearFecha(ex.fechaPublicacion)}
+              · Grupo: <strong>${grupoNombre}</strong>
+              · ✅ Rendidos: <strong>${rendidos}/${totalAlumnos}</strong>
+            </small>
+          </div>
+          <div class="exam-link-actions" style="flex-direction:column;align-items:flex-end;gap:6px;">
+            <button type="button" class="btn btn-mini btn-morado" data-edit-exam="${ex.id}">✏️ Editar</button>
+            <button type="button" class="btn btn-mini btn-azul" data-refresh-exam="${ex.id}">🔄 Actualizar</button>
+            <button type="button" class="btn btn-mini btn-rojo" data-delete-exam="${ex.id}">🗑️ Eliminar</button>
+          </div>
+        </div>`;
+    });
+
+    cont.innerHTML = html;
+
+    // 6. Volver a enganchar los botones de acción (Editar, Actualizar, Eliminar)
+    document.getElementById("btnActualizarListaExams")?.addEventListener("click", actualizarListaExamenes);
+    
+    cont.querySelectorAll("[data-edit-exam]").forEach(btn =>
+      btn.addEventListener("click", () => abrirEditarExamen(btn.dataset.editExam))
+    );
+    cont.querySelectorAll("[data-refresh-exam]").forEach(btn =>
+      btn.addEventListener("click", () => actualizarUnExamen(btn.dataset.refreshExam))
+    );
+    cont.querySelectorAll("[data-delete-exam]").forEach(btn =>
+      btn.addEventListener("click", () => window.eliminarExamen(btn.dataset.deleteExam))
+    );
+  };
+
+  console.log('✅ Filtros en cascada cargados. La lista de exámenes ahora está organizada.');
+})();
+</script>
  </body>
 </html>
