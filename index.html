@@ -20134,5 +20134,114 @@ if (!numMatch) {
   console.log('✅ Filtro anti-fantasmas listo.');
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     AUTO-RELLENO INTELIGENTE: nombre del examen desde la evaluación
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('✨ Auto-relleno de nombre del examen iniciando...');
+
+  function setup() {
+    const nameInput  = document.getElementById('docNombreExamen');
+    const eventSelect = document.getElementById('docEvaluacionDestino');
+    const fileInput  = document.getElementById('docImportFile');
+
+    if (!nameInput || !eventSelect) {
+      setTimeout(setup, 500);
+      return;
+    }
+    if (nameInput.dataset.autoFix === '1') return;
+    nameInput.dataset.autoFix = '1';
+
+    // ─── Estado local: nombre base desde el archivo ───
+    let nombreArchivo = '';
+
+    function capturarNombreArchivo() {
+      const f = fileInput && fileInput.files && fileInput.files[0];
+      if (f) nombreArchivo = f.name.replace(/\.(pdf|docx|doc|txt)$/i, '');
+    }
+
+    // ─── Modo readonly (evaluación existente) ───
+    function ponerReadonly() {
+      nameInput.setAttribute('readonly', '');
+      nameInput.style.background = '#f1f5f9';
+      nameInput.style.fontWeight = '700';
+      nameInput.style.color = 'var(--azul)';
+      nameInput.style.cursor = 'not-allowed';
+      nameInput.title = 'Auto-completado desde la evaluación seleccionada';
+    }
+
+    // ─── Modo editable (crear nueva) ───
+    function ponerEditable() {
+      nameInput.removeAttribute('readonly');
+      nameInput.style.background = '';
+      nameInput.style.fontWeight = '';
+      nameInput.style.color = '';
+      nameInput.style.cursor = '';
+      nameInput.title = 'Nombre del nuevo examen';
+    }
+
+    // ─── Sincronizar cuando cambia la evaluación elegida ───
+    function sincronizarNombre() {
+      const value = eventSelect.value;
+
+      if (!value || value === '__nueva__') {
+        // Crear nueva → editable
+        ponerEditable();
+        if (!nameInput.value.trim()) {
+          nameInput.value = nombreArchivo || '';
+        }
+        return;
+      }
+
+      // Vincular a evaluación existente → nombre readonly
+      const asg = (state.assignments || []).find(a => a.id === value);
+      if (asg && asg.nombre) {
+        // Quitamos el prefijo "📝 " si lo tiene
+        const limpio = String(asg.nombre).replace(/^📝\s*/, '').trim();
+        nameInput.value = limpio;
+        ponerReadonly();
+      }
+    }
+
+    // ─── Listeners ───
+    eventSelect.addEventListener('change', sincronizarNombre);
+
+    // Cuando se carga un archivo, guardamos su nombre base
+    fileInput && fileInput.addEventListener('change', () => {
+      setTimeout(() => {
+        capturarNombreArchivo();
+        // Si aún no hay evaluación seleccionada y el campo está vacío, sugerimos el nombre del archivo
+        if ((!eventSelect.value || eventSelect.value === '__nueva__') && !nameInput.value.trim()) {
+          nameInput.value = nombreArchivo;
+        }
+      }, 100);
+    });
+
+    // Cuando el dropdown se repuebla (cambio de grupo) → resincronizar
+    const observer = new MutationObserver(() => setTimeout(sincronizarNombre, 30));
+    observer.observe(eventSelect, { childList: true });
+
+    // También al abrir el subtab Importar
+    document.querySelectorAll('[data-adm-exam-tab="importar"]').forEach(tab => {
+      tab.addEventListener('click', () => setTimeout(sincronizarNombre, 200));
+    });
+
+    // Sincronización inicial
+    setTimeout(sincronizarNombre, 200);
+
+    console.log('✅ Auto-relleno instalado.');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+  setTimeout(setup, 1000);
+  setTimeout(setup, 2500);
+})();
+</script>
  </body>
 </html>
