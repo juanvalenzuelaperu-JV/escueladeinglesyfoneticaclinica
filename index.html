@@ -20534,5 +20534,134 @@ if (!numMatch) {
   if (gidActivo) setTimeout(() => { if (typeof window.buildNotasTableFromCalendar === 'function') window.buildNotasTableFromCalendar(); }, 500);
 })();
 </script>
+   <!-- ═══════════════════════════════════════════════════════════════
+     SISTEMA DE ARCHIVADO (SOFT DELETE) PARA EXÁMENES
+     Evita perder notas permanentemente al eliminar un examen
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🛡️ Sistema de Archivado de Exámenes iniciado...');
+
+  // ─── 1. INTERCEPTAR LA FUNCIÓN DE ELIMINAR ───
+  const _origEliminar = window.eliminarExamen;
+  
+  window.eliminarExamen = function (examId) {
+    const exam = (state.exams || []).find(e => e.id === examId);
+    if (!exam) return;
+
+    // Verificamos si el examen ya tiene notas de alumnos
+    const notasRegistradas = Object.keys((state.examResults && state.examResults[examId]) || {}).length;
+
+    if (notasRegistradas > 0) {
+      // SI TIENE NOTAS: No se borra, solo se archiva
+      if (!confirm(`⚠️ El examen "${exam.nombre}" ya tiene ${notasRegistradas} nota(s) registrada(s).\n\nNo se puede eliminar para no perder el historial académico. En su lugar, se ARCHIVARÁ y desaparecerá de las vistas de los alumnos y docentes.\n\n¿Deseas archivarlo?`)) {
+        return;
+      }
+      
+      exam.archivado = true; // Lo marcamos como archivado
+      
+      // También archivamos su asignación vinculada para que no aparezca en la Ruta
+      if (exam.assignmentId) {
+        const asg = state.assignments.find(a => a.id === exam.assignmentId);
+        if (asg) asg.archivado = true;
+      }
+      
+      if (typeof saveState === 'function') saveState();
+      
+      if (typeof renderAdminExams === 'function') renderAdminExams();
+      alert("✅ Examen archivado correctamente. Las notas se conservan en el sistema.");
+      
+    } else {
+      // SI NO TIENE NOTAS: Se puede borrar definitivamente sin peligro
+      if (!confirm(`El examen "${exam.nombre}" no tiene notas registradas.\n¿Deseas eliminarlo definitivamente?`)) {
+        return;
+      }
+      
+      // Llamamos a tu función original de borrado
+      if (typeof _origEliminar === 'function') {
+        _origEliminar(examId);
+      }
+    }
+  };
+
+  // ─── 2. Ocultar exámenes archivados en el Panel del Alumno ───
+  // Usamos async/await para respetar tu script v6 que busca datos frescos en Supabase
+  const _origRenderStudentCalif = window.renderStudentCalificaciones;
+  if (typeof _origRenderStudentCalif === 'function') {
+    window.renderStudentCalificaciones = async function () {
+      // Hacemos copia de seguridad de los estados
+      const _backupExams = [...state.exams];
+      const _backupAsgs = [...state.assignments];
+
+      // Filtramos los archivados temporalmente para el dibujado
+      state.exams = state.exams.filter(ex => !ex.archivado);
+      state.assignments = state.assignments.filter(a => !a.archivado);
+
+      // Dibujamos la Ruta de Aprendizaje
+      await _origRenderStudentCalif.apply(this, arguments);
+
+      // Restauramos los datos originales
+      state.exams = _backupExams;
+      state.assignments = _backupAsgs;
+    };
+  }
+
+  // ─── 3. Cambiar el botón "Eliminar" a "Archivar" en la vista del Admin ───
+  const _origRenderAdminExams = window.renderAdminExams;
+  if (typeof _origRenderAdminExams === 'function') {
+    window.renderAdminExams = function () {
+      _origRenderAdminExams.apply(this, arguments);
+      
+      // Buscamos todos los botones de eliminar en la tabla recién dibujada
+      document.querySelectorAll('[data-delete-exam]').forEach(btn => {
+        const examId = btn.dataset.deleteExam;
+        const notasRegistradas = Object.keys((state.examResults && state.examResults[examId]) || {}).length;
+        
+        // Si tiene notas, cambiamos el diseño del botón a "Archivar"
+        if (notasRegistradas > 0) {
+          btn.innerHTML = '📦 Archivar';
+          btn.style.background = '#e0f2fe';
+          btn.style.color = '#0369a1';
+          btn.style.borderColor = '#bae6fd';
+          btn.title = 'Conservar notas y ocultar examen';
+        }
+      });
+    };
+  }
+
+  // ─── 4. Ocultar columnas archivadas en el Registro de Notas del Docente ───
+  const _origLoadNotas = window.loadNotasFromCalendar;
+  if (typeof _origLoadNotas === 'function') {
+    window.loadNotasFromCalendar = function () {
+      // Copia de seguridad de los eventos del calendario
+      const _backupEvents = JSON.parse(JSON.stringify(state.calendarEvents || {}));
+      
+      // Identificamos qué eventos corresponden a exámenes archivados
+      const archivedAsgs = (state.assignments || []).filter(a => a.archivado);
+      
+      // Filtramos esos eventos para que el docente no los vea
+      Object.keys(state.calendarEvents || {}).forEach(fecha => {
+        state.calendarEvents[fecha] = state.calendarEvents[fecha].filter(ev => {
+          const asg = archivedAsgs.find(a => 
+            a.grupoId === ev.grupoId && 
+            a.fechaInicio === fecha && 
+            (a.criterio === ev.tipo || (ev.tipo === 'online_workbook' && a.criterio === 'online_homework'))
+          );
+          return !asg; // Si encuentra la asignación archivada, elimina el evento temporalmente
+        });
+      });
+
+      // Ejecutamos la función original (que dibujará la tabla sin los archivados)
+      _origLoadNotas.apply(this, arguments);
+
+      // Restauramos los eventos del calendario
+      state.calendarEvents = _backupEvents;
+    };
+  }
+
+  console.log('✅ Sistema de Archivado listo y protegiendo las notas.');
+})();
+</script>                                                                                                               
  </body>
 </html>
