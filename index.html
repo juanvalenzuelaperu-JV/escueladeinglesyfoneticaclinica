@@ -21363,5 +21363,180 @@ if (!numMatch) {
   console.log('✅ FIX FINAL aplicado. Ruta de Aprendizaje ahora es persistente.');
 })();
 </script>
+                                                                                                                  <!-- ============================================================
+     SUBIR FOTO DE PERFIL DEL ALUMNO
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  console.log('📸 Módulo "Subir Foto de Alumno" iniciando...');
+
+  // 1. Inyectar estilos para el botón de la cámara
+  if (!document.getElementById('stylesFotoAlumno')) {
+    const style = document.createElement('style');
+    style.id = 'stylesFotoAlumno';
+    style.innerHTML = `
+      .avatar-container-alumno {
+        position: relative;
+        display: inline-block;
+      }
+      .btn-subir-foto-alumno {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 28px;
+        height: 28px;
+        background: var(--acento);
+        color: #1f2937;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+        z-index: 10;
+      }
+      .btn-subir-foto-alumno:hover {
+        transform: scale(1.1);
+        background: #e0a300;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 2. Función para actualizar el avatar con la foto guardada
+  function actualizarAvatarConFoto() {
+    if (typeof currentStudent === 'undefined' || !currentStudent) return;
+    const avatarEl = document.getElementById('dashAvatarA');
+    if (!avatarEl) return;
+
+    // Si el alumno tiene foto, mostrarla
+    if (currentStudent.fotoPerfil) {
+      avatarEl.innerHTML = `<img src="${currentStudent.fotoPerfil}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      avatarEl.style.padding = '0';
+    } else {
+      // Si no, mantener las iniciales
+      avatarEl.textContent = currentStudent.nombre.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+      avatarEl.style.padding = '';
+    }
+  }
+
+  // 3. Crear e inyectar el botón de subir foto
+  function inyectarBotonSubirFoto() {
+    const avatarEl = document.getElementById('dashAvatarA');
+    if (!avatarEl || document.getElementById('inputFotoAlumno')) return; // Ya existe
+
+    // Envolver el avatar en un contenedor relativo para posicionar el botón
+    if (!avatarEl.parentElement.classList.contains('avatar-container-alumno')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'avatar-container-alumno';
+      avatarEl.parentNode.insertBefore(wrapper, avatarEl);
+      wrapper.appendChild(avatarEl);
+    }
+
+    // Crear el botón
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-subir-foto-alumno';
+    btn.innerHTML = '📷';
+    btn.title = 'Subir foto de perfil';
+    
+    // Crear el input file oculto
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'inputFotoAlumno';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+
+    avatarEl.parentElement.appendChild(btn);
+    avatarEl.parentElement.appendChild(fileInput);
+
+    // Eventos
+    btn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('⚠️ La imagen no debe superar los 5 MB.');
+        return;
+      }
+
+      btn.innerHTML = '⏳';
+      btn.style.pointerEvents = 'none';
+
+      try {
+        // Usar la función procesarImagen que ya existe en tu sistema
+        let urlFinal;
+        if (typeof procesarImagen === 'function') {
+          urlFinal = await procesarImagen(file, 'fotos-alumnos');
+        } else {
+          urlFinal = await fileToBase64(file); // Fallback
+        }
+
+        // Guardar en el estado del alumno
+        if (!state.students[currentStudentCode].fotoPerfil) {
+          state.students[currentStudentCode].fotoPerfil = urlFinal;
+        } else {
+          state.students[currentStudentCode].fotoPerfil = urlFinal;
+        }
+        
+        // Actualizar variable global
+        currentStudent = state.students[currentStudentCode];
+
+        // Guardar en la nube (usando saveStateNow si existe para asegurar guardado inmediato)
+        if (typeof saveStateNow === 'function') {
+          await saveStateNow();
+        } else if (typeof saveState === 'function') {
+          saveState();
+        }
+
+        // Actualizar la vista
+        actualizarAvatarConFoto();
+        
+        // Efecto de éxito
+        btn.innerHTML = '✅';
+        setTimeout(() => { btn.innerHTML = '📷'; btn.style.pointerEvents = 'auto'; }, 2000);
+
+      } catch (error) {
+        console.error('Error subiendo foto:', error);
+        alert('❌ Error al subir la foto: ' + (error.message || error));
+        btn.innerHTML = '📷';
+        btn.style.pointerEvents = 'auto';
+      }
+    });
+  }
+
+  // 4. Interceptar el login del alumno para inyectar el botón y mostrar la foto
+  const _origLoginStudent = window.loginStudent;
+  if (typeof _origLoginStudent === 'function') {
+    window.loginStudent = function (code) {
+      _origLoginStudent.call(this, code);
+      
+      // Esperar un momento a que el DOM del dashboard se pinte
+      setTimeout(() => {
+        inyectarBotonSubirFoto();
+        actualizarAvatarConFoto();
+      }, 100);
+    };
+  }
+
+  // 5. Si el alumno ya estaba logueado al recargar la página
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(() => {
+      if (document.getElementById('dashboardAlumno').classList.contains('visible')) {
+        inyectarBotonSubirFoto();
+        actualizarAvatarConFoto();
+      }
+    }, 800);
+  }
+
+  console.log('✅ Módulo "Subir Foto de Alumno" cargado.');
+})();
+</script>
  </body>
 </html>
