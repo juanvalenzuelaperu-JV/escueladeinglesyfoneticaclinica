@@ -20243,5 +20243,87 @@ if (!numMatch) {
   setTimeout(setup, 2500);
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     UNIFICACIÓN: "Online Homework" → "Online Workbook"
+     Y columnas de exámenes en Registro de Notas
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Unificando criterios y visibilidad de exámenes...');
+
+  // 1. Renombrar la constante global
+  if (typeof CRITERIOS !== 'undefined') {
+    const indexOH = CRITERIOS.findIndex(c => c.id === 'online_homework');
+    if (indexOH !== -1) {
+      CRITERIOS[indexOH].nombre = "Online Workbook";
+    }
+  }
+
+  // 2. Inyectar columnas de exámenes huérfanos en el Registro del Docente
+  const _origBuildNotas = window.buildNotasTableFromCalendar;
+  if (typeof _origBuildNotas === 'function') {
+    window.buildNotasTableFromCalendar = function () {
+      // Ejecutamos el dibujado original primero
+      _origBuildNotas.apply(this, arguments);
+
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      if (!gid) return;
+
+      // Buscamos exámenes del grupo que no estén en las columnas del calendario
+      const examenesOcultos = (state.exams || []).filter(ex => 
+        ex.grupoId === gid && 
+        (ex.tipoExamen === 'online_workbook' || ex.tipoExamen === 'final_exam')
+      );
+
+      const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
+      const headRow = document.querySelector('#dNotasHead tr');
+      if (!headRow) return;
+
+      examenesOcultos.forEach(ex => {
+        // Verificamos si ya existe la columna para no duplicarla
+        const yaExiste = notasCalColumns.some(col => 
+          col.nombre === ex.nombre || (col.tipo === ex.tipoExamen && col.fecha === ex.fechaPublicacion)
+        );
+        
+        if (!yaExiste) {
+          // A. Inyectar encabezado
+          const newTh = document.createElement('th');
+          newTh.style.minWidth = '130px';
+          newTh.innerHTML = `
+            <div style="font-size:.8rem;font-weight:800;color:#fff;">📝 ${ex.nombre}</div>
+            <div style="font-size:.78rem;color:#fff;margin-top:4px;font-weight:600;">📅 ${formatearFecha(ex.fechaPublicacion)}</div>
+            <div style="font-size:.65rem;color:#a78bfa;margin-top:2px;">Desde Portal Alumno</div>
+          `;
+          headRow.appendChild(newTh);
+
+          // B. Inyectar notas de los alumnos
+          const rows = document.querySelectorAll('#dNotasBody tr');
+          rows.forEach(row => {
+            const code = row.querySelector('td')?.innerText.split('\n')[1]?.trim(); 
+            if (!code) return;
+            
+            const res = state.examResults?.[ex.id]?.[code];
+            const nota = (res && res.nota !== undefined) ? res.nota : '';
+            
+            const td = document.createElement('td');
+            td.innerHTML = `
+              <input type="number" value="${nota}" readonly 
+                     title="Nota rendida por el alumno en su portal"
+                     style="width:70px;padding:6px;border-radius:6px;border:1.5px solid #a78bfa;background:#f5f3ff;color:#6d28d9;font-weight:bold;text-align:center;cursor:not-allowed;">
+            `;
+            row.appendChild(td);
+          });
+        }
+      });
+    };
+  }
+
+  // 3. Refrescar la vista actual
+  if (typeof renderStudentCalificaciones === 'function') {
+    setTimeout(renderStudentCalificaciones, 500);
+  }
+})();
+</script>
  </body>
 </html>
