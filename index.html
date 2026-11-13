@@ -21175,6 +21175,7 @@ if (!numMatch) {
       elEst.style.color = '#b45309';
     }
 
+      // ── FILA 1: Docente ──
     const photoEl = document.getElementById('califTeacherPhoto');
     const nameEl = document.getElementById('califTeacherName');
     let teacher = null;
@@ -21185,6 +21186,24 @@ if (!numMatch) {
         : '👨‍🏫';
     }
     if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+
+    // ── FILA 2: Perfil del Alumno (Foto, Nombre y Programa) ──
+    const studentPhotoEl = document.getElementById('califStudentPhoto');
+    const studentNameEl = document.getElementById('califStudentName');
+    const studentProgramEl = document.getElementById('califStudentProgram');
+    
+    if (studentPhotoEl && currentStudent) {
+      if (currentStudent.fotoPerfil) {
+        studentPhotoEl.innerHTML = `<img src="${currentStudent.fotoPerfil}" style="width:100%;height:100%;object-fit:cover;">`;
+        studentPhotoEl.style.color = 'transparent';
+      } else {
+        const iniciales = currentStudent.nombre.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+        studentPhotoEl.textContent = iniciales;
+        studentPhotoEl.style.color = 'var(--azul)';
+      }
+    }
+    if (studentNameEl && currentStudent) studentNameEl.textContent = currentStudent.nombre;
+    if (studentProgramEl && currentStudent) studentProgramEl.textContent = 'Programa: ' + (currentStudent.programa || '—');
 
     // ── Construir evaluaciones (solo desde calendario) ──
     const evaluacionesPorCriterio = {};
