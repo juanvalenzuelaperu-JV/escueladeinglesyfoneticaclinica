@@ -21009,5 +21009,359 @@ if (!numMatch) {
   console.log('✅ Filtros actualizados. Inicia en "Ninguno".');
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     FIX FINAL: RUTA DE APRENDIZAJE PERSISTENTE
+     · Guardado atómico (sin ventana de 300 ms)
+     · IDs determinísticos (calendarEventId canónico)
+     · Una sola función renderStudentCalificaciones
+     · Migración automática de notas existentes
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 FIX FINAL: Persistencia de Ruta de Aprendizaje iniciando...');
+
+  /* ──────────────────────────────────────────────────────────
+     1. GUARDADO ATÓMICO
+     ────────────────────────────────────────────────────────── */
+  window.saveStateNow = async function () {
+    if (typeof refreshAll === 'function') {
+      try { refreshAll(); } catch (e) {}
+    }
+    if (typeof _saveDebounce !== 'undefined' && _saveDebounce) {
+      clearTimeout(_saveDebounce);
+    }
+    try {
+      await saveStateRaw(state);
+      console.log('☁️ Guardado atómico confirmado');
+      return true;
+    } catch (e) {
+      console.error('❌ Error guardando:', e);
+      alert('⚠️ No se pudo guardar en la nube: ' + e.message);
+      return false;
+    }
+  };
+
+  /* ──────────────────────────────────────────────────────────
+     2. ID DETERMINÍSTICO (canónico)
+     ────────────────────────────────────────────────────────── */
+  window.notasCritNormalizado = function (tipo) {
+    return (tipo === 'online_workbook' || tipo === 'online_homework')
+      ? 'online_homework'
+      : tipo;
+  };
+
+  window.notasAsgId = function (gid, col) {
+    const crit = window.notasCritNormalizado(col.tipo);
+    if (col.id) return `asg_${gid}_${col.id}`;
+    return `asg_${gid}_${col.fecha}_${crit}`;
+  };
+
+  /* ──────────────────────────────────────────────────────────
+     3. LECTURA ROBUSTA (busca en 3 esquemas de ID + examResults)
+     ────────────────────────────────────────────────────────── */
+  window.getNotaDeAlumno = function (studentCode, gid, col) {
+    if (!state.grades || !state.grades[studentCode]) return null;
+    const grades = state.grades[studentCode];
+    const crit = window.notasCritNormalizado(col.tipo);
+
+    // 1) ID canónico nuevo
+    const idCanonico = `asg_${gid}_${col.id || (col.fecha + '_' + crit)}`;
+    if (grades[idCanonico] !== undefined && grades[idCanonico] !== null && grades[idCanonico] !== '') {
+      return { id: idCanonico, nota: parseFloat(grades[idCanonico]) };
+    }
+
+    // 2) ID post-migración (sin índice)
+    const idSinIndice = `asg_${gid}_${col.fecha}_${crit}`;
+    if (grades[idSinIndice] !== undefined && grades[idSinIndice] !== null && grades[idSinIndice] !== '') {
+      // Migrar al canónico
+      grades[idCanonico] = grades[idSinIndice];
+      delete grades[idSinIndice];
+      return { id: idCanonico, nota: parseFloat(grades[idCanonico]) };
+    }
+
+    // 3) IDs pre-migración (con índice _1, _2, ..., _20)
+    for (let n = 1; n <= 20; n++) {
+      const idViejo = `asg_${gid}_${col.fecha}_${crit}_${n}`;
+      if (grades[idViejo] !== undefined && grades[idViejo] !== null && grades[idViejo] !== '') {
+        grades[idCanonico] = grades[idViejo];
+        delete grades[idViejo];
+        return { id: idCanonico, nota: parseFloat(grades[idCanonico]) };
+      }
+    }
+
+    // 4) Fallback: examResults (para exámenes rendidos online)
+    const exam = (state.exams || []).find(ex => {
+      if (ex.grupoId && ex.grupoId !== gid) return false;
+      let exTipo = ex.tipoExamen === 'online_workbook' ? 'online_homework' : (ex.tipoExamen || 'final_exam');
+      if (exTipo !== crit) return false;
+      return (ex.calendarEventId && col.id && ex.calendarEventId === col.id)
+          || (ex.fechaPublicacion === col.fecha);
+    });
+    if (exam) {
+      const res = state.examResults?.[exam.id]?.[studentCode];
+      if (res && res.nota !== undefined && res.nota !== null) {
+        return { id: idCanonico, nota: parseFloat(res.nota), origen: 'examen' };
+      }
+    }
+
+    return null;
+  };
+
+  /* ──────────────────────────────────────────────────────────
+     4. UNA SOLA VERSIÓN de renderStudentCalificaciones
+     ────────────────────────────────────────────────────────── */
+  window.renderStudentCalificaciones = function () {
+    if (!currentStudentCode) return;
+    const timeline = document.getElementById('mapaTimelineA');
+    if (!timeline) return;
+
+    const allGroups = typeof getStudentGroups === 'function' ? getStudentGroups(currentStudentCode) : [];
+    const groups = allGroups.filter(g => !g.cerrado);
+    const myGroupIds = groups.map(g => g.id);
+
+    // Cabecera
+    const prom = typeof promedioGeneral === 'function' ? promedioGeneral(currentStudentCode) : null;
+    const elProm = document.getElementById('califPromedioA');
+    if (elProm) elProm.textContent = prom !== null ? prom.toFixed(2) : '—';
+
+    const elEst = document.getElementById('califEstadoA');
+    if (elEst) {
+      elEst.textContent = '🟡 EN CURSO';
+      elEst.style.background = '#fef3c7';
+      elEst.style.color = '#b45309';
+    }
+
+    const photoEl = document.getElementById('califTeacherPhoto');
+    const nameEl = document.getElementById('califTeacherName');
+    let teacher = null;
+    if (groups.length) teacher = state.teachers[groups[0].teacherCode];
+    if (photoEl) {
+      photoEl.innerHTML = (teacher && teacher.formalPhoto)
+        ? `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`
+        : '👨‍🏫';
+    }
+    if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+
+    // ── Construir evaluaciones (solo desde calendario) ──
+    const evaluacionesPorCriterio = {};
+    const evalTypes = ['class_participation','online_workbook','online_homework',
+                       'readers','writing','speaking','final_exam','intl_exam'];
+
+    Object.keys(state.calendarEvents || {}).forEach(fecha => {
+      (state.calendarEvents[fecha] || []).forEach(ev => {
+        if (ev.grupoId && !myGroupIds.includes(ev.grupoId)) return;
+        const isCustom = (state.customCriterios || []).some(c => c.id === ev.tipo);
+        if (!evalTypes.includes(ev.tipo) && !isCustom) return;
+
+        const crit = window.notasCritNormalizado(ev.tipo);
+        if (!evaluacionesPorCriterio[crit]) evaluacionesPorCriterio[crit] = [];
+
+        // Deduplicar: mismo nombre + mismo grupo
+        const nombreNorm = (ev.nombre || ev.tipo).toLowerCase().trim();
+        if (evaluacionesPorCriterio[crit].some(e =>
+          e.grupoId === ev.grupoId && e.nombre.toLowerCase().trim() === nombreNorm
+        )) return;
+
+        const col = { id: ev.id, fecha, tipo: ev.tipo, nombre: ev.nombre || ev.tipo };
+        const info = window.getNotaDeAlumno(currentStudentCode, ev.grupoId, col);
+
+        evaluacionesPorCriterio[crit].push({
+          id: ev.id,
+          fecha,
+          nombre: ev.nombre || ev.tipo,
+          grupoId: ev.grupoId,
+          nota: info ? info.nota : null
+        });
+      });
+    });
+
+    // ── Timeline ──
+    timeline.innerHTML = '';
+    const todos = [...CRITERIOS, ...(state.customCriterios || [])];
+    let suma = 0, criteriosEvaluados = 0;
+
+    todos.forEach(c => {
+      const evals = evaluacionesPorCriterio[c.id] || [];
+      if (!evals.length) return;
+
+      const conNota = evals.filter(e => e.nota !== null && e.nota !== undefined && !isNaN(e.nota));
+      const p = conNota.length ? +(conNota.reduce((s, e) => s + e.nota, 0) / conNota.length).toFixed(2) : null;
+      if (p !== null) { suma += p; criteriosEvaluados++; }
+      const pct = Math.round((conNota.length / evals.length) * 100);
+
+      let colorClass = 'pending', notaClass = '', barClass = '', icono = '⏳';
+      let mensaje = `Tienes ${evals.length} evaluación(es) pendiente(s).`;
+
+      if (p !== null) {
+        if (p >= 14) { colorClass='completado'; notaClass='verde'; barClass='verde'; icono='🟢'; mensaje=`¡Buen trabajo! ${conNota.length} de ${evals.length} aprobadas.`; }
+        else if (p >= 11) { colorClass='curso'; notaClass='amarillo'; barClass='amarillo'; icono='🟠'; mensaje=`En riesgo. ${conNota.length} de ${evals.length} completadas.`; }
+        else { colorClass='riesgo'; notaClass='rojo'; barClass='rojo'; icono='🔴'; mensaje=`¡Punto crítico! Solo ${conNota.length} de ${evals.length}.`; }
+      }
+
+      const filas = evals.map(n => {
+        const color = n.nota === null ? 'var(--gris)'
+          : (n.nota >= 14 ? 'var(--verde)' : n.nota >= 11 ? '#d97706' : 'var(--rojo)');
+        const txt = n.nota === null ? 'Pendiente' : Number(n.nota).toFixed(1) + '/20';
+        return `<div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f9fafb;border:1px solid var(--borde);border-radius:6px;font-size:.82rem;margin-bottom:6px;">
+          <span>${n.nombre}${n.fecha ? ' · ' + formatearFecha(n.fecha) : ''}</span>
+          <strong style="color:${color};">${txt}</strong>
+        </div>`;
+      }).join('');
+
+      const item = document.createElement('div');
+      item.className = `timeline-item ${colorClass}`;
+      item.innerHTML = `
+        <div class="timeline-card">
+          <div class="timeline-header">
+            <div class="timeline-title">${icono} ${c.nombre}</div>
+            <div class="timeline-nota ${notaClass}">${p !== null ? p.toFixed(2) : '—'} / 20</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar ${barClass}" style="width:${pct}%;"></div>
+          </div>
+          <div class="timeline-msg">${mensaje}</div>
+          <details style="margin-top:12px;border:1px solid var(--borde);border-radius:8px;overflow:hidden;background:#f8fafc;">
+            <summary style="cursor:pointer;padding:10px 14px;font-size:.85rem;color:var(--azul);font-weight:700;">
+              📋 Detalle (${conNota.length}/${evals.length})
+            </summary>
+            <div style="padding:10px 14px;background:#fff;">${filas}</div>
+          </details>
+        </div>`;
+      timeline.appendChild(item);
+    });
+
+    // Proyección
+    const proy = document.getElementById('mapaProyeccionA');
+    if (proy) {
+      if (criteriosEvaluados > 0) {
+        const pp = (suma / criteriosEvaluados).toFixed(2);
+        proy.innerHTML = `
+          <h4>🎯 ¿Cuál será mi nota final?</h4>
+          <p>Si mantienes tus notas actuales, tu promedio proyectado será <strong>${pp}</strong>.</p>
+          <p style="font-size:.8rem;margin-top:8px;color:var(--gris);">⚠️ El estado oficial se emitirá al finalizar el ciclo.</p>`;
+      } else {
+        proy.innerHTML = `
+          <h4>🎯 ¿Cuál será mi nota final?</h4>
+          <p>Aún no tienes notas registradas. ¡Empieza a rendir tus evaluaciones!</p>`;
+      }
+    }
+
+    console.log(`✅ Ruta dibujada · ${Object.keys(evaluacionesPorCriterio).length} criterios · prom ${prom}`);
+  };
+
+  /* ──────────────────────────────────────────────────────────
+     5. BOTÓN "GUARDAR NOTAS" del docente → atómico
+     ────────────────────────────────────────────────────────── */
+  function reemplazarBotonGuardar() {
+    const btn = document.getElementById('btnGuardarRegistroNotas');
+    if (!btn || btn.dataset.fixFinal === '1') return;
+
+    const clone = btn.cloneNode(true);
+    clone.dataset.fixFinal = '1';
+    btn.parentNode.replaceChild(clone, btn);
+
+    clone.addEventListener('click', async function () {
+      const gid = document.getElementById('dNotasGrupo')?.value;
+      const nCols = (typeof notasCalColumns !== 'undefined' && notasCalColumns) ? notasCalColumns.length : 0;
+      if (!gid || !nCols) { alert('Selecciona un grupo con evaluaciones calendarizadas.'); return; }
+
+      if (!state.assignments) state.assignments = [];
+      if (!state.grades) state.grades = {};
+
+      for (let i = 1; i <= nCols; i++) {
+        const col = notasCalColumns[i - 1];
+        const crit = window.notasCritNormalizado(col.tipo);
+        const asgId = `asg_${gid}_${col.id || (col.fecha + '_' + crit)}`;
+
+        if (!state.assignments.find(a => a.id === asgId)) {
+          state.assignments.push({
+            id: asgId, grupoId: gid, criterio: crit,
+            nombre: col.nombre || (crit + ' · ' + col.fecha),
+            fechaInicio: col.fecha, fechaFin: col.fecha,
+            teacherCode: currentTeacherCode, createdBy: 'calendarizacion'
+          });
+        }
+
+        document.querySelectorAll(`[data-notas-cl="${i}"]`).forEach(inp => {
+          const code = inp.dataset.notasSt;
+          if (!state.grades[code]) state.grades[code] = {};
+          if (inp.value === '') {
+            delete state.grades[code][asgId];
+          } else {
+            const n = parseFloat(inp.value);
+            if (!isNaN(n) && n >= 0 && n <= 20) state.grades[code][asgId] = n;
+          }
+        });
+      }
+
+      const txt = clone.textContent;
+      clone.disabled = true;
+      clone.textContent = '⏳ Guardando en la nube...';
+
+      const ok = await window.saveStateNow();
+
+      clone.disabled = false;
+      clone.textContent = txt;
+
+      if (ok) {
+        if (typeof notasEditMode !== 'undefined') notasEditMode = false;
+        if (typeof buildNotasTableFromCalendar === 'function') buildNotasTableFromCalendar();
+        if (typeof notasSyncBotones === 'function') notasSyncBotones();
+        const msg = document.getElementById('dNotasMsg');
+        if (msg) { msg.classList.add('visible'); setTimeout(() => msg.classList.remove('visible'), 3000); }
+        alert('✅ Notas guardadas en la nube. La Ruta ya las refleja.');
+      }
+    });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     6. MIGRACIÓN de notas viejas (con índice _1, _2, ...)
+     ────────────────────────────────────────────────────────── */
+  window.migrarNotasAntiguas = function () {
+    if (!state.grades) return;
+    let migradas = 0;
+    Object.keys(state.grades).forEach(sc => {
+      const g = state.grades[sc];
+      if (!g) return;
+      Object.keys(g).forEach(id => {
+        const m = id.match(/^(asg_.+)_(\d+)$/);
+        if (!m) return;
+        const idNuevo = m[1];
+        if (g[idNuevo] === undefined) {
+          g[idNuevo] = g[id];
+          migradas++;
+        }
+        delete g[id];
+      });
+    });
+    if (migradas > 0) {
+      console.log(`📦 ${migradas} nota(s) migrada(s) a IDs canónicos`);
+      try { saveStateNow(); } catch (e) {}
+    }
+  };
+
+  /* ──────────────────────────────────────────────────────────
+     7. Hooks de arranque
+     ────────────────────────────────────────────────────────── */
+  setTimeout(() => { try { window.migrarNotasAntiguas(); } catch (e) {} }, 800);
+  setTimeout(reemplazarBotonGuardar, 1500);
+  setTimeout(reemplazarBotonGuardar, 3000);
+
+  document.querySelectorAll('#dashboardAlumno [data-atab="calificaciones"]').forEach(tab => {
+    tab.addEventListener('click', () => setTimeout(() => {
+      try { window.renderStudentCalificaciones(); } catch (e) {}
+    }, 100));
+  });
+
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(() => {
+      try { window.renderStudentCalificaciones(); } catch (e) {}
+    }, 500);
+  }
+
+  console.log('✅ FIX FINAL aplicado. Ruta de Aprendizaje ahora es persistente.');
+})();
+</script>
  </body>
 </html>
