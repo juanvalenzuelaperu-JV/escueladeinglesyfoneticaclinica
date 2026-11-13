@@ -20468,5 +20468,71 @@ if (!numMatch) {
   }
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     EL POLICÍA FINAL: Evita que la nota se replique en otras fechas
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  const _origBuildNotas = window.buildNotasTableFromCalendar;
+  if (typeof _origBuildNotas !== 'function') return;
+
+  window.buildNotasTableFromCalendar = function () {
+    // 1. Ejecuta el dibujado normal
+    _origBuildNotas.apply(this, arguments);
+
+    const gid = document.getElementById('dNotasGrupo')?.value;
+    if (!gid || !notasCalColumns) return;
+    const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
+
+    // 2. Pasamos por CADA columna de la tabla
+    notasCalColumns.forEach((col, i) => {
+      const idx = i + 1;
+      
+      // Buscamos si hay un examen para esta columna EXACTA (por fecha y tipo)
+      const exam = (state.exams || []).find(ex => {
+        if (ex.grupoId && ex.grupoId !== gid) return false;
+        
+        let colTipo = col.tipo === 'online_workbook' ? 'online_homework' : col.tipo;
+        let exTipo = ex.tipoExamen === 'online_workbook' ? 'online_homework' : (ex.tipoExamen || 'final_exam');
+        
+        // Condición estricta: Mismo tipo y MISMA FECHA exacta
+        return (colTipo === exTipo) && (ex.fechaPublicacion === col.fecha);
+      });
+
+      // 3. Limpiamos los inputs e inyectamos la nota solo si es seguro
+      codes.forEach(c => {
+        const input = document.querySelector(`[data-notas-st="${c}"][data-notas-cl="${idx}"]`);
+        if (!input) return;
+
+        if (exam) {
+          const res = state.examResults?.[exam.id]?.[c];
+          if (res && res.nota !== undefined) {
+            input.value = res.nota;
+            input.style.background = '#f5f3ff';
+            input.style.borderColor = '#c4b5fd';
+            input.style.color = '#6d28d9';
+            input.title = "Nota subida automáticamente por el alumno";
+          }
+        } else {
+          // SI NO HAY EXAMEN EXACTO EN ESTA FECHA:
+          // Borramos visualmente la nota para que no se vea el duplicado
+          if (input.value === '1' || input.value === '2') {
+             input.value = '';
+             input.style.background = '';
+             input.style.borderColor = '';
+             input.style.color = '';
+             input.title = '';
+          }
+        }
+      });
+    });
+  };
+
+  // Forzar redibujado
+  const gidActivo = document.getElementById('dNotasGrupo')?.value;
+  if (gidActivo) setTimeout(() => { if (typeof window.buildNotasTableFromCalendar === 'function') window.buildNotasTableFromCalendar(); }, 500);
+})();
+</script>
  </body>
 </html>
