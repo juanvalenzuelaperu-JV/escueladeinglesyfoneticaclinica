@@ -987,7 +987,101 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
 
   </div>
 </div>
+          <!-- LÍNEA DE TIEMPO (MAPA DE RUTA) -->
+          <h4 style="color:var(--azul); font-size:1.1rem; font-weight:800; margin-bottom:20px;">🗺️ Tu ruta de aprendizaje</h4>
+          <div class="mapa-timeline" id="mapaTimelineA">
+            <!-- Aquí JavaScript inyectará los criterios -->
+          </div>
 
+          <!-- PROYECCIÓN FINAL -->
+          <div class="mapa-proyeccion" id="mapaProyeccionA">
+            <!-- Aquí JavaScript inyectará el mensaje final -->
+          </div>
+        </div>
+        
+        <div class="panel" id="panel-calendario">
+          <h4 style="color:var(--azul);margin-bottom:8px;font-size:1rem;font-weight:800;">📅 Calendario académico</h4>
+          <p style="color:var(--gris);font-size:.88rem;margin-bottom:14px;">Vista del mes programada por Coordinación Académica. Solo consulta (no se puede editar).</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px;">
+            <div class="campo" style="margin:0;min-width:180px;">
+              <label>Mes</label>
+              <input type="month" id="alumnoCalMes">
+            </div>
+            <button type="button" class="btn btn-slate btn-mini" id="btnAlumnoCalHoy">Hoy</button>
+          </div>
+          <div id="alumnoCalLeyenda" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;font-size:.78rem;"></div>
+          <div id="alumnoCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
+          <div id="alumnoCalDiaPanel" style="display:none;background:#f9fafb;border:1px solid var(--borde);border-radius:12px;padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <h5 style="margin:0;color:var(--slate);font-size:.95rem;font-weight:800;">Eventos del <span id="alumnoCalDiaTitulo">—</span></h5>
+              <button type="button" class="btn btn-mini btn-slate" id="btnAlumnoCalCerrarDia">Cerrar</button>
+            </div>
+            <div id="alumnoCalEventosDia"></div>
+          </div>
+        </div>
+        
+        <div class="panel" id="panel-examenes">
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">ℹ️ Los exámenes son creados por el área administrativa.</p>
+          <div id="studentExamsLista"></div>
+          <div class="test-runner" id="studentExamRunner">
+            <div class="runner-cabecera"><h3 id="runnerTituloA">Examen</h3><div class="runner-progreso" id="runnerProgresoA"></div></div>
+            <form id="runnerFormA">
+              <div id="runnerPreguntasA"></div>
+              <div class="runner-acciones">
+                <button type="button" class="btn btn-mini btn-azul" id="btnCancelarTestA">Cancelar</button>
+                <button type="submit" class="btn btn-mini btn-verde">Enviar y calificar</button>
+              </div>
+            </form>
+            <div class="test-resultado" id="testResultadoA">
+              <div class="nota-detalle" id="resDetalleA"></div>
+              <div class="nota-grande" id="resNotaA"></div>
+              <p class="nota-msg" id="resMsgA"></p>
+              <div style="margin-top:18px;"><button type="button" class="btn btn-mini btn-azul" id="btnVolverTestsA">Volver a la lista</button></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="panel" id="panel-asistencia">
+          <div class="tabla-wrap" style="box-shadow:none;border:1px solid var(--borde);">
+            <table style="min-width:520px;"><thead><tr><th>Fecha</th><th>Clase / Módulo</th><th>Estado</th></tr></thead><tbody id="asistenciaBodyA"></tbody></table>
+          </div>
+        </div>
+        
+        <div class="panel" id="panel-reportcard">
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">ℹ️ Aquí puedes ver, descargar e imprimir los Report Cards generados por tu docente.</p>
+          <div id="studentReportCardsList"></div>
+        </div>
+        
+        <div class="panel" id="panel-matricula">
+          <div id="matriculaInicio">
+            <div class="tform" style="text-align:center; padding:40px 20px;">
+              <div style="font-size:3rem; margin-bottom:12px;">🎫</div>
+              <h4 style="color:var(--azul);">Nueva Matrícula</h4>
+              <p style="color:var(--gris); font-size:.9rem; margin-bottom:18px;">Inicia una nueva matrícula para el próximo ciclo.</p>
+              <button class="btn btn-azul" id="btnIniciarMatricula">Iniciar Nueva Matrícula</button>
+            </div>
+          </div>
+          <div id="matriculaContenido" style="display:none;">
+            <button class="btn btn-slate btn-mini" id="btnCancelarMatriculaAlumno" style="margin-bottom:18px;">← Volver</button>
+            <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Selecciona el programa al que deseas matricularte y sube tu voucher de pago.</p>
+            <div id="studentMatriculaCursos"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="panel-libros">
+          <h4 style="color:var(--azul);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Mis libros</h4>
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Libros del mes asignados a tus grupos (Class Book, Readers y Otro).</p>
+          <div id="studentLibrosLista"></div>
+        </div>
+
+        <div class="panel" id="panel-online_workbook">
+          <h4 style="color:var(--azul);margin-bottom:8px;font-size:1rem;font-weight:800;">💻 Online Workbook</h4>
+          <p style="color:var(--gris);font-size:.9rem;margin-bottom:18px;">Revisa los Online Workbooks programados por tu docente. Aquí verás las fechas, el estado y tu nota.</p>
+          <div id="studentOnlineWorkbookLista"></div>
+        </div>
+        
+      </div> <!-- Cierra dash-contenido -->
+    </div> <!-- Cierra dashboardAlumno -->
     <!-- DASHBOARD DOCENTE -->
     <div class="dashboard" id="dashboardDocente">
       <div class="dash-top docente">
@@ -4225,20 +4319,23 @@ function renderStudentCalificaciones() {
   }
 
   // 3. Foto del Docente
-  const photoEl = document.getElementById('califTeacherPhoto');
-  const nameEl = document.getElementById('califTeacherName');
-  let teacher = null;
-  if (groups.length) {
-    teacher = state.teachers[groups[0].teacherCode];
-  }
-  if (photoEl) {
-    if (teacher && teacher.formalPhoto) {
-      photoEl.innerHTML = `<img src="${teacher.formalPhoto}" style="width:100%;height:100%;object-fit:cover;">`;
-    } else {
-      photoEl.innerHTML = '👨‍🏫';
+    // ── Cabecera con datos del ALUMNO (Foto y Nombre) ──
+    const studentPhotoEl = document.getElementById('califStudentPhoto');
+    const studentNameEl = document.getElementById('califStudentName');
+    const studentProgramEl = document.getElementById('califStudentProgram');
+    
+    if (studentPhotoEl && currentStudent) {
+      if (currentStudent.fotoPerfil) {
+        studentPhotoEl.innerHTML = `<img src="${currentStudent.fotoPerfil}" style="width:100%;height:100%;object-fit:cover;">`;
+        studentPhotoEl.style.color = 'transparent';
+      } else {
+        const iniciales = currentStudent.nombre.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+        studentPhotoEl.textContent = iniciales;
+        studentPhotoEl.style.color = 'var(--azul)';
+      }
     }
-  }
-  if (nameEl) nameEl.textContent = teacher ? teacher.nombre : 'Sin docente';
+    if (studentNameEl && currentStudent) studentNameEl.textContent = currentStudent.nombre;
+    if (studentProgramEl && currentStudent) studentProgramEl.textContent = 'Programa: ' + (currentStudent.programa || '—');
 
   // 4. Generar Mapa de Ruta (Timeline) filtrado
   const timeline = document.getElementById('mapaTimelineA');
