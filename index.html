@@ -20620,6 +20620,100 @@ if (!numMatch) {
 
   console.log('✅ Botones restaurados: Editar, Actualizar y Eliminar. Sin archivado.');
 })();
-</script>                                                                                                        
+</script>  
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     BLOQUEO VISUAL DE EXÁMENES POR FECHA DE PUBLICACIÓN
+     · Si la fecha de publicación es futura, el botón se bloquea.
+     · Aplica para Final Exams y Online Workbook.
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔒 Sistema de bloqueo visual de exámenes iniciado...');
+
+  // Función que revisa y bloquea los botones
+  function aplicarBloqueoFechas(containerId) {
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
+
+    // Obtener la fecha de hoy en formato YYYY-MM-DD
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    // Buscar todos los botones de "Iniciar" o "Reintentar"
+    cont.querySelectorAll('[data-start-exam], [data-ow-start-exam], [data-retake-exam], [data-ow-retake-exam]').forEach(btn => {
+      // Extraer el ID del examen
+      const examId = btn.dataset.startExam || btn.dataset.owStartExam || btn.dataset.retakeExam || btn.dataset.owRetakeExam;
+      if (!examId) return;
+
+      const exam = (state.exams || []).find(e => e.id === examId);
+      if (!exam) return;
+
+      // Si el examen tiene fecha futura...
+      if (exam.fechaPublicacion && exam.fechaPublicacion > hoy) {
+        
+        // Evitar re-procesar si ya está bloqueado
+        if (btn.innerHTML.includes('🔒')) return; 
+
+        // Transformar el botón a estado bloqueado
+        btn.innerHTML = '🔒 Bloqueado';
+        btn.className = 'btn btn-mini btn-slate'; // Botón gris
+        btn.style.cssText = 'background:#e2e8f0; color:#64748b; border:1px solid #cbd5e1; cursor:not-allowed;';
+        
+        // Formatear la fecha para el tooltip
+        const fechaBonita = typeof formatearFecha === 'function' ? formatearFecha(exam.fechaPublicacion) : exam.fechaPublicacion;
+        btn.title = `Disponible a partir del ${fechaBonita}`;
+        
+        // Deshabilitar el botón
+        btn.disabled = true;
+        
+        // Eliminar los atributos de acción para que no se pueda hacer clic por error
+        btn.removeAttribute('data-start-exam');
+        btn.removeAttribute('data-ow-start-exam');
+        btn.removeAttribute('data-retake-exam');
+        btn.removeAttribute('data-ow-retake-exam');
+
+        // Opcional: Cambiar un poco la tarjeta para que se vea "apagada"
+        const card = btn.closest('.exam-link-card');
+        if (card) {
+          card.style.opacity = '0.85';
+          card.style.background = '#f8fafc';
+        }
+      }
+    });
+  }
+
+  // ─── 1. OBSERVAR CAMBIOS EN LA LISTA DE EXÁMENES FINALES ───
+  const observerExams = new MutationObserver(() => {
+    aplicarBloqueoFechas('studentExamsLista');
+  });
+  
+  // ─── 2. OBSERVAR CAMBIOS EN LA LISTA DE ONLINE WORKBOOK ───
+  const observerOW = new MutationObserver(() => {
+    aplicarBloqueoFechas('studentOnlineWorkbookLista');
+  });
+
+  // Iniciar los observadores cuando el DOM esté listo
+  setTimeout(() => {
+    const listaExams = document.getElementById('studentExamsLista');
+    if (listaExams) observerExams.observe(listaExams, { childList: true, subtree: true });
+
+    const listaOW = document.getElementById('studentOnlineWorkbookLista');
+    if (listaOW) observerOW.observe(listaOW, { childList: true, subtree: true });
+  }, 1000);
+
+  // ─── 3. APLICAR EL BLOQUEO AL CAMBIAR DE PESTAÑA ───
+  document.querySelectorAll('#dashboardAlumno [data-atab="examenes"], #dashboardAlumno [data-atab="online_workbook"]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Un pequeño delay para esperar a que los scripts originales terminen de dibujar
+      setTimeout(() => {
+        aplicarBloqueoFechas('studentExamsLista');
+        aplicarBloqueoFechas('studentOnlineWorkbookLista');
+      }, 150);
+    });
+  });
+
+  console.log('✅ Bloqueo visual configurado. Los exámenes futuros aparecerán como "🔒 Bloqueado".');
+})();
+</script>
  </body>
 </html>
