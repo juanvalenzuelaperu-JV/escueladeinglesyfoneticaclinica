@@ -19992,5 +19992,147 @@ if (!numMatch) {
   console.log('✅ Blindaje activo. Los borrados ya no deberían resucitar.');
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     FILTRO ANTI-FANTASMAS: dropdown "Evaluación del grupo"
+     · Oculta asignaciones cuyo evento en el calendario ya no existe
+     · Re-popula automáticamente al modificar el calendario
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🔧 Filtro anti-fantasmas del dropdown iniciando...');
+
+  // ══════════════════════════════════════════════════════════
+  // 1) ¿La asignación sigue "viva" en el calendario?
+  // ══════════════════════════════════════════════════════════
+  function asignacionSigueViva(a) {
+    if (!a) return false;
+
+    // 1a. Si tiene calendarEventId, ese ID debe existir en el calendario
+    if (a.calendarEventId) {
+      const existe = Object.values(state.calendarEvents || {})
+        .flat()
+        .some(ev => ev.id === a.calendarEventId);
+      if (existe) return true;
+      // Si el ID apunta a un evento que ya no existe → huérfano
+      // pero verificamos también por match, por si acaso
+    }
+
+    // 1b. Match por grupoId + fechaInicio + criterio
+    const evs = (state.calendarEvents && state.calendarEvents[a.fechaInicio]) || [];
+    return evs.some(ev => {
+      if (ev.grupoId !== a.grupoId) return false;
+      const evTipo  = ev.tipo === 'online_workbook' ? 'online_homework' : ev.tipo;
+      const asgTipo = a.criterio === 'online_workbook' ? 'online_homework' : a.criterio;
+      return evTipo === asgTipo;
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 2) Purgar opciones huérfanas del select
+  // ══════════════════════════════════════════════════════════
+  function purgarSelect() {
+    const sel = document.getElementById('docEvaluacionDestino');
+    if (!sel) return;
+    if (!sel.offsetParent) return;  // no visible → no purgar
+
+    const currentValue = sel.value;
+    let removidos = 0;
+
+    Array.from(sel.options).forEach(opt => {
+      const val = opt.value;
+      if (!val || val === '__nueva__') return;  // siempre mantener la opción "crear nueva"
+
+      const asg = (state.assignments || []).find(x => x.id === val);
+      if (!asg || !asignacionSigueViva(asg)) {
+        opt.remove();
+        removidos++;
+      }
+    });
+
+    // Si el valor seleccionado fue eliminado, resetear a "nueva"
+    if (removidos > 0) {
+      if (![...sel.options].some(o => o.value === currentValue)) {
+        sel.value = '__nueva__';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      console.log(`🧹 ${removidos} evaluación(es) fantasma eliminada(s) del dropdown`);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 3) Re-poblar el dropdown desde state (por si cambió el calendario)
+  // ══════════════════════════════════════════════════════════
+  function repoblarDropdown() {
+    const checked = document.querySelector('.doc-grupo-cb:checked');
+    if (!checked) return;
+    // Disparamos el change para que corra actualizarInfoGrupos → cargarEvaluacionesDelGrupo
+    checked.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 4) MutationObserver: purgar cuando el select se pueble
+  // ══════════════════════════════════════════════════════════
+  function setupObserver() {
+    const sel = document.getElementById('docEvaluacionDestino');
+    if (!sel) { setTimeout(setupObserver, 500); return; }
+    if (sel.dataset.filtroAntiFantasma === '1') return;
+    sel.dataset.filtroAntiFantasma = '1';
+
+    new MutationObserver(() => setTimeout(purgarSelect, 30))
+      .observe(sel, { childList: true });
+    console.log('✅ Observer instalado en docEvaluacionDestino');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 5) Hooks: cada vez que el calendario cambie, refrescar dropdown
+  // ══════════════════════════════════════════════════════════
+
+  // 5a. Hook saveStateRaw (se llama al borrar/crear eventos)
+  const _origSave = window.saveStateRaw;
+  if (typeof _origSave === 'function') {
+    window.saveStateRaw = async function (s) {
+      const r = await _origSave.call(this, s);
+      setTimeout(() => { purgarSelect(); repoblarDropdown(); }, 80);
+      return r;
+    };
+  }
+
+  // 5b. Hook renderCalendarizacion (se llama al abrir/refrescar el calendario)
+  const _origRender = window.renderCalendarizacion;
+  if (typeof _origRender === 'function') {
+    window.renderCalendarizacion = function () {
+      const r = _origRender.apply(this, arguments);
+      setTimeout(() => { purgarSelect(); repoblarDropdown(); }, 80);
+      return r;
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 6) Purgar al abrir el subtab Importar
+  // ══════════════════════════════════════════════════════════
+  document.querySelectorAll('[data-adm-exam-tab="importar"]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setTimeout(() => {
+        repoblarDropdown();
+        setTimeout(purgarSelect, 150);
+      }, 150);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // 7) Init
+  // ══════════════════════════════════════════════════════════
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupObserver);
+  } else {
+    setupObserver();
+  }
+  setTimeout(setupObserver, 1500);
+  setTimeout(setupObserver, 3000);
+
+  console.log('✅ Filtro anti-fantasmas listo.');
+})();
+</script>
  </body>
 </html>
