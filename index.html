@@ -20715,5 +20715,78 @@ if (!numMatch) {
   console.log('✅ Bloqueo visual configurado. Los exámenes futuros aparecerán como "🔒 Bloqueado".');
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     FIX ANTI-DESAPARICIÓN: GUARDADO INMEDIATO Y BLINDAJE
+     Evita que los exámenes recién creados se borren por la nube.
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🛡️ Aplicando candado anti-desaparición de exámenes...');
+
+  // ─── 1. FORZAR GUARDADO INMEDIATO EN SUPABASE AL CREAR EXÁMENES ───
+  
+  const forzarGuardadoInmediato = async () => {
+    // Esperamos un instante a que el examen termine de armarse en memoria
+    setTimeout(async () => {
+      if (typeof saveStateRaw === 'function') {
+        console.log('💾 Forzando guardado inmediato del examen en Supabase...');
+        await saveStateRaw(state);
+        console.log('✅ Examen asegurado en la base de datos.');
+      }
+    }, 200);
+  };
+
+  // A. Examen creado desde "Importar Documento"
+  const btnPublicar = document.getElementById('docPublicarExamen');
+  if (btnPublicar) {
+    btnPublicar.addEventListener('click', forzarGuardadoInmediato);
+  }
+
+  // B. Examen creado desde "Crear manualmente"
+  const formManual = document.getElementById('admNewExamForm');
+  if (formManual) {
+    formManual.addEventListener('submit', forzarGuardadoInmediato);
+  }
+
+  // ─── 2. BLINDAR LA SINCRONIZACIÓN (FIX V6) PARA QUE NO BORRE EXÁMENES NUEVOS ───
+  // Interceptamos el script de la Ruta de Aprendizaje para que solo traiga notas de la nube,
+  // pero NO sobreescriba la lista de exámenes y asignaciones que están en memoria.
+  
+  const _origRenderCalif = window.renderStudentCalificaciones;
+  if (typeof _origRenderCalif === 'function') {
+    window.renderStudentCalificaciones = async function () {
+      if (typeof currentStudentCode === 'undefined' || !currentStudentCode) return;
+
+      try {
+        const { data, error } = await supabase.from('app_state').select('data').eq('id', 'main').maybeSingle();
+        if (!error && data && data.data) {
+          const remoto = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+
+          // 🔒 SOLO ACTUALIZAMOS LAS NOTAS (grades y examResults)
+          if (remoto.grades && typeof remoto.grades === 'object') state.grades = remoto.grades;
+          if (remoto.examResults && typeof remoto.examResults === 'object') state.examResults = remoto.examResults;
+          
+          // 🛡️ PROTECCIÓN CRÍTICA: NO sobreescribimos "state.exams" ni "state.assignments" desde aquí.
+          // Esto evita que un examen recién creado sea borrado antes de guardarse.
+          
+          console.log('🔄 Notas refrescadas. Exámenes protegidos en memoria.');
+        }
+      } catch (e) {
+        console.warn('⚠️ No se pudo refrescar:', e);
+      }
+
+      // Dibujamos la Ruta con los datos seguros
+      try {
+        await _origRenderCalif.apply(this, arguments);
+      } catch (e) {
+        console.error('❌ Error dibujando ruta:', e);
+      }
+    };
+  }
+
+  console.log('✅ Blindaje activo. Los exámenes ya no desaparecerán.');
+})();
+</script>
  </body>
 </html>
