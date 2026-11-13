@@ -20325,5 +20325,62 @@ if (!numMatch) {
   }
 })();
 </script>
+                                                                                                                  <!-- ═══════════════════════════════════════════════════════════════
+     CANDADO: Ruta de Aprendizaje solo lee eventos del Calendario
+     Evita evaluaciones fantasma si se borran del calendario
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  console.log('🛡️ Candado de Sincronización para Ruta de Aprendizaje iniciado...');
+
+  // Verificamos si una asignación está respaldada por un evento real en el calendario
+  function esAsignacionReal(a) {
+    if (!a.grupoId || !a.fechaInicio) return true; // Por si hay asignaciones globales (las dejamos pasar)
+    const evs = state.calendarEvents[a.fechaInicio] || [];
+    const crit = a.criterio === 'online_workbook' ? 'online_homework' : a.criterio;
+    
+    return evs.some(ev => 
+      ev.grupoId === a.grupoId && 
+      (ev.tipo === crit || (ev.tipo === 'online_workbook' && crit === 'online_homework'))
+    );
+  }
+
+  // Guardamos la función original para no romper el diseño
+  const _origRender = window.renderStudentCalificaciones;
+
+  window.renderStudentCalificaciones = function () {
+    if (!currentStudentCode) return;
+
+    // Hacemos una copia temporal para no alterar los datos globales, solo la vista
+    const _backupAssignments = [...state.assignments];
+    
+    // Filtramos las asignaciones: solo dejamos las que existen en el calendario
+    state.assignments = state.assignments.filter(a => {
+      // Si tiene nota guardada, la mostramos SIEMPRE (para no perder historial)
+      const tieneNota = state.grades[currentStudentCode] && state.grades[currentStudentCode][a.id] !== undefined;
+      if (tieneNota) return true;
+      
+      // Si no tiene nota, verificamos que el evento siga en el calendario
+      return esAsignacionReal(a);
+    });
+
+    // Dibujamos la Ruta
+    if (typeof _origRender === 'function') {
+      _origRender.apply(this, arguments);
+    }
+
+    // Restauramos los datos originales
+    state.assignments = _backupAssignments;
+  };
+
+  // Forzamos un redibujado
+  if (typeof currentStudentCode !== 'undefined' && currentStudentCode) {
+    setTimeout(() => {
+      try { window.renderStudentCalificaciones(); } catch (e) {}
+    }, 500);
+  }
+})();
+</script>
  </body>
 </html>
