@@ -20560,7 +20560,7 @@ if (!numMatch) {
         } else {
           // SI NO HAY EXAMEN EXACTO EN ESTA FECHA:
           // Borramos visualmente la nota para que no se vea el duplicado
-          if (input.value === '1' || input.value === '2') {
+          (input.value === '1' || input.value === '2') {
              input.value = '';
              input.style.background = '';
              input.style.borderColor = '';
@@ -21407,8 +21407,8 @@ if (!numMatch) {
   /* ──────────────────────────────────────────────────────────
      7. Hooks de arranque
      ────────────────────────────────────────────────────────── */
-  setTimeout(() => { try { window.migrarNotasAntiguas(); } catch (e) {} }, 800);
-  setTimeout(reemplazarBotonGuardar, 1500);
+window.migrarNotasAntiguas = function () { /* desactivada: dañaba los IDs */ };
+ setTimeout(reemplazarBotonGuardar, 1500);
   setTimeout(reemplazarBotonGuardar, 3000);
 
   document.querySelectorAll('#dashboardAlumno [data-atab="calificaciones"]').forEach(tab => {
