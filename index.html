@@ -21942,5 +21942,140 @@ window.migrarNotasAntiguas = function () { /* desactivada: dañaba los IDs */ };
   console.log('✅ Fix de persistencia de notas listo.');
 })();
 </script>
+ 
+<!-- =========================================================
+     NOTAS DEL ONLINE WORKBOOK — CICLO ACTUAL
+     Solo muestra nombre del examen y nota del alumno.
+     ========================================================= -->
+<script>
+(function () {
+  'use strict';
+
+  const renderOriginal = window.renderStudentOnlineWorkbook;
+  if (typeof renderOriginal !== 'function') {
+    console.warn('No se encontró renderStudentOnlineWorkbook.');
+    return;
+  }
+
+  function mostrarNotasDelCiclo() {
+    const cont = document.getElementById('studentOnlineWorkbookLista');
+
+    if (!cont || !currentStudentCode || !state) return;
+
+    // Ciclo académico correspondiente al mes actual
+    const ahora = new Date();
+    const ciclo = [
+      ahora.getFullYear(),
+      String(ahora.getMonth() + 1).padStart(2, '0')
+    ].join('-');
+
+    const grupos = typeof getStudentGroups === 'function'
+      ? getStudentGroups(currentStudentCode).filter(g => !g.cerrado)
+      : [];
+
+    const idsGrupos = grupos.map(g => g.id);
+
+    // Buscar únicamente exámenes Online Workbook del ciclo actual
+    const notas = (state.exams || [])
+      .filter(ex => {
+        if ((ex.tipoExamen || 'final_exam') !== 'online_workbook') {
+          return false;
+        }
+
+        if (ex.grupoId && !idsGrupos.includes(ex.grupoId)) {
+          return false;
+        }
+
+        // El examen debe pertenecer al ciclo actual
+        if (!String(ex.fechaPublicacion || '').startsWith(ciclo)) {
+          return false;
+        }
+
+        const resultado = state.examResults?.[ex.id]?.[currentStudentCode];
+
+        return resultado &&
+          resultado.nota !== undefined &&
+          resultado.nota !== null &&
+          resultado.nota !== '';
+      })
+      .map(ex => ({
+        nombre: ex.nombre || 'Online Workbook',
+        nota: state.examResults[ex.id][currentStudentCode].nota
+      }));
+
+    // Evitar duplicar el panel al actualizar la vista
+    cont.querySelector('#panelNotasCicloActual')?.remove();
+
+    // Si no hay notas, no mostrar información adicional
+    if (!notas.length) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'panelNotasCicloActual';
+    panel.style.cssText = `
+      margin-bottom: 18px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+    `;
+
+    const titulo = document.createElement('h3');
+    titulo.textContent = 'Mis notas – ' +
+      ahora.toLocaleDateString('es-PE', {
+        month: 'long',
+        year: 'numeric'
+      });
+    titulo.style.cssText = 'margin:0 0 12px;font-size:1rem;';
+    panel.appendChild(titulo);
+
+    notas.forEach(item => {
+      const fila = document.createElement('div');
+      fila.style.cssText = `
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        padding:11px 0;
+        border-top:1px solid #eeeeee;
+      `;
+
+      const nombre = document.createElement('span');
+      nombre.textContent = item.nombre;
+      nombre.style.fontWeight = '600';
+
+      const nota = document.createElement('strong');
+      nota.textContent = item.nota + ' / 20';
+      nota.style.cssText = `
+        color:#2563eb;
+        white-space:nowrap;
+        font-size:1rem;
+      `;
+
+      fila.appendChild(nombre);
+      fila.appendChild(nota);
+      panel.appendChild(fila);
+    });
+
+    cont.insertBefore(panel, cont.firstChild);
+  }
+
+  // Conservar el funcionamiento original y añadir el panel de notas
+  window.renderStudentOnlineWorkbook = function () {
+    const resultado = renderOriginal.apply(this, arguments);
+
+    if (resultado && typeof resultado.then === 'function') {
+      return resultado.then(valor => {
+        mostrarNotasDelCiclo();
+        return valor;
+      });
+    }
+
+    mostrarNotasDelCiclo();
+    return resultado;
+  };
+
+  console.log('✅ Panel sencillo de notas del ciclo actual activado.');
+})();
+</script>
  </body>
 </html>
