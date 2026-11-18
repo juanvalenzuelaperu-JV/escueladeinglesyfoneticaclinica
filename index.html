@@ -20602,44 +20602,77 @@ if (!numMatch) {
   console.log('🗑️ Sistema de Eliminación Directa iniciado...');
 
   // ─── 1. FORZAR LA ELIMINACIÓN DEFINITIVA ───
-  window.eliminarExamen = function (examId) {
-    const exam = (state.exams || []).find(e => e.id === examId);
-    if (!exam) return;
+ window.eliminarExamen = function (examId) {
+  const exam = (state.exams || []).find(e => e.id === examId);
+  if (!exam) return;
 
-    const notasRegistradas = Object.keys((state.examResults && state.examResults[examId]) || {}).length;
-    let msg = `¿Eliminar el examen "${exam.nombre}"?\n\n`;
-    
-    if (notasRegistradas > 0) {
-      msg += `⚠️ ATENCIÓN: Este examen tiene ${notasRegistradas} nota(s) registrada(s).\nSi lo eliminas, las notas de los alumnos se perderán permanentemente.\n\n`;
+  const notasRegistradas = Object.keys((state.examResults && state.examResults[examId]) || {}).length;
+  let msg = `¿Eliminar el examen "${exam.nombre}"?\n\n`;
+  if (notasRegistradas > 0) {
+    msg += `⚠️ ATENCIÓN: Este examen tiene ${notasRegistradas} nota(s) registrada(s).\nSi lo eliminas, las notas de los alumnos se perderán permanentemente.\n\n`;
+  }
+  msg += `También desaparecerá de Online Workbook / Examen final de los alumnos.\n\n⛔ Esta acción no se puede deshacer.`;
+  if (!confirm(msg)) return;
+
+  // IDs de asignaciones a borrar
+  const asgIdsABorrar = new Set();
+  if (exam.assignmentId) asgIdsABorrar.add(exam.assignmentId);
+
+  // Asignaciones vinculadas por examId / calendarEventId / nombre+grupo+criterio
+  const critNorm = (exam.tipoExamen === 'online_workbook')
+    ? 'online_homework'
+    : (exam.tipoExamen || 'final_exam');
+
+  (state.assignments || []).forEach(a => {
+    if (a.examId === examId) asgIdsABorrar.add(a.id);
+    if (exam.calendarEventId && a.calendarEventId === exam.calendarEventId) asgIdsABorrar.add(a.id);
+    if (
+      a.grupoId === exam.grupoId &&
+      a.criterio === critNorm &&
+      a.nombre && exam.nombre &&
+      String(a.nombre).replace(/^📝\s*/, '').trim().toLowerCase() ===
+      String(exam.nombre).replace(/^📝\s*/, '').trim().toLowerCase()
+    ) {
+      asgIdsABorrar.add(a.id);
     }
-    msg += `⛔ Esta acción no se puede deshacer.`;
+  });
 
-    if (!confirm(msg)) return;
+  // 1) Borrar asignaciones y notas de alumnos
+  if (asgIdsABorrar.size) {
+    state.assignments = (state.assignments || []).filter(a => !asgIdsABorrar.has(a.id));
+    Object.keys(state.grades || {}).forEach(code => {
+      if (!state.grades[code]) return;
+      asgIdsABorrar.forEach(id => { delete state.grades[code][id]; });
+    });
+  }
 
-    // 1. Borrar la asignación vinculada (para que desaparezca de la Ruta)
-    if (exam.assignmentId) {
-      state.assignments = (state.assignments || []).filter(a => a.id !== exam.assignmentId);
-      
-      // Borrar las notas que los alumnos tuvieran en esa asignación
-      Object.keys(state.grades || {}).forEach(code => {
-        if (state.grades[code]) delete state.grades[code][exam.assignmentId];
-      });
-    }
+  // 2) Borrar resultados del examen
+  if (state.examResults && state.examResults[examId]) {
+    delete state.examResults[examId];
+  }
 
-    // 2. Borrar los resultados del examen (intentos, notas del alumno)
-    if (state.examResults && state.examResults[examId]) {
-      delete state.examResults[examId];
-    }
+  // 3) Borrar el examen
+  state.exams = (state.exams || []).filter(e => e.id !== examId);
 
-    // 3. Borrar el examen de la lista general
-    state.exams = state.exams.filter(e => e.id !== examId);
+  // 4) Guardar (inmediato si existe saveStateNow / saveStateRaw)
+  if (typeof saveStateNow === 'function') {
+    saveStateNow();
+  } else if (typeof saveStateRaw === 'function') {
+    saveStateRaw(state);
+  } else if (typeof saveState === 'function') {
+    saveState();
+  }
 
-    // 4. Guardar y refrescar
-    if (typeof saveState === 'function') saveState();
-    if (typeof renderAdminExams === 'function') renderAdminExams();
-    
-    alert("✅ Examen eliminado definitivamente.");
-  };
+  // 5) Refrescar listas admin + alumno
+  if (typeof renderAdminExams === 'function') renderAdminExams();
+  if (typeof renderStudentExams === 'function') renderStudentExams();
+  if (typeof renderStudentOnlineWorkbook === 'function') renderStudentOnlineWorkbook();
+  if (typeof renderStudentCalificaciones === 'function') {
+    try { renderStudentCalificaciones(); } catch (e) {}
+  }
+
+  alert('✅ Examen eliminado. Ya no aparecerá en Online Workbook ni en Examen final de los alumnos.');
+};
 
   // ─── 2. RESTAURAR LOS BOTONES ORIGINALES (Editar, Actualizar, Eliminar) ───
   const _origRenderAdminExams = window.renderAdminExams;
