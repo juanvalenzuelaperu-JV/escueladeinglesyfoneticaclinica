@@ -20512,73 +20512,7 @@ if (!numMatch) {
 })();
 </script>
                                                                                                                   <!-- ═══════════════════════════════════════════════════════════════
-     EL POLICÍA FINAL: Evita que la nota se replique en otras fechas
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function () {
-  'use strict';
-  const _origBuildNotas = window.buildNotasTableFromCalendar;
-  if (typeof _origBuildNotas !== 'function') return;
-
-  window.buildNotasTableFromCalendar = function () {
-    // 1. Ejecuta el dibujado normal
-    _origBuildNotas.apply(this, arguments);
-
-    const gid = document.getElementById('dNotasGrupo')?.value;
-    if (!gid || !notasCalColumns) return;
-    const codes = state.groups.find(x => x.id === gid)?.studentCodes || [];
-
-    // 2. Pasamos por CADA columna de la tabla
-    notasCalColumns.forEach((col, i) => {
-      const idx = i + 1;
-      
-      // Buscamos si hay un examen para esta columna EXACTA (por fecha y tipo)
-      const exam = (state.exams || []).find(ex => {
-        if (ex.grupoId && ex.grupoId !== gid) return false;
-        
-        let colTipo = col.tipo === 'online_workbook' ? 'online_homework' : col.tipo;
-        let exTipo = ex.tipoExamen === 'online_workbook' ? 'online_homework' : (ex.tipoExamen || 'final_exam');
-        
-        // Condición estricta: Mismo tipo y MISMA FECHA exacta
-        return (colTipo === exTipo) && (ex.fechaPublicacion === col.fecha);
-      });
-
-      // 3. Limpiamos los inputs e inyectamos la nota solo si es seguro
-      codes.forEach(c => {
-        const input = document.querySelector(`[data-notas-st="${c}"][data-notas-cl="${idx}"]`);
-        if (!input) return;
-
-        if (exam) {
-          const res = state.examResults?.[exam.id]?.[c];
-          if (res && res.nota !== undefined) {
-            input.value = res.nota;
-            input.style.background = '#f5f3ff';
-            input.style.borderColor = '#c4b5fd';
-            input.style.color = '#6d28d9';
-            input.title = "Nota subida automáticamente por el alumno";
-          }
-        } else {
-          // SI NO HAY EXAMEN EXACTO EN ESTA FECHA:
-          // Borramos visualmente la nota para que no se vea el duplicado
-          (input.value === '1' || input.value === '2') {
-             input.value = '';
-             input.style.background = '';
-             input.style.borderColor = '';
-             input.style.color = '';
-             input.title = '';
-          }
-        }
-      });
-    });
-  };
-
-  // Forzar redibujado
-  const gidActivo = document.getElementById('dNotasGrupo')?.value;
-  if (gidActivo) setTimeout(() => { if (typeof window.buildNotasTableFromCalendar === 'function') window.buildNotasTableFromCalendar(); }, 500);
-})();
- </script>
-<!-- ═══════════════════════════════════════════════════════════════
-     SISTEMA DE ELIMINACIÓN DIRECTA (SIN ARCHIVAR)
+       SISTEMA DE ELIMINACIÓN DIRECTA (SIN ARCHIVAR)
      Garantiza que el botón sea solo Eliminar y borre todo.
      ═══════════════════════════════════════════════════════════════ -->
 <script>
@@ -21892,6 +21826,93 @@ window.migrarNotasAntiguas = function () { /* desactivada: dañaba los IDs */ };
   }
 
   console.log('✅ Fix de persistencia de notas listo.');
+})();
+</script>
+ <script>
+(function () {
+  'use strict';
+  const normTipo = t => (t === 'online_workbook' || t === 'online_homework') ? 'online_homework' : t;
+  const normTxt  = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+
+  // 1) Traer examResults de la nube SIN pisar lo local
+  async function traerResultadosNube() {
+    try {
+      const { data, error } = await supabase.from('app_state').select('data').eq('id', 'main').maybeSingle();
+      if (error || !data || !data.data) return;
+      const r = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+      if (!state.examResults) state.examResults = {};
+      Object.keys(r.examResults || {}).forEach(exId => {
+        if (!state.examResults[exId]) state.examResults[exId] = {};
+        Object.keys(r.examResults[exId]).forEach(code => {
+          if (!state.examResults[exId][code]) state.examResults[exId][code] = r.examResults[exId][code];
+        });
+      });
+      if (!state.grades) state.grades = {};
+      (state.exams || []).forEach(ex => {
+        if (!ex.assignmentId) return;
+        Object.keys(r.grades || {}).forEach(code => {
+          const v = r.grades[code] && r.grades[code][ex.assignmentId];
+          if (v === undefined) return;
+          if (!state.grades[code]) state.grades[code] = {};
+          if (state.grades[code][ex.assignmentId] === undefined) state.grades[code][ex.assignmentId] = v;
+        });
+      });
+    } catch (e) { console.warn('traerResultadosNube:', e); }
+  }
+
+  // Se ejecuta cada vez que el docente elige grupo
+  const _sync = window.sincronizarCalendarioDesdeNube;
+  window.sincronizarCalendarioDesdeNube = async function () {
+    if (typeof _sync === 'function') await _sync.apply(this, arguments);
+    await traerResultadosNube();
+  };
+
+  // 2) Buscar el examen de una columna con varios criterios
+  function examenDeColumna(gid, col) {
+    const ct = normTipo(col.tipo);
+    const cands = (state.exams || []).filter(ex =>
+      (!ex.grupoId || ex.grupoId === gid) && normTipo(ex.tipoExamen || 'final_exam') === ct);
+
+    return cands.find(ex => ex.calendarEventId && ex.calendarEventId === col.id)
+        || cands.find(ex => {
+             const a = (state.assignments || []).find(x => x.id === ex.assignmentId);
+             return a && a.fechaInicio === col.fecha &&
+                    (normTxt(a.nombre).includes(normTxt(col.nombre)) || normTxt(col.nombre).includes(normTxt(a.nombre)));
+           })
+        || cands.find(ex => normTxt(ex.nombre) === normTxt(col.nombre) && ex.fechaPublicacion === col.fecha)
+        || null;
+  }
+
+  // 3) Wrapper final (el más externo): rellena celdas vacías con la nota del examen
+  const _build = window.buildNotasTableFromCalendar;
+  window.buildNotasTableFromCalendar = function () {
+    _build.apply(this, arguments);
+
+    const gid = document.getElementById('dNotasGrupo')?.value;
+    if (!gid || typeof notasCalColumns === 'undefined' || !notasCalColumns.length) return;
+    const codes = state.groups.find(g => g.id === gid)?.studentCodes || [];
+
+    notasCalColumns.forEach((col, i) => {
+      const idx = i + 1;
+      const ex = examenDeColumna(gid, col);
+      if (!ex) return;
+      codes.forEach(code => {
+        const input = document.querySelector(`[data-notas-st="${code}"][data-notas-cl="${idx}"]`);
+        if (!input || input.value !== '') return;
+        let nota = state.examResults?.[ex.id]?.[code]?.nota;
+        if (nota === undefined || nota === null) nota = state.grades?.[code]?.[ex.assignmentId];
+        if (nota === undefined || nota === null || nota === '') return;
+        input.value = nota;
+        input.style.cssText += ';background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;font-weight:bold;';
+        input.title = 'Nota rendida por el alumno en su portal';
+        const asgId = notasAsgId(gid, col, idx);
+        if (!state.grades[code]) state.grades[code] = {};
+        state.grades[code][asgId] = parseFloat(nota);
+      });
+    });
+  };
+
+  console.log('✅ Parche final: notas de examen → registro docente');
 })();
 </script>
  </body>
