@@ -9081,86 +9081,62 @@ function renderCalMesResumen() {
 document.getElementById('calTipoSel')?.addEventListener('change', (e) => {
   document.getElementById('calOtroWrap').style.display = e.target.value === 'otro' ? '' : 'none';
 });
-document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
-  const panel = document.getElementById('calEventPanel');
-  const fecha = panel?.dataset.fecha || calSelectedDate;
-  if (!fecha) { alert('Selecciona un día en el calendario.'); return; }
+// 1. Crear el evento del calendario
+const nuevoEv = {
+  id: 'cev_' + Date.now(),
+  grupoId: grupoId || null,
+  tipo,
+  nombre,
+  nota: nota || null,
+  createdAt: new Date().toISOString()
+};
+if (!state.calendarEvents) state.calendarEvents = {};
+if (!state.calendarEvents[fecha]) state.calendarEvents[fecha] = [];
+state.calendarEvents[fecha].push(nuevoEv);
 
-  const grupoId = document.getElementById('calGrupoSel').value;
-  const selTipo = document.getElementById('calTipoSel');
-  const tipo = selTipo.value;
-  const nota = (document.getElementById('calNotaEvento')?.value || '').trim();
+// 2. Si es evaluación, crear asignación vinculada al evento
+const evalTipos = ['class_participation','online_workbook','online_homework','readers','writing','speaking','final_exam','intl_exam'];
+const isCustomCrit = (state.customCriterios || []).some(c => c.id === tipo);
 
-  // 🆕 Obtener el nombre específico desde data-nombre
-  const optSeleccionada = selTipo.selectedOptions[0];
-  const nombreDesdeData = optSeleccionada?.dataset?.nombre || null;
+if ((evalTipos.includes(tipo) || isCustomCrit) && grupoId) {
+  if (!state.assignments) state.assignments = [];
+  const criterioNorm = (tipo === 'online_workbook') ? 'online_homework' : tipo;
 
-  let nombre = nombreDesdeData || calTipoLabel(tipo);
+  const yaExisteAsg = state.assignments.some(a =>
+    a.grupoId === grupoId &&
+    a.fechaInicio === fecha &&
+    a.criterio === criterioNorm &&
+    (a.nombre === nombre || a.calendarEventId === nuevoEv.id)
+  );
 
-  if (tipo === 'otro') {
-    nombre = (document.getElementById('calOtroEvento').value || '').trim();
-    if (!nombre) { alert('Escribe el nombre del nuevo evento.'); return; }
+  if (!yaExisteAsg) {
+    state.assignments.push({
+      id: 'asg_cal_' + Date.now(),
+      criterio: criterioNorm,
+      nombre,
+      fechaInicio: fecha,
+      fechaFin: fecha,
+      grupoId,
+      calendarEventId: nuevoEv.id,   // ← clave para el anti-fantasmas
+      createdBy: 'calendarizacion'
+    });
   }
-  if (!tipo) { alert('Selecciona el tipo de evento.'); return; }
-  if (!grupoId && tipo !== 'otro') { alert('Selecciona un grupo.'); return; }
+}
 
-  // 🆕 Validar que no se duplique el mismo NOMBRE específico en la misma fecha
-  const existentes = (state.calendarEvents[fecha] || []).filter(ev => ev.grupoId === grupoId);
-  const yaExiste = existentes.some(ev => ev.nombre === nombre && ev.tipo === tipo);
-  if (yaExiste) {
-    if (!confirm(`⚠️ Ya existe un evento "${nombre}" en el ${formatearFechaCal(fecha)} para este grupo.\n\n¿Agregar de todos modos?`)) return;
+saveState();
+
+// 3. Refresco inmediato del dropdown (sin esperar debounce ni wrappers)
+if (typeof actualizarInfoGrupos === 'function') {
+  setTimeout(() => actualizarInfoGrupos(), 50);
+} else {
+  const checked = document.querySelectorAll('.doc-grupo-cb:checked');
+  if (checked.length && typeof cargarEvaluacionesDelGrupo === 'function') {
+    setTimeout(() => cargarEvaluacionesDelGrupo(checked), 50);
   }
+}
 
-  if (!state.calendarEvents) state.calendarEvents = {};
-  if (!state.calendarEvents[fecha]) state.calendarEvents[fecha] = [];
-  state.calendarEvents[fecha].push({
-    id: 'cev_' + Date.now(),
-    grupoId: grupoId || null,
-    tipo,
-    nombre,
-    nota: nota || null,
-    createdAt: new Date().toISOString()
-  });
-
-  // 🆕 Si es evaluación, crear asignación con el nombre específico
-  const evalTipos = ['class_participation','online_workbook','readers','writing','speaking','final_exam','intl_exam'];
-  const isCustomCrit = (state.customCriterios || []).some(c => c.id === tipo);
-  if ((evalTipos.includes(tipo) || isCustomCrit) && grupoId) {
-    if (!state.assignments) state.assignments = [];
-    const criterioNorm = tipo === 'online_workbook' ? 'online_homework' : tipo;
-
-    // 🆕 Evitar duplicado por (fecha + criterio + nombre específico)
-    const yaExisteAsg = state.assignments.some(a =>
-      a.grupoId === grupoId &&
-      a.fechaInicio === fecha &&
-      a.criterio === criterioNorm &&
-      a.nombre === nombre
-    );
-
-    if (!yaExisteAsg) {
-      state.assignments.push({
-        id: 'asg_cal_' + Date.now(),
-        criterio: criterioNorm,
-        nombre,
-        fechaInicio: fecha,
-        fechaFin: fecha,
-        grupoId,
-        createdBy: 'calendarizacion'
-      });
-      console.log(`✅ Asignación creada: "${nombre}" · ${fecha}`);
-    } else {
-      console.log(`ℹ️ Ya existe asignación: "${nombre}" · ${fecha}. No se duplica.`);
-    }
-  }
-
-  saveState();
-  document.getElementById('calOtroEvento').value = '';
-  if (document.getElementById('calNotaEvento')) document.getElementById('calNotaEvento').value = '';
-  const msg = document.getElementById('calAddMsg');
-  if (msg) { msg.classList.add('visible'); setTimeout(() => msg.classList.remove('visible'), 2000); }
-  renderCalEventosDelDia(fecha);
-  renderCalendarizacion();
-});
+renderCalEventosDelDia(fecha);
+renderCalendarizacion();
  document.getElementById('btnCalCerrarPanel')?.addEventListener('click', () => {
   calSelectedDate = null;
   document.getElementById('calEventPanel').style.display = 'none';
