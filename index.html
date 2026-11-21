@@ -18137,166 +18137,77 @@ if (correcta === -1) {
     }
   }
 
- // ─── Mostrar preview editable de preguntas (con contexto texto + imagen) ───
-function mostrarPreviewPreguntas() {
-  const preview = $('docPreviewPreguntas');
-  const lista = $('docPreviewLista');
-  const count = $('docPreviewCount');
-  if (!preview || !lista) return;
+  // ─── Mostrar preview editable de preguntas ───
+  function mostrarPreviewPreguntas() {
+    const preview = $('docPreviewPreguntas');
+    const lista = $('docPreviewLista');
+    const count = $('docPreviewCount');
+    if (!preview || !lista) return;
 
-  preview.style.display = 'block';
-  if (count) count.textContent = `${preguntasGeneradas.length} pregunta(s)`;
+    preview.style.display = 'block';
+    if (count) count.textContent = `${preguntasGeneradas.length} pregunta(s)`;
 
-  lista.innerHTML = preguntasGeneradas.map((p, idx) => `
-    <div class="doc-pregunta-item" data-idx="${idx}" style="border:1px solid var(--borde);border-radius:10px;padding:14px;margin-bottom:10px;background:#f9fafb;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
-        <strong style="color:var(--morado);font-size:.9rem;">Pregunta ${idx + 1}</strong>
-        <button type="button" class="doc-eliminar-pregunta" data-idx="${idx}" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:700;cursor:pointer;">🗑️ Eliminar</button>
-      </div>
-
-      <!-- Contexto colapsable (no satura) -->
-      <details class="doc-contexto-details" style="margin-bottom:10px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;">
-        <summary style="cursor:pointer;padding:8px 12px;font-size:.82rem;font-weight:700;color:var(--slate);list-style:none;display:flex;align-items:center;gap:6px;">
-          <span style="opacity:.7;">📎</span> Contexto / lectura (opcional)
-          <span class="doc-ctx-badge" style="margin-left:auto;font-size:.7rem;font-weight:700;color:var(--gris);"></span>
-        </summary>
-        <div style="padding:0 12px 12px;">
-          <textarea class="doc-contexto" rows="2" placeholder="Texto, lectura o instrucción que verá el alumno antes de la pregunta..."
-            style="width:100%;padding:8px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;margin-bottom:8px;">${escapeHTML(p.contexto || '')}</textarea>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="file" class="doc-contexto-img" accept="image/*" style="font-size:.8rem;flex:1;min-width:160px;">
-            <button type="button" class="doc-quitar-img" style="display:none;background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:700;cursor:pointer;">Quitar imagen</button>
+    lista.innerHTML = preguntasGeneradas.map((p, idx) => `
+      <div class="doc-pregunta-item" data-idx="${idx}" style="border:1px solid var(--borde);border-radius:10px;padding:14px;margin-bottom:10px;background:#f9fafb;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
+          <strong style="color:var(--morado);font-size:.9rem;">Pregunta ${idx + 1}</strong>
+          <button type="button" class="doc-eliminar-pregunta" data-idx="${idx}" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:700;cursor:pointer;">🗑️ Eliminar</button>
+        </div>
+        <div class="campo" style="margin-bottom:8px;">
+          <label style="font-size:.82rem;color:var(--gris);">Enunciado</label>
+          <input type="text" class="doc-enunciado" value="${escapeHTML(p.enunciado)}" style="width:100%;padding:8px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.88rem;">
+        </div>
+        <div style="font-size:.82rem;color:var(--gris);margin-bottom:6px;">Opciones (marca la correcta):</div>
+        ${p.opciones.map((op, i) => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <input type="radio" name="doc_correcta_${idx}" value="${i}" ${i === p.correcta ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--verde);">
+            <input type="text" class="doc-opcion" value="${escapeHTML(op)}" style="flex:1;padding:6px 10px;border:1.5px solid var(--borde);border-radius:6px;font-family:inherit;font-size:.85rem;">
           </div>
-          <div class="doc-ctx-preview" style="display:none;margin-top:8px;"></div>
-        </div>
-      </details>
-
-      <div class="campo" style="margin-bottom:8px;">
-        <label style="font-size:.82rem;color:var(--gris);">Enunciado</label>
-        <input type="text" class="doc-enunciado" value="${escapeHTML(p.enunciado)}" style="width:100%;padding:8px 10px;border:1.5px solid var(--borde);border-radius:8px;font-family:inherit;font-size:.88rem;">
+        `).join('')}
       </div>
-      <div style="font-size:.82rem;color:var(--gris);margin-bottom:6px;">Opciones (marca la correcta):</div>
-      ${p.opciones.map((op, i) => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <input type="radio" name="doc_correcta_${idx}" value="${i}" ${i === p.correcta ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--verde);">
-          <input type="text" class="doc-opcion" value="${escapeHTML(op)}" style="flex:1;padding:6px 10px;border:1.5px solid var(--borde);border-radius:6px;font-family:inherit;font-size:.85rem;">
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
+    `).join('');
 
-  // ── Eliminar pregunta ──
-  lista.querySelectorAll('.doc-eliminar-pregunta').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx, 10);
-      preguntasGeneradas.splice(idx, 1);
-      if (preguntasGeneradas.length === 0) {
-        preview.style.display = 'none';
-      } else {
-        mostrarPreviewPreguntas();
+    // Listeners
+    lista.querySelectorAll('.doc-eliminar-pregunta').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        preguntasGeneradas.splice(idx, 1);
+        if (preguntasGeneradas.length === 0) {
+          preview.style.display = 'none';
+        } else {
+          mostrarPreviewPreguntas();
+        }
+      });
+    });
+
+    // Sincronizar ediciones
+    lista.querySelectorAll('.doc-pregunta-item').forEach(item => {
+      const idx = parseInt(item.dataset.idx, 10);
+      const enunciadoInp = item.querySelector('.doc-enunciado');
+      const opcionesInps = item.querySelectorAll('.doc-opcion');
+      const radios = item.querySelectorAll(`input[name="doc_correcta_${idx}"]`);
+
+      if (enunciadoInp) {
+        enunciadoInp.addEventListener('input', () => {
+          preguntasGeneradas[idx].enunciado = enunciadoInp.value;
+        });
       }
-    });
-  });
-
-  // ── Sincronizar ediciones + contexto ──
-  lista.querySelectorAll('.doc-pregunta-item').forEach(item => {
-    const idx = parseInt(item.dataset.idx, 10);
-    const enunciadoInp = item.querySelector('.doc-enunciado');
-    const opcionesInps = item.querySelectorAll('.doc-opcion');
-    const radios = item.querySelectorAll(`input[name="doc_correcta_${idx}"]`);
-    const ctxArea = item.querySelector('.doc-contexto');
-    const imgInput = item.querySelector('.doc-contexto-img');
-    const btnQuitar = item.querySelector('.doc-quitar-img');
-    const prevBox = item.querySelector('.doc-ctx-preview');
-    const badge = item.querySelector('.doc-ctx-badge');
-
-    const actualizarBadge = () => {
-      if (!badge) return;
-      const tieneTexto = !!(preguntasGeneradas[idx].contexto || '').trim();
-      const tieneImg = !!(preguntasGeneradas[idx]._imgFile || preguntasGeneradas[idx].contextoImagen);
-      if (tieneTexto || tieneImg) {
-        badge.textContent = (tieneTexto ? 'texto' : '') + (tieneTexto && tieneImg ? ' + ' : '') + (tieneImg ? 'imagen' : '');
-        badge.style.color = 'var(--morado)';
-      } else {
-        badge.textContent = '';
-      }
-    };
-
-    if (enunciadoInp) {
-      enunciadoInp.addEventListener('input', () => {
-        preguntasGeneradas[idx].enunciado = enunciadoInp.value;
+      opcionesInps.forEach((inp, i) => {
+        inp.addEventListener('input', () => {
+          preguntasGeneradas[idx].opciones[i] = inp.value;
+        });
       });
-    }
-    opcionesInps.forEach((inp, i) => {
-      inp.addEventListener('input', () => {
-        preguntasGeneradas[idx].opciones[i] = inp.value;
+      radios.forEach(r => {
+        r.addEventListener('change', () => {
+          if (r.checked) preguntasGeneradas[idx].correcta = parseInt(r.value, 10);
+        });
       });
     });
-    radios.forEach(r => {
-      r.addEventListener('change', () => {
-        if (r.checked) preguntasGeneradas[idx].correcta = parseInt(r.value, 10);
-      });
-    });
-    if (ctxArea) {
-      ctxArea.addEventListener('input', () => {
-        preguntasGeneradas[idx].contexto = ctxArea.value.trim() || null;
-        actualizarBadge();
-      });
-    }
 
-    // Imagen de contexto (se guarda como File hasta publicar)
-    if (imgInput) {
-      imgInput.addEventListener('change', () => {
-        const f = imgInput.files && imgInput.files[0];
-        if (!f) {
-          preguntasGeneradas[idx]._imgFile = null;
-          prevBox.style.display = 'none';
-          prevBox.innerHTML = '';
-          btnQuitar.style.display = 'none';
-          actualizarBadge();
-          return;
-        }
-        if (!f.type.startsWith('image/')) {
-          alert('Selecciona una imagen válida.');
-          imgInput.value = '';
-          return;
-        }
-        if (f.size > 2 * 1024 * 1024) {
-          alert('La imagen no debe superar 2 MB.');
-          imgInput.value = '';
-          return;
-        }
-        preguntasGeneradas[idx]._imgFile = f;
-        const reader = new FileReader();
-        reader.onload = ev => {
-          prevBox.innerHTML = `<img src="${ev.target.result}" alt="Contexto" style="max-width:100%;max-height:140px;border-radius:8px;border:1px solid var(--borde);display:block;">`;
-          prevBox.style.display = 'block';
-          btnQuitar.style.display = 'inline-block';
-          actualizarBadge();
-        };
-        reader.readAsDataURL(f);
-      });
-    }
-    if (btnQuitar) {
-      btnQuitar.addEventListener('click', () => {
-        preguntasGeneradas[idx]._imgFile = null;
-        preguntasGeneradas[idx].contextoImagen = null;
-        if (imgInput) imgInput.value = '';
-        prevBox.style.display = 'none';
-        prevBox.innerHTML = '';
-        btnQuitar.style.display = 'none';
-        actualizarBadge();
-      });
-    }
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
-    // Si ya había contexto, abrir el details y mostrar badge
-    if ((p.contexto && p.contexto.trim()) || p.contextoImagen || p._imgFile) {
-      item.querySelector('.doc-contexto-details')?.setAttribute('open', '');
-    }
-    actualizarBadge();
-  });
-
-   // ─── Utilidad para escapar HTML en inputs ───
+  // ─── Utilidad para escapar HTML en inputs ───
   function escapeHTML(str) {
     return String(str == null ? '' : str)
       .replace(/&/g, '&amp;')
@@ -18305,7 +18216,7 @@ function mostrarPreviewPreguntas() {
       .replace(/"/g, '&quot;');
   }
 
-  // ─── Publicar el examen (con contexto texto + imagen) ───
+  // ─── Publicar el examen (usa la misma lógica que el manual) ───
   async function publicarExamen() {
     if (!preguntasGeneradas.length) {
       alert('⚠️ No hay preguntas para publicar.');
@@ -18313,13 +18224,7 @@ function mostrarPreviewPreguntas() {
     }
 
     const nombre = $('docNombreExamen').value.trim();
-    if (!nombre) {
-      alert('⚠️ Escribe el nombre del examen.');
-      $('docNombreExamen')?.focus();
-      return;
-    }
-
-    const intentos = parseInt($('docIntentos')?.value, 10) || 1;
+    const intentos = parseInt($('docIntentos').value, 10) || 1;
     const tipoExamen = document.querySelector('input[name="docTipoExamen"]:checked')?.value || 'final_exam';
     const criterio = tipoExamen === 'online_workbook' ? 'online_homework' : 'final_exam';
 
@@ -18334,58 +18239,39 @@ function mostrarPreviewPreguntas() {
 
     try {
       const fechaPub = new Date().toISOString().slice(0, 10);
-
-      // Procesar contexto (texto + imagen) de cada pregunta
-      const preguntasFinales = [];
-      for (const p of preguntasGeneradas) {
-        let contextoImagen = p.contextoImagen || null;
-        if (p._imgFile && typeof procesarImagen === 'function') {
-          try {
-            contextoImagen = await procesarImagen(p._imgFile, 'examenes-contexto');
-          } catch (err) {
-            alert('No se pudo subir una imagen de contexto: ' + (err.message || err));
-            if (btn) { btn.disabled = false; btn.textContent = '📤 Publicar examen'; }
-            return;
-          }
-        }
-        preguntasFinales.push({
-          enunciado: p.enunciado,
-          opciones: p.opciones,
-          correcta: p.correcta,
-          contexto: (p.contexto || '').trim() || null,
-          contextoImagen: contextoImagen || null
-        });
-      }
+      const preguntasFinales = JSON.parse(JSON.stringify(preguntasGeneradas));
 
       if (!state.examResults) state.examResults = {};
-      if (!state.exams) state.exams = [];
-      if (!state.assignments) state.assignments = [];
 
+            // 🆕 Leer evaluación destino elegida
       const evaluacionDestino = $('docEvaluacionDestino')?.value || '__nueva__';
-      let creados = 0;
+      console.log('📌 Evaluación destino:', evaluacionDestino);
 
+      let creados = 0;
       cbsMarcados.forEach((grupoId, idx) => {
         const examId = 'exam_' + (Date.now() + idx);
         let asgId;
 
-        // Caso A: vincular a evaluación existente
+        // 🆕 Caso A: vincular a evaluación existente
         if (evaluacionDestino !== '__nueva__' && cbsMarcados.length === 1) {
           const asgExistente = state.assignments.find(a => a.id === evaluacionDestino && a.grupoId === grupoId);
-          if (asgExistente) {
-            asgId = asgExistente.id;
-            asgExistente.esExamen = true;
-            asgExistente.examId = examId;
-            const nombreOriginal = asgExistente.nombre;
-            const evCalendar = Object.values(state.calendarEvents || {})
-              .flat().find(ev => ev.grupoId === grupoId && ev.nombre === nombreOriginal);
-            asgExistente.calendarEventId = evCalendar?.id || null;
-            if (asgExistente.nombre && !asgExistente.nombre.includes(nombre)) {
-              asgExistente.nombre += ' · ' + nombre;
-            }
-          }
-        }
+         if (asgExistente) {
+  asgId = asgExistente.id;
+  asgExistente.esExamen = true;
+  asgExistente.examId   = examId;
+            // 🆕 Buscar el calendarEvent ANTES de modificar el nombre
+  const nombreOriginal = asgExistente.nombre;
+  const evCalendar = Object.values(state.calendarEvents || {})
+    .flat().find(ev => ev.grupoId === grupoId && ev.nombre === nombreOriginal);
+  asgExistente.calendarEventId = evCalendar?.id || null;
 
-        // Caso B: crear nueva asignación
+  if (asgExistente.nombre && !asgExistente.nombre.includes(nombre)) {
+    asgExistente.nombre += ' · ' + nombre;
+  } 
+  }
+}
+
+ // 🆕 Caso B: crear nueva asignación
         if (!asgId) {
           asgId = 'asg_exam_' + (Date.now() + idx);
           state.assignments.push({
@@ -18398,8 +18284,10 @@ function mostrarPreviewPreguntas() {
             examId,
             grupoId
           });
+          console.log(`📝 Nueva evaluación creada para el examen "${nombre}" (ID: ${asgId})`);
         }
 
+        // Guardar el examen
         state.exams.push({
           id: examId,
           nombre,
@@ -18412,23 +18300,23 @@ function mostrarPreviewPreguntas() {
           fechaFin: null,
           tipoExamen,
           criterio,
-          calendarEventId: (state.assignments.find(a => a.id === asgId)?.calendarEventId) || null
+          calendarEventId: (state.assignments.find(a => a.id === asgId)?.calendarEventId) || null  // 🆕
         });
 
         state.examResults[examId] = {};
         creados++;
       });
 
-      if (typeof saveState === 'function') saveState();
+      saveState();
       if (typeof renderAdminExams === 'function') renderAdminExams();
 
       alert(`✅ Examen "${nombre}" publicado en ${creados} grupo(s).\n\n${preguntasFinales.length} preguntas.`);
 
       // Reset
-      if (typeof quitarArchivo === 'function') quitarArchivo();
-      if ($('docNombreExamen')) $('docNombreExamen').value = '';
-      document.querySelectorAll('.doc-grupo-cb:checked').forEach(cb => { cb.checked = false; });
-      if (typeof actualizarInfoGrupos === 'function') actualizarInfoGrupos();
+      quitarArchivo();
+      $('docNombreExamen').value = '';
+      document.querySelectorAll('.doc-grupo-cb:checked').forEach(cb => cb.checked = false);
+      actualizarInfoGrupos();
 
     } catch (err) {
       alert('❌ Error al publicar: ' + (err.message || err));
@@ -18438,37 +18326,35 @@ function mostrarPreviewPreguntas() {
     }
   }
 
-  // ─── Init del módulo Importar ───
-  function initImportarDoc() {
-    if (typeof setupDragDrop === 'function') setupDragDrop();
-    if (typeof cargarGruposDestino === 'function') cargarGruposDestino();
+  // ─── Init ───
+  function init() {
+    setupDragDrop();
+    cargarGruposDestino();
 
     $('docQuitarArchivo')?.addEventListener('click', quitarArchivo);
     $('docProcesar')?.addEventListener('click', procesarDocumento);
     $('docPublicarExamen')?.addEventListener('click', publicarExamen);
     $('docCancelarPreview')?.addEventListener('click', () => {
       if (confirm('¿Cancelar y descartar las preguntas generadas?')) {
-        if (typeof quitarArchivo === 'function') quitarArchivo();
+        quitarArchivo();
       }
     });
 
+    // Recargar grupos al entrar al tab
     document.querySelectorAll('[data-adm-exam-tab="importar"]').forEach(tab => {
-      tab.addEventListener('click', () => setTimeout(() => {
-        if (typeof cargarGruposDestino === 'function') cargarGruposDestino();
-      }, 80));
+      tab.addEventListener('click', () => setTimeout(cargarGruposDestino, 80));
     });
 
-    console.log('✅ Módulo Importar Documento listo (con contexto).');
+    console.log('✅ Módulo Importar Documento listo.');
   }
 
-  // Arrancar
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initImportarDoc);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initImportarDoc();
+    init();
   }
-  preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+})();
+</script>
  <!-- ============================================================
      FIX DEFINITIVO: Eliminar duplicados en Evaluaciones, Exámenes 
      y Online Workbook
