@@ -17978,8 +17978,8 @@ if (!numMatch) {
       if (ops.length === 4) break;
     }
 
-    // 4.3 Si no encontramos 4 opciones → rechazar
-       if (ops.length < 4) {
+// 4.3 Permitir preguntas con 3 o 4 opciones
+if (ops.length < 3) {
       // 🔴 DIAGNÓSTICO: volcar cuerpo completo a la consola
       console.log(`╔══════════════════════════════════════════════════════════`);
       console.log(`║ 🔴 Q${numPregunta} FALLA — solo ${ops.length} opciones detectadas`);
@@ -18019,12 +18019,17 @@ if (!numMatch) {
       continue;
     }
 
-    const correcta = letraCorrecta.charCodeAt(0) - 65; // A→0, B→1, C→2, D→3
-    if (correcta < 0 || correcta > 3) {
-      rechazadas.push({ num: numPregunta, motivo: `Letra inválida: ${letraCorrecta}`, muestra: '' });
-      continue;
-    }
+  // Identificar la respuesta correcta según las opciones realmente detectadas
+const correcta = ops.findIndex(o => o.letra === letraCorrecta);
 
+if (correcta === -1) {
+  rechazadas.push({
+    num: numPregunta,
+    motivo: `La respuesta correcta (${letraCorrecta}) no coincide con las opciones detectadas`,
+    muestra: cuerpo.slice(0, 80)
+  });
+  continue;
+}
     // 4.6 ¡Éxito!
     preguntas.push({
       enunciado,
