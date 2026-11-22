@@ -1202,112 +1202,42 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
     <h3 style="color:var(--morado); margin-bottom:6px;">👁️ Vista preliminar del Report Card</h3>
     <div class="rc-preview-container" id="rcPreviewContainer" style="box-shadow:none; margin-top:12px;">
       <div id="rcPrintableArea">
-  <div class="rc-letterhead"><img id="rcLetterheadImg" style="display:none;"></div>
-
-  <div class="rc-header">
-    <div>
-      <h2>Report Card</h2>
-      <p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
-      <p>Por el Prof. Juan Valenzuela M.</p>
-    </div>
-    <div style="text-align:right;">
-      <p><strong>Fecha:</strong></p>
-      <p id="rcDate">--/--/----</p>
-    </div>
-  </div>
-
-  <!-- GENERALIDADES -->
-  <div class="rc-student-info">
-    <p><strong>Alumno:</strong> <span id="rcStudentName">---</span></p>
-    <p><strong>Usuario:</strong> <span id="rcStudentUser">---</span></p>
-    <p><strong>Grupo:</strong> <span id="rcStudentGroup">---</span></p>
-    <p><strong>Programa:</strong> <span id="rcStudentProgram">---</span></p>
-    <p><strong>Docente:</strong> <span id="rcTeacherName">---</span></p>
-  </div>
-
-  <!-- ESTADO -->
-  <div class="rc-status-banner" id="rcStatusBanner">
-    <span class="rc-status-label">Estado académico:</span>
-    <span class="rc-status-value" id="rcStatusValue">—</span>
-  </div>
-
-  <!-- ===== CUADROS ESTADÍSTICOS ===== -->
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px;">
-
-    <!-- ASISTENCIA -->
-    <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:14px; padding:20px 18px; text-align:center;">
-      <div style="font-size:.78rem; font-weight:800; color:#15803d; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">📅 Asistencia</div>
-      <div id="rcAsistenciaPct" style="font-size:2.4rem; font-weight:800; color:#15803d; line-height:1.1;">—</div>
-      <div style="height:8px; background:#dcfce7; border-radius:4px; margin:12px 0 10px; overflow:hidden;">
-        <div id="rcAsistenciaBar" style="height:100%; width:0%; background:#22c55e; border-radius:4px; transition:width .4s;"></div>
+        <div class="rc-letterhead"><img id="rcLetterheadImg" style="display:none;"></div>
+        <div class="rc-header">
+          <div><h2>Report Card</h2><p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p><p>Por el Prof. Juan Valenzuela M.</p></div>
+          <div style="text-align:right;"><p><strong>Fecha:</strong></p><p id="rcDate">--/--/----</p></div>
+        </div>
+        <div class="rc-student-info">
+          <p><strong>Alumno:</strong> <span id="rcStudentName">---</span></p>
+          <p><strong>Usuario:</strong> <span id="rcStudentUser">---</span></p>
+          <p><strong>Grupo:</strong> <span id="rcStudentGroup">---</span></p>
+          <p><strong>Programa:</strong> <span id="rcStudentProgram">---</span></p>
+          <p><strong>Docente:</strong> <span id="rcTeacherName">---</span></p>
+        </div>
+        <div class="rc-status-banner" id="rcStatusBanner">
+          <span class="rc-status-label">Estado académico:</span>
+          <span class="rc-status-value" id="rcStatusValue">—</span>
+        </div>
+        <div class="rc-chart-box"><canvas id="rcChart" width="400" height="140"></canvas></div>
+        <div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:20px;">
+          <table style="min-width:100%;">
+            <thead><tr><th>Criterio</th><th style="text-align:right;">Nota</th></tr></thead>
+            <tbody id="rcGradesBody"></tbody>
+            <tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;" id="rcAverage">—</td></tr></tfoot>
+          </table>
+        </div>
+        <div class="rc-comment-box"><h4>Teacher's Comment</h4><p id="rcCommentDisplay">---</p></div>
+        <div class="rc-footer"><div></div><div class="rc-signature"><img id="rcSignatureImg" style="display:none;"><p id="rcTeacherSignatureName">Firma del Docente</p></div></div>
       </div>
-      <div style="font-size:.82rem; color:#166534; line-height:1.5;">
-        <div>Presentes: <strong id="rcAsistPresentes">0</strong></div>
-        <div>Tardanzas: <strong id="rcAsistTardanzas">0</strong></div>
-        <div>Ausencias: <strong id="rcAsistAusencias">0</strong></div>
-      </div>
-      <div id="rcAsistEstado" style="margin-top:10px; display:inline-block; padding:4px 12px; border-radius:50px; font-size:.75rem; font-weight:800; background:#dcfce7; color:#15803d;">—</div>
-    </div>
-
-    <!-- EVALUACIONES -->
-    <div style="background:#f5f3ff; border:1.5px solid #c4b5fd; border-radius:14px; padding:20px 18px; text-align:center;">
-      <div style="font-size:.78rem; font-weight:800; color:#6d28d9; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">📊 Evaluaciones</div>
-      <div id="rcEvalPromedio" style="font-size:2.4rem; font-weight:800; color:#6d28d9; line-height:1.1;">—</div>
-      <div style="height:8px; background:#ede9fe; border-radius:4px; margin:12px 0 10px; overflow:hidden;">
-        <div id="rcEvalBar" style="height:100%; width:0%; background:#8b5cf6; border-radius:4px; transition:width .4s;"></div>
-      </div>
-      <div style="font-size:.82rem; color:#5b21b6; line-height:1.5;">
-        <div>Notas registradas: <strong id="rcEvalCount">0</strong></div>
-        <div>Promedio general</div>
-      </div>
-      <div id="rcEvalEstado" style="margin-top:10px; display:inline-block; padding:4px 12px; border-radius:50px; font-size:.75rem; font-weight:800; background:#ede9fe; color:#6d28d9;">—</div>
-    </div>
-  </div>
-
-    <!-- DESGLOSE DE EVALUACIONES -->
-  <div id="rcEvalDetails" style="margin:24px 0;">
-    <h3 style="color:#334155; margin-bottom:16px;">
-      Desglose de evaluaciones
-    </h3>
-    <div id="rcEvalDetailsContent"></div>
-  </div>
-    <!-- DESGLOSE DE EVALUACIONES -->
-    <div style="margin:24px 0;">
-      <h3 style="color:#334155; margin-bottom:16px;">
-        Desglose de evaluaciones
-      </h3>
-      ${renderRcEvalDetailsHTML(rc.gradeDetails || [])}
-    </div>
-  <!-- Comentario -->
-  <div class="rc-comment-box">
-    <h4>Teacher's Comment</h4>
-    <p id="rcCommentDisplay">---</p>
-  </div>
-
-  <!-- Firma -->
-  <div class="rc-footer">
-    <div></div>
-    <div class="rc-signature">
-      <img id="rcSignatureImg" style="display:none;">
-      <p id="rcTeacherSignatureName">Firma del Docente</p>
-    </div>
-  </div>
-</div>
-
-     </div> <!-- cierra #rcPrintableArea -->
-
       <div class="tform-acciones rc-actions-print" style="margin-top:30px; justify-content:flex-end; border-top:1px solid #e2e8f0; padding-top:20px;">
         <button type="button" class="btn btn-slate" id="btnCancelarRC">Cancelar</button>
         <button type="button" class="btn btn-verde" id="btnConfirmSendRC">Confirmar RC</button>
       </div>
-    </div> <!-- cierra #rcPreviewContainer -->
-  </div> <!-- cierra .modal-box -->
-</div> <!-- cierra #modalPreviewRC -->
-
-        </div> <!-- cierra #dpanel-reportcard -->
-
+    </div>
+  </div>
+</div>
+        </div>
         <div class="panel" id="dpanel-historial">
-     
           <h4 style="color:var(--morado);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Historial de Reportes de Notas</h4>
           <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Resumen de todos los Report Cards que has generado.</p>
           <div id="dHistorialRCLista"></div>
@@ -5019,110 +4949,13 @@ function renderStudentMatriculaCursos() {
    ============================================================ */
 function getRcEstado(rc) { const avg = parseFloat(rc.average); if (isNaN(avg)) return { texto: "Pendiente", clase: "" }; if (avg >= 14) return { texto: "Aprobado", clase: "aprobado" }; return { texto: "Desaprobado", clase: "desaprobado" }; }
 function buildReportCardHTML(rc) {
-  const student = state.students[rc.studentCode];
-  const teacher = state.teachers[rc.teacherCode];
-  const groups = rc.groupName ||
-    (state.groups.find(g => g.id === rc.groupId)?.nombre) ||
-    "Sin grupo";
+  const student = state.students[rc.studentCode]; const teacher = state.teachers[rc.teacherCode];
+  const groups = getStudentGroups(rc.studentCode).map(g => g.nombre).join(", ") || "Sin grupo";
+  let gradesHtml = "";
+  CRITERIOS.forEach(c => { const promC = rc.grades[c.id] !== undefined ? rc.grades[c.id] : "—"; gradesHtml += `<tr><td>${c.nombre}</td><td style="text-align:right;"><strong>${promC}</strong></td></tr>`; });
+  let letterheadHtml = ""; if (state.letterhead) letterheadHtml = `<div class="rc-letterhead"><img src="${state.letterhead}"></div>`;
   const est = getRcEstado(rc);
-
-  const asis = rc.asistencia || {};
-  const pct = asis.porcentaje != null ? asis.porcentaje : null;
-  const presentes = asis.presentes || 0;
-  const tardanzas = asis.tardanzas || 0;
-  const ausencias = asis.ausencias || 0;
-
-  let asisEstado = "Sin registros";
-  let asisBg = "#f1f5f9", asisColor = "#64748b";
-  if (pct !== null) {
-    if (pct >= 90) { asisEstado = "Excelente"; asisBg = "#dcfce7"; asisColor = "#15803d"; }
-    else if (pct >= 75) { asisEstado = "Buena asistencia"; asisBg = "#fef3c7"; asisColor = "#b45309"; }
-    else { asisEstado = "Asistencia baja"; asisBg = "#fee2e2"; asisColor = "#b91c1c"; }
-  }
-
-  let evalEstado = "Sin notas";
-  let evalBg = "#f1f5f9", evalColor = "#64748b";
-  const avgNum = parseFloat(rc.average);
-  if (!isNaN(avgNum)) {
-    if (avgNum >= 14) { evalEstado = "Aprobado"; evalBg = "#dcfce7"; evalColor = "#15803d"; }
-    else { evalEstado = "Desaprobado"; evalBg = "#fee2e2"; evalColor = "#b91c1c"; }
-  }
-
-  const letterheadHtml = state.letterhead
-    ? `<div class="rc-letterhead"><img src="${state.letterhead}"></div>`
-    : "";
-
-  return `
-    ${letterheadHtml}
-    <div class="rc-header">
-      <div>
-        <h2>Report Card</h2>
-        <p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
-        <p>Por el Prof. Juan Valenzuela M.</p>
-      </div>
-      <div style="text-align:right;">
-        <p><strong>Fecha:</strong></p>
-        <p>${formatearFecha(rc.date)}</p>
-      </div>
-    </div>
-
-    <div class="rc-student-info">
-      <p><strong>Alumno:</strong> ${student ? student.nombre : "—"}</p>
-      <p><strong>Usuario:</strong> ${rc.studentCode}</p>
-      <p><strong>Grupo:</strong> ${groups}</p>
-      <p><strong>Programa:</strong> ${student ? (student.programa || "—") : "—"}</p>
-      <p><strong>Docente:</strong> ${teacher ? teacher.nombre : "—"}</p>
-    </div>
-
-    <div class="rc-status-banner ${est.clase}">
-      <span class="rc-status-label">Estado académico:</span>
-      <span class="rc-status-value">${est.texto}</span>
-    </div>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px;">
-      <!-- Asistencia -->
-      <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:14px; padding:20px 18px; text-align:center;">
-        <div style="font-size:.78rem; font-weight:800; color:#15803d; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">📅 Asistencia</div>
-        <div style="font-size:2.4rem; font-weight:800; color:#15803d; line-height:1.1;">${pct !== null ? pct + "%" : "—"}</div>
-        <div style="height:8px; background:#dcfce7; border-radius:4px; margin:12px 0 10px; overflow:hidden;">
-          <div style="height:100%; width:${pct || 0}%; background:#22c55e; border-radius:4px;"></div>
-        </div>
-        <div style="font-size:.82rem; color:#166534; line-height:1.5;">
-          <div>Presentes: <strong>${presentes}</strong></div>
-          <div>Tardanzas: <strong>${tardanzas}</strong></div>
-          <div>Ausencias: <strong>${ausencias}</strong></div>
-        </div>
-        <div style="margin-top:10px; display:inline-block; padding:4px 12px; border-radius:50px; font-size:.75rem; font-weight:800; background:${asisBg}; color:${asisColor};">${asisEstado}</div>
-      </div>
-
-      <!-- Evaluaciones -->
-      <div style="background:#f5f3ff; border:1.5px solid #c4b5fd; border-radius:14px; padding:20px 18px; text-align:center;">
-        <div style="font-size:.78rem; font-weight:800; color:#6d28d9; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">📊 Evaluaciones</div>
-        <div style="font-size:2.4rem; font-weight:800; color:#6d28d9; line-height:1.1;">${rc.average !== "—" ? rc.average + " / 20" : "—"}</div>
-        <div style="height:8px; background:#ede9fe; border-radius:4px; margin:12px 0 10px; overflow:hidden;">
-          <div style="height:100%; width:${!isNaN(avgNum) ? Math.min(100, (avgNum / 20) * 100) : 0}%; background:#8b5cf6; border-radius:4px;"></div>
-        </div>
-        <div style="font-size:.82rem; color:#5b21b6; line-height:1.5;">
-          <div>Notas registradas: <strong>${Object.values(rc.grades || {}).filter(v => v !== "—" && v !== null).length}</strong></div>
-          <div>Promedio general</div>
-        </div>
-        <div style="margin-top:10px; display:inline-block; padding:4px 12px; border-radius:50px; font-size:.75rem; font-weight:800; background:${evalBg}; color:${evalColor};">${evalEstado}</div>
-      </div>
-    </div>
-
-    <div class="rc-comment-box">
-      <h4>Teacher's Comment</h4>
-      <p>${rc.comment || "—"}</p>
-    </div>
-
-    <div class="rc-footer">
-      <div></div>
-      <div class="rc-signature">
-        ${rc.signature ? `<img src="${rc.signature}">` : ""}
-        <p>${teacher ? teacher.nombre : "Firma del Docente"}</p>
-      </div>
-    </div>
-  `;
+  return `${letterheadHtml}<div class="rc-header"><div><h2>Report Card</h2><p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p><p>Por el Prof. Juan Valenzuela M.</p></div><div style="text-align:right;"><p><strong>Fecha:</strong></p><p>${formatearFecha(rc.date)}</p></div></div><div class="rc-student-info"><p><strong>Alumno:</strong> ${student.nombre}</p><p><strong>Usuario:</strong> ${rc.studentCode}</p><p><strong>Grupo:</strong> ${groups}</p><p><strong>Programa:</strong> ${student.programa || "—"}</p><p><strong>Docente:</strong> ${teacher.nombre}</p></div><div class="rc-status-banner ${est.clase}"><span class="rc-status-label">Estado académico:</span><span class="rc-status-value">${est.texto}</span></div><div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:20px;"><table style="min-width:100%;"><thead><tr><th>Criterio</th><th style="text-align:right;">Nota</th></tr></thead><tbody>${gradesHtml}</tbody><tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;">${rc.average}</td></tr></tfoot></table></div><div class="rc-comment-box"><h4>Teacher's Comment</h4><p>${rc.comment}</p></div><div class="rc-footer"><div></div><div class="rc-signature">${rc.signature ? `<img src="${rc.signature}">` : ""}<p>${teacher.nombre}</p></div></div>`;
 }
 function mostrarReportCardModal(rc) {
   const modal = document.createElement("div"); modal.className = "modal-overlay visible";
@@ -5601,422 +5434,40 @@ document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
   if (!groupId) return; const group = state.groups.find(g => g.id === groupId); if (!group) return;
   group.studentCodes.forEach(code => { const s = state.students[code]; if (s) { const opt = document.createElement("option"); opt.value = code; opt.textContent = s.nombre; selStudent.appendChild(opt); } });
 });
- /* ============================================================
-   REPORT CARD — EXTRACCIÓN EXCLUSIVA DE NOTAS DEL DOCENTE
-   ============================================================ */
-
-
-function obtenerDetalleNotasRC(studentCode, groupId, teacherCode) {
-  const grades = (state.grades || {})[studentCode] || {};
-  const assignments = state.assignments || [];
-  const exams = state.exams || [];
-
-  const normalizarCriterio = tipo =>
-    (tipo === 'online_workbook' || tipo === 'online_homework')
-      ? 'online_homework'
-      : tipo;
-
-  const criterios = [
-    ...(CRITERIOS || []),
-    ...(state.customCriterios || [])
-  ];
-
-  const criteriosUnicos = [
-    ...new Map(criterios.map(c => [c.id, c])).values()
-  ];
-
-  // Recupera una nota sin depender de un único formato de ID.
-  function obtenerNotaAsignacion(a) {
-    const criterio = normalizarCriterio(a.criterio);
-    const fecha = a.fechaInicio || a.fecha || '';
-
-    const posiblesIds = [
-      a.id,
-      a.calendarEventId
-        ? `asg_${groupId}_${a.calendarEventId}`
-        : null,
-      fecha
-        ? `asg_${groupId}_${fecha}_${criterio}`
-        : null
-    ].filter(Boolean);
-
-    // IDs exactos y formatos conocidos.
-    for (const id of posiblesIds) {
-      const valor = grades[id];
-
-      if (
-        valor !== undefined &&
-        valor !== null &&
-        valor !== '' &&
-        Number.isFinite(Number(valor)) &&
-        Number(valor) >= 0 &&
-        Number(valor) <= 20
-      ) {
-        return Number(valor);
-      }
-    }
-
-    // Compatibilidad con IDs antiguos que llevan índice.
-    if (fecha) {
-      for (let n = 1; n <= 20; n++) {
-        const idAntiguo =
-          `asg_${groupId}_${fecha}_${criterio}_${n}`;
-
-        const valor = grades[idAntiguo];
-
-        if (
-          valor !== undefined &&
-          valor !== null &&
-          valor !== '' &&
-          Number.isFinite(Number(valor)) &&
-          Number(valor) >= 0 &&
-          Number(valor) <= 20
-        ) {
-          return Number(valor);
-        }
-      }
-    }
-
-    // Recuperar también notas de exámenes online.
-    const examen = exams.find(ex =>
-      (
-        ex.assignmentId === a.id ||
-        ex.id === a.examId ||
-        (
-          a.calendarEventId &&
-          ex.calendarEventId === a.calendarEventId
-        )
-      ) &&
-      (!ex.grupoId || ex.grupoId === groupId)
-    );
-
-    if (examen) {
-      const resultado = state.examResults?.[examen.id]?.[studentCode];
-      const nota = resultado?.nota;
-
-      if (
-        nota !== undefined &&
-        nota !== null &&
-        nota !== '' &&
-        Number.isFinite(Number(nota)) &&
-        Number(nota) >= 0 &&
-        Number(nota) <= 20
-      ) {
-        return Number(nota);
-      }
-    }
-
-    return null;
-  }
-
-  const resultado = [];
-
-  criteriosUnicos.forEach(criterio => {
-    const evaluaciones = [];
-
-    assignments.forEach(a => {
-      if (a.grupoId !== groupId) return;
-
-      // Si la asignación tiene docente, comprobar que corresponda.
-      if (a.teacherCode && a.teacherCode !== teacherCode) return;
-
-      if (
-        normalizarCriterio(a.criterio) !==
-        normalizarCriterio(criterio.id)
-      ) return;
-
-      const nota = obtenerNotaAsignacion(a);
-
-      if (nota === null) return;
-
-      evaluaciones.push({
-        id: a.id,
-        nombre: a.nombre || criterio.nombre,
-        nota
-      });
-    });
-
-    if (!evaluaciones.length) return;
-
-    const promedio =
-      evaluaciones.reduce((s, e) => s + e.nota, 0) /
-      evaluaciones.length;
-
-    resultado.push({
-      id: criterio.id,
-      nombre: criterio.nombre,
-      promedio: Number(promedio.toFixed(2)),
-      evaluaciones
-    });
-  });
-
-  return resultado;
-}
-
-
-/* Escapar texto antes de insertarlo en HTML */
-function escaparRC(valor) {
-  return String(valor ?? '').replace(/[&<>"']/g, caracter => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  })[caracter]);
-}
-
-
-/* Construir las barras y el detalle de actividades */
-function renderRcEvalDetailsHTML(detalles) {
-  if (!detalles || !detalles.length) {
-    return `
-      <p style="color:#64748b; text-align:center; padding:15px;">
-        No hay calificaciones registradas para este grupo.
-      </p>
-    `;
-  }
-
-  return detalles.map(c => {
-    const nota = Number(c.promedio);
-    const porcentaje = Math.max(0, Math.min(100, nota * 5));
-
-    const color = nota >= 14
-      ? '#16a34a'
-      : nota >= 11
-        ? '#d97706'
-        : '#dc2626';
-
-    const actividades = (c.evaluaciones || []).map(e => `
-      <div style="
-        display:flex;
-        justify-content:space-between;
-        gap:12px;
-        padding:5px 0;
-        border-bottom:1px solid #e2e8f0;
-        font-size:.82rem;
-        color:#475569;
-      ">
-        <span>${escaparRC(e.nombre)}</span>
-        <strong>${Number(e.nota).toFixed(2)} / 20</strong>
-      </div>
-    `).join('');
-
-    return `
-      <div style="margin-bottom:18px;">
-        <div style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          gap:12px;
-          margin-bottom:7px;
-        ">
-          <strong style="color:#334155;">
-            ${escaparRC(c.nombre)}
-          </strong>
-          <strong style="color:${color}; white-space:nowrap;">
-            ${nota.toFixed(2)} / 20
-          </strong>
-        </div>
-
-        <div style="
-          height:10px;
-          background:#e2e8f0;
-          border-radius:20px;
-          overflow:hidden;
-        ">
-          <div style="
-            height:100%;
-            width:${porcentaje}%;
-            background:${color};
-            border-radius:20px;
-          "></div>
-        </div>
-
-        <div style="
-          margin:9px 0 0 10px;
-          padding-left:10px;
-          border-left:2px solid #e2e8f0;
-        ">
-          ${actividades}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
 document.getElementById("btnGenerateRC")?.addEventListener("click", () => {
-  const groupId = document.getElementById("rcGroupSelect").value;
-  const studentCode = document.getElementById("rcStudentSelect").value;
-  const comment = document.getElementById("rcComment").value.trim();
-  const signature = state.signatures[currentTeacherCode];
-
+  const groupId = document.getElementById("rcGroupSelect").value; const studentCode = document.getElementById("rcStudentSelect").value;
+  const comment = document.getElementById("rcComment").value.trim(); const signature = state.signatures[currentTeacherCode];
   if (!groupId || !studentCode) { alert("Selecciona grupo y alumno."); return; }
   if (!comment) { alert("Escribe un comentario."); return; }
   if (!signature) { alert("⚠️ Sube tu firma primero."); return; }
-
-  const student = state.students[studentCode];
-  const teacher = state.teachers[currentTeacherCode];
-  const groupObj = state.groups.find(g => g.id === groupId);
+  const student = state.students[studentCode]; const teacher = state.teachers[currentTeacherCode];
+  const gradesObj = {}; let sum = 0, cnt = 0;
+  CRITERIOS.forEach(c => { const promC = promedioCriterio(studentCode, c.id); if (promC !== null) { gradesObj[c.id] = promC; sum += promC; cnt++; } else gradesObj[c.id] = "—"; });
+  const average = cnt > 0 ? (sum / cnt).toFixed(2) : "—";
   const date = new Date().toISOString().slice(0, 10);
+  const groupObj = state.groups.find(g => g.id === groupId);
   const ciclo = groupObj ? (groupObj.programa || groupObj.nombre) : "";
-
-// ========== EVALUACIONES: SOLO REGISTRO DEL DOCENTE ==========
-
-const gradeDetails = obtenerDetalleNotasRC(
-  studentCode,
-  groupId,
-  currentTeacherCode
-);
-
-const gradesObj = {};
-let sum = 0;
-let cnt = 0;
-
-gradeDetails.forEach(c => {
-  gradesObj[c.id] = c.promedio;
-  sum += c.promedio;
-  cnt++;
-});
-
-const average = cnt > 0
-  ? (sum / cnt).toFixed(2)
-  : "—";
-  // ========== ASISTENCIA ==========
-  const regs = typeof asistenciaDe === "function" ? asistenciaDe(studentCode) : [];
-  let presentes = 0, tardanzas = 0, ausencias = 0;
-  regs.forEach(r => {
-    const e = (r.estado || "").toLowerCase();
-    if (e === "present") presentes++;
-    else if (e === "late") tardanzas++;
-    else if (e === "absent") ausencias++;
-  });
-  const totalAsis = presentes + tardanzas + ausencias;
-  const pctAsistencia = totalAsis > 0 ? Math.round(((presentes + tardanzas) / totalAsis) * 100) : null;
-
-  // Guardamos todo en currentRcData (incluyendo asistencia)
-  currentRcData = {
-    id: "rc_" + Date.now(),
-    studentCode,
-    teacherCode: currentTeacherCode,
-    groupId,
-    groupName: groupObj ? groupObj.nombre : "—",
-    date,
-    comment,
-    grades: gradesObj,
-    gradeDetails,
-    average,
-    signature,
-    ciclo,
-    asistencia: {
-      porcentaje: pctAsistencia,
-      presentes,
-      tardanzas,
-      ausencias,
-      total: totalAsis
-    }
-  };
-  // Mostrar modal
-  document.getElementById("rcPreviewContainer")?.classList.add("visible");
-  document.getElementById("modalPreviewRC")?.classList.add("visible");
-
-  // Letterhead
-  const lhImg = document.getElementById("rcLetterheadImg");
-  if (state.letterhead) {
-    lhImg.src = state.letterhead;
-    lhImg.style.display = "inline-block";
-  } else {
-    lhImg.style.display = "none";
-  }
-
-  // Generalidades
+  currentRcData = { id: "rc_" + Date.now(), studentCode, teacherCode: currentTeacherCode, date, comment, grades: gradesObj, average, signature, ciclo };
+  const preview = document.getElementById("rcPreviewContainer"); preview.classList.add("visible");
+document.getElementById("modalPreviewRC")?.classList.add("visible");
+  const lhImg = document.getElementById("rcLetterheadImg"); if (state.letterhead) { lhImg.src = state.letterhead; lhImg.style.display = "inline-block"; } else lhImg.style.display = "none";
   document.getElementById("rcDate").textContent = formatearFecha(date);
   document.getElementById("rcStudentName").textContent = student.nombre;
   document.getElementById("rcStudentUser").textContent = studentCode;
-  document.getElementById("rcStudentGroup").textContent = groupObj ? groupObj.nombre : "—";
+  document.getElementById("rcStudentGroup").textContent = getStudentGroups(studentCode).map(g => g.nombre).join(", ") || "—";
   document.getElementById("rcStudentProgram").textContent = student.programa || "—";
   document.getElementById("rcTeacherName").textContent = teacher.nombre;
   document.getElementById("rcCommentDisplay").textContent = comment;
-  document.getElementById("rcSignatureImg").src = signature;
-  document.getElementById("rcSignatureImg").style.display = "block";
+  document.getElementById("rcSignatureImg").src = signature; document.getElementById("rcSignatureImg").style.display = "block";
   document.getElementById("rcTeacherSignatureName").textContent = teacher.nombre;
-
-  // Estado académico
+  document.getElementById("rcAverage").textContent = average;
   const est = getRcEstado(currentRcData);
   document.getElementById("rcStatusBanner").className = "rc-status-banner " + est.clase;
   document.getElementById("rcStatusValue").textContent = est.texto;
-
-  // ===== Cuadro Asistencia =====
-  const pctEl = document.getElementById("rcAsistenciaPct");
-  const barEl = document.getElementById("rcAsistenciaBar");
-  const estadoAsisEl = document.getElementById("rcAsistEstado");
-
-  if (pctAsistencia !== null) {
-    pctEl.textContent = pctAsistencia + "%";
-    barEl.style.width = pctAsistencia + "%";
-    document.getElementById("rcAsistPresentes").textContent = presentes;
-    document.getElementById("rcAsistTardanzas").textContent = tardanzas;
-    document.getElementById("rcAsistAusencias").textContent = ausencias;
-
-    if (pctAsistencia >= 90) {
-      estadoAsisEl.textContent = "Excelente";
-      estadoAsisEl.style.background = "#dcfce7";
-      estadoAsisEl.style.color = "#15803d";
-    } else if (pctAsistencia >= 75) {
-      estadoAsisEl.textContent = "Buena asistencia";
-      estadoAsisEl.style.background = "#fef3c7";
-      estadoAsisEl.style.color = "#b45309";
-    } else {
-      estadoAsisEl.textContent = "Asistencia baja";
-      estadoAsisEl.style.background = "#fee2e2";
-      estadoAsisEl.style.color = "#b91c1c";
-    }
-  } else {
-    pctEl.textContent = "—";
-    barEl.style.width = "0%";
-    document.getElementById("rcAsistPresentes").textContent = "0";
-    document.getElementById("rcAsistTardanzas").textContent = "0";
-    document.getElementById("rcAsistAusencias").textContent = "0";
-    estadoAsisEl.textContent = "Sin registros";
-    estadoAsisEl.style.background = "#f1f5f9";
-    estadoAsisEl.style.color = "#64748b";
-  }
-
-  // ===== Cuadro Evaluaciones =====
-  const evalPromEl = document.getElementById("rcEvalPromedio");
-  const evalBarEl = document.getElementById("rcEvalBar");
-  const evalEstadoEl = document.getElementById("rcEvalEstado");
-
-  if (average !== "—") {
-    evalPromEl.textContent = average + " / 20";
-    const pctEval = Math.min(100, (parseFloat(average) / 20) * 100);
-    evalBarEl.style.width = pctEval + "%";
-    document.getElementById("rcEvalCount").textContent = cnt;
-
-    if (parseFloat(average) >= 14) {
-      evalEstadoEl.textContent = "Aprobado";
-      evalEstadoEl.style.background = "#dcfce7";
-      evalEstadoEl.style.color = "#15803d";
-    } else {
-      evalEstadoEl.textContent = "Desaprobado";
-      evalEstadoEl.style.background = "#fee2e2";
-      evalEstadoEl.style.color = "#b91c1c";
-    }
-  } else {
-    evalPromEl.textContent = "—";
-    evalBarEl.style.width = "0%";
-    document.getElementById("rcEvalCount").textContent = "0";
-    evalEstadoEl.textContent = "Sin notas";
-    evalEstadoEl.style.background = "#f1f5f9";
-    evalEstadoEl.style.color = "#64748b";
-  }
-   // ===== DESGLOSE DE CRITERIOS Y ACTIVIDADES =====
-  const detallesEl = document.getElementById('rcEvalDetailsContent');
-  if (detallesEl) {
-    detallesEl.innerHTML = renderRcEvalDetailsHTML(currentRcData.gradeDetails);
-  }
-  const detallesCont = document.getElementById('rcEvalDetails');
-  if (detallesCont) {
-    detallesCont.style.display = 'block';
-  }
+  const tbody = document.getElementById("rcGradesBody"); tbody.innerHTML = "";
+  CRITERIOS.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${c.nombre}</td><td style="text-align:right;"><strong>${gradesObj[c.id]}</strong></td>`; tbody.appendChild(tr); });
+  const ctx = document.getElementById("rcChart").getContext('2d'); if (rcChartInstance) rcChartInstance.destroy();
+  rcChartInstance = new Chart(ctx, { type: 'bar', data: { labels: CRITERIOS.map(c => c.nombre), datasets: [{ label: 'Nota', data: CRITERIOS.map(c => gradesObj[c.id] === "—" ? 0 : gradesObj[c.id]), backgroundColor: CRITERIOS.map(c => c.color), borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 20 } } } });
 });
 let lastRcNotifyStudent = null;
 
