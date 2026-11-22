@@ -5389,15 +5389,12 @@ function buildReportCardHTML(rc) {
       <p>${comment}</p>
     </div>
 
-    <div class="rc-footer">
-      <div></div>
-      <div class="rc-signature">
-        ${rc.signature
-          ? `<img src="${rc.signature}">`
-          : ''}
-        <p>${escapeHTMLRC(teacher.nombre || '')}</p>
-      </div>
-    </div>
+   <div class="rc-footer" style="justify-content:center;">
+  <div class="rc-signature" style="text-align:center;">
+    ${rc.signature ? `<img src="${rc.signature}" style="max-height:80px;display:block;margin:0 auto 10px;">` : ""}
+    <p>${teacher.nombre}</p>
+  </div>
+</div>
   `;
 }
 
