@@ -4948,15 +4948,459 @@ function renderStudentMatriculaCursos() {
    REPORT CARD HELPERS
    ============================================================ */
 function getRcEstado(rc) { const avg = parseFloat(rc.average); if (isNaN(avg)) return { texto: "Pendiente", clase: "" }; if (avg >= 14) return { texto: "Aprobado", clase: "aprobado" }; return { texto: "Desaprobado", clase: "desaprobado" }; }
-function buildReportCardHTML(rc) {
-  const student = state.students[rc.studentCode]; const teacher = state.teachers[rc.teacherCode];
-  const groups = getStudentGroups(rc.studentCode).map(g => g.nombre).join(", ") || "Sin grupo";
-  let gradesHtml = "";
-  CRITERIOS.forEach(c => { const promC = rc.grades[c.id] !== undefined ? rc.grades[c.id] : "—"; gradesHtml += `<tr><td>${c.nombre}</td><td style="text-align:right;"><strong>${promC}</strong></td></tr>`; });
-  let letterheadHtml = ""; if (state.letterhead) letterheadHtml = `<div class="rc-letterhead"><img src="${state.letterhead}"></div>`;
-  const est = getRcEstado(rc);
-  return `${letterheadHtml}<div class="rc-header"><div><h2>Report Card</h2><p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p><p>Por el Prof. Juan Valenzuela M.</p></div><div style="text-align:right;"><p><strong>Fecha:</strong></p><p>${formatearFecha(rc.date)}</p></div></div><div class="rc-student-info"><p><strong>Alumno:</strong> ${student.nombre}</p><p><strong>Usuario:</strong> ${rc.studentCode}</p><p><strong>Grupo:</strong> ${groups}</p><p><strong>Programa:</strong> ${student.programa || "—"}</p><p><strong>Docente:</strong> ${teacher.nombre}</p></div><div class="rc-status-banner ${est.clase}"><span class="rc-status-label">Estado académico:</span><span class="rc-status-value">${est.texto}</span></div><div class="tabla-wrap" style="box-shadow:none; border:1px solid var(--borde); margin-bottom:20px;"><table style="min-width:100%;"><thead><tr><th>Criterio</th><th style="text-align:right;">Nota</th></tr></thead><tbody>${gradesHtml}</tbody><tfoot><tr style="background:#f1f5f9; font-weight:800;"><td style="text-align:right;">Promedio General:</td><td style="text-align:right;">${rc.average}</td></tr></tfoot></table></div><div class="rc-comment-box"><h4>Teacher's Comment</h4><p>${rc.comment}</p></div><div class="rc-footer"><div></div><div class="rc-signature">${rc.signature ? `<img src="${rc.signature}">` : ""}<p>${teacher.nombre}</p></div></div>`;
+
+/* ============================================================
+   REPORT CARD — DATOS DESDE LA LIBRETA DEL DOCENTE
+   ============================================================ */
+
+function obtenerNotasRC(studentCode, groupId) {
+  const eventos = [];
+  const tipos = [
+    'class_participation',
+    'online_workbook',
+    'online_homework',
+    'readers',
+    'writing',
+    'speaking',
+    'final_exam',
+    'intl_exam'
+  ];
+
+  // Mismo origen de eventos que la pestaña de calificaciones.
+  Object.keys(state.calendarEvents || {}).forEach(fecha => {
+    (state.calendarEvents[fecha] || []).forEach(ev => {
+      if (String(ev.grupoId) !== String(groupId)) return;
+
+      const personalizado = (state.customCriterios || [])
+        .some(c => c.id === ev.tipo);
+
+      if (!tipos.includes(ev.tipo) && !personalizado) return;
+
+      eventos.push({
+        fecha,
+        id: ev.id,
+        tipo: notasCritNormalizado(ev.tipo),
+        nombre: ev.nombre || ev.tipo
+      });
+    });
+  });
+
+  eventos.sort((a, b) =>
+    a.fecha.localeCompare(b.fecha)
+  );
+
+  const criterios = [
+    ...(CRITERIOS || []),
+    ...(state.customCriterios || [])
+  ];
+
+  const resultado = {};
+
+  criterios.forEach(c => {
+    resultado[c.id] = {
+      id: c.id,
+      nombre: c.nombre,
+      evaluaciones: [],
+      promedio: null
+    };
+  });
+
+  const vistos = new Set();
+
+  eventos.forEach((ev, index) => {
+    const criterioId = ev.tipo;
+
+    if (!resultado[criterioId]) {
+      resultado[criterioId] = {
+        id: criterioId,
+        nombre: ev.nombre || criterioId,
+        evaluaciones: [],
+        promedio: null
+      };
+    }
+
+    // Este ID es el mismo que utiliza la libreta del docente.
+    const columna = {
+      id: ev.id,
+      fecha: ev.fecha,
+      tipo: ev.tipo,
+      nombre: ev.nombre
+    };
+
+    const assignmentId = notasAsgId(
+      groupId,
+      columna,
+      index + 1
+    );
+
+    // Evitar duplicados de una misma columna.
+    if (vistos.has(assignmentId)) return;
+    vistos.add(assignmentId);
+
+    const valor = state.grades?.[studentCode]?.[assignmentId];
+
+    const nota = (
+      valor !== undefined &&
+      valor !== null &&
+      valor !== '' &&
+      Number.isFinite(Number(valor))
+    ) ? Number(valor) : null;
+
+    resultado[criterioId].evaluaciones.push({
+      id: assignmentId,
+      fecha: ev.fecha,
+      nombre: ev.nombre,
+      nota
+    });
+  });
+
+  // Promedio por criterio
+  let sumaPromedios = 0;
+  let criteriosEvaluados = 0;
+
+  Object.values(resultado).forEach(c => {
+    const notas = c.evaluaciones
+      .map(e => e.nota)
+      .filter(n => n !== null);
+
+    c.promedio = notas.length
+      ? Number((
+          notas.reduce((s, n) => s + n, 0) / notas.length
+        ).toFixed(2))
+      : null;
+
+    if (c.promedio !== null) {
+      sumaPromedios += c.promedio;
+      criteriosEvaluados++;
+    }
+  });
+
+  return {
+    criterios: Object.values(resultado)
+      .filter(c => c.evaluaciones.length > 0),
+    promedio: criteriosEvaluados
+      ? Number((sumaPromedios / criteriosEvaluados).toFixed(2))
+      : null,
+    totalEvaluaciones: eventos.length,
+    evaluacionesConNota: eventos.filter(ev => {
+      const idx = eventos.indexOf(ev);
+      const id = notasAsgId(groupId, ev, idx + 1);
+      const v = state.grades?.[studentCode]?.[id];
+      return v !== undefined && v !== null && v !== '';
+    }).length
+  };
 }
+
+
+/* ============================================================
+   REPORT CARD — ÍNDICE DE ASISTENCIA DEL ESTUDIANTE
+   ============================================================ */
+
+function obtenerAsistenciaRC(studentCode, groupId) {
+  // Las fechas de clase se obtienen de la calendarización.
+  const clases = getCalEventsForGroup(groupId, false);
+
+  // Una sesión por fecha, igual que la tabla de asistencia.
+  const porFecha = new Map();
+
+  clases.forEach(clase => {
+    if (!porFecha.has(clase.fecha)) {
+      porFecha.set(clase.fecha, clase);
+    }
+  });
+
+  const resumen = {
+    presentes: 0,
+    tardanzas: 0,
+    ausentes: 0,
+    justificadas: 0,
+    sinRegistro: 0,
+    sesiones: porFecha.size,
+    consideradas: 0,
+    porcentaje: 0
+  };
+
+  porFecha.forEach(clase => {
+    const registro = state.asistenciaDiaria?.[
+      groupId + '_' + clase.fecha
+    ];
+
+    const estado = registro?.registros?.[studentCode];
+
+    // No inferir una falta cuando no existe marca.
+    if (!estado) {
+      resumen.sinRegistro++;
+      return;
+    }
+
+    if (estado === 'present') {
+      resumen.presentes++;
+      resumen.consideradas++;
+    } else if (estado === 'late') {
+      resumen.tardanzas++;
+      resumen.consideradas++;
+    } else if (estado === 'absent') {
+      resumen.ausentes++;
+      resumen.consideradas++;
+    } else if (estado === 'justified') {
+      resumen.justificadas++;
+      // La falta justificada no reduce el porcentaje.
+    }
+  });
+
+  const asistencias = resumen.presentes + resumen.tardanzas;
+
+  resumen.porcentaje = resumen.consideradas
+    ? Number((
+        asistencias / resumen.consideradas * 100
+      ).toFixed(1))
+    : 0;
+
+  return resumen;
+}
+
+ 
+function escapeHTMLRC(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function buildReportCardHTML(rc) {
+  const student = state.students?.[rc.studentCode] || {};
+  const teacher = state.teachers?.[rc.teacherCode] || {};
+
+  const group = (state.groups || []).find(
+    g => String(g.id) === String(rc.groupId)
+  );
+
+  const groupName = rc.groupName || group?.nombre || '—';
+  const promedio = Number(rc.average);
+  const averageText = Number.isFinite(promedio)
+    ? promedio.toFixed(2)
+    : '—';
+
+  const est = getRcEstado(rc);
+
+  let letterheadHtml = state.letterhead
+    ? `<div class="rc-letterhead">
+         <img src="${state.letterhead}">
+       </div>`
+    : '';
+
+  // Barras de rendimiento académico
+  const criteriosHtml = (rc.gradeDetails?.criterios || [])
+    .map(c => {
+      const nota = c.promedio;
+      const porcentaje = nota === null
+        ? 0
+        : Math.max(0, Math.min(100, nota / 20 * 100));
+
+      const evaluacionesHtml = c.evaluaciones.map(ev => `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          padding:5px 8px;
+          border-bottom:1px solid #e5e7eb;
+          font-size:12px;
+        ">
+          <span>
+            ${escapeHTMLRC(ev.nombre)}
+            <small style="color:#64748b;">
+              ${escapeHTMLRC(ev.fecha)}
+            </small>
+          </span>
+          <strong>${ev.nota === null ? 'Pendiente' : ev.nota.toFixed(2)}</strong>
+        </div>
+      `).join('');
+
+      return `
+        <div style="margin-bottom:15px;">
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            font-weight:700;
+            margin-bottom:5px;
+          ">
+            <span>${escapeHTMLRC(c.nombre)}</span>
+            <span>${nota === null ? '—' : nota.toFixed(2) + '/20'}</span>
+          </div>
+
+          <div style="
+            height:10px;
+            background:#e5e7eb;
+            border-radius:20px;
+            overflow:hidden;
+          ">
+            <div style="
+              width:${porcentaje}%;
+              height:100%;
+              background:#2563eb;
+              border-radius:20px;
+            "></div>
+          </div>
+
+          <div style="
+            margin-top:7px;
+            border:1px solid #e5e7eb;
+            border-radius:7px;
+            overflow:hidden;
+          ">
+            ${evaluacionesHtml || `
+              <div style="padding:7px;font-size:12px;color:#64748b;">
+                Sin evaluaciones registradas
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  // Gráfico circular de asistencia
+  const asistencia = rc.asistencia || {};
+  const porcentajeAsistencia = Number(asistencia.porcentaje) || 0;
+
+  const circular = `
+    <div style="
+      width:142px;
+      height:142px;
+      border-radius:50%;
+      background:conic-gradient(
+        #16a34a ${porcentajeAsistencia}%,
+        #e5e7eb ${porcentajeAsistencia}% 100%
+      );
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin:auto;
+    ">
+      <div style="
+        width:108px;
+        height:108px;
+        border-radius:50%;
+        background:white;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+      ">
+        <strong style="font-size:25px;color:#166534;">
+          ${porcentajeAsistencia.toFixed(1)}%
+        </strong>
+        <span style="font-size:11px;color:#64748b;">
+          Asistencia
+        </span>
+      </div>
+    </div>
+  `;
+
+  const comment = escapeHTMLRC(rc.comment)
+    .replace(/\n/g, '<br>');
+
+  return `
+    ${letterheadHtml}
+
+    <div class="rc-header">
+      <div>
+        <h2>Report Card</h2>
+        <p>Escuela de Inglés y Fonética Clínica Jotavalenzuela</p>
+        <p>Por el Prof. Juan Valenzuela M.</p>
+      </div>
+      <div style="text-align:right;">
+        <strong>Fecha:</strong>
+        <p>${formatearFecha(rc.date)}</p>
+      </div>
+    </div>
+
+    <div class="rc-student-info">
+      <p><strong>Alumno:</strong> ${escapeHTMLRC(student.nombre)}</p>
+      <p><strong>Usuario:</strong> ${escapeHTMLRC(rc.studentCode)}</p>
+      <p><strong>Grupo:</strong> ${escapeHTMLRC(groupName)}</p>
+      <p><strong>Programa:</strong> ${escapeHTMLRC(student.programa || '—')}</p>
+      <p><strong>Docente:</strong> ${escapeHTMLRC(teacher.nombre || rc.teacherCode)}</p>
+    </div>
+
+    <div class="rc-status-banner ${est.clase}">
+      <span>Estado académico:</span>
+      <strong>${est.texto}</strong>
+    </div>
+
+    <div style="
+      display:grid;
+      grid-template-columns:1fr 190px;
+      gap:20px;
+      align-items:start;
+      margin-bottom:22px;
+    ">
+      <div>
+        <h3 style="color:#1e3a8a;margin:0 0 14px;">
+          Rendimiento académico
+        </h3>
+
+        ${criteriosHtml || `
+          <p style="color:#64748b;">No hay calificaciones registradas.</p>
+        `}
+
+        <div style="
+          padding:12px;
+          background:#eff6ff;
+          border-radius:8px;
+          display:flex;
+          justify-content:space-between;
+          font-weight:800;
+        ">
+          <span>Promedio general</span>
+          <span>${averageText}</span>
+        </div>
+      </div>
+
+      <div style="
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:13px 8px;
+        text-align:center;
+      ">
+        <h3 style="font-size:15px;color:#1e3a8a;margin:0 0 12px;">
+          Asistencia
+        </h3>
+
+        ${circular}
+
+        <div style="font-size:11px;text-align:left;margin:14px 5px 0;line-height:1.8;">
+          <div>🟢 Presentes: <strong>${asistencia.presentes || 0}</strong></div>
+          <div>🟡 Tardanzas: <strong>${asistencia.tardanzas || 0}</strong></div>
+          <div>🔴 Ausencias: <strong>${asistencia.ausentes || 0}</strong></div>
+          <div>🔵 Justificadas: <strong>${asistencia.justificadas || 0}</strong></div>
+          <div style="color:#64748b;">
+            Sin marca: ${asistencia.sinRegistro || 0}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rc-comment-box">
+      <h4>Teacher's Comment</h4>
+      <p>${comment}</p>
+    </div>
+
+    <div class="rc-footer">
+      <div></div>
+      <div class="rc-signature">
+        ${rc.signature
+          ? `<img src="${rc.signature}">`
+          : ''}
+        <p>${escapeHTMLRC(teacher.nombre || '')}</p>
+      </div>
+    </div>
+  `;
+}
+
 function mostrarReportCardModal(rc) {
   const modal = document.createElement("div"); modal.className = "modal-overlay visible";
   modal.innerHTML = `<div class="modal-box" style="max-width:800px; text-align:left; padding:20px;"><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button><div class="rc-preview-container visible" style="box-shadow:none; border:none; padding:0; margin:0;">${buildReportCardHTML(rc)}</div><div style="text-align:right; margin-top:20px;"><button class="btn btn-slate" onclick="this.closest('.modal-overlay').remove()">Cerrar</button></div></div>`;
@@ -5434,41 +5878,119 @@ document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
   if (!groupId) return; const group = state.groups.find(g => g.id === groupId); if (!group) return;
   group.studentCodes.forEach(code => { const s = state.students[code]; if (s) { const opt = document.createElement("option"); opt.value = code; opt.textContent = s.nombre; selStudent.appendChild(opt); } });
 });
+
 document.getElementById("btnGenerateRC")?.addEventListener("click", () => {
-  const groupId = document.getElementById("rcGroupSelect").value; const studentCode = document.getElementById("rcStudentSelect").value;
-  const comment = document.getElementById("rcComment").value.trim(); const signature = state.signatures[currentTeacherCode];
-  if (!groupId || !studentCode) { alert("Selecciona grupo y alumno."); return; }
-  if (!comment) { alert("Escribe un comentario."); return; }
-  if (!signature) { alert("⚠️ Sube tu firma primero."); return; }
-  const student = state.students[studentCode]; const teacher = state.teachers[currentTeacherCode];
-  const gradesObj = {}; let sum = 0, cnt = 0;
-  CRITERIOS.forEach(c => { const promC = promedioCriterio(studentCode, c.id); if (promC !== null) { gradesObj[c.id] = promC; sum += promC; cnt++; } else gradesObj[c.id] = "—"; });
-  const average = cnt > 0 ? (sum / cnt).toFixed(2) : "—";
+
+  const groupId = document.getElementById("rcGroupSelect")?.value;
+  const studentCode = document.getElementById("rcStudentSelect")?.value;
+  const comment = document.getElementById("rcComment")?.value.trim();
+  const signature = state.signatures?.[currentTeacherCode];
+
+  if (!groupId || !studentCode) {
+    alert("Selecciona grupo y alumno.");
+    return;
+  }
+
+  if (!comment) {
+    alert("Escribe un comentario.");
+    return;
+  }
+
+  if (!signature) {
+    alert("⚠️ Sube tu firma primero.");
+    return;
+  }
+
+  const groupObj = (state.groups || []).find(
+    g => String(g.id) === String(groupId)
+  );
+
+  if (!groupObj || !(groupObj.studentCodes || []).includes(studentCode)) {
+    alert("El alumno no pertenece al grupo seleccionado.");
+    return;
+  }
+
+  const student = state.students?.[studentCode];
+  const teacher = state.teachers?.[currentTeacherCode];
+
+  if (!student || !teacher) {
+    alert("No se encontraron los datos del alumno o docente.");
+    return;
+  }
+
+  // 1. EXTRAER NOTAS DEL GRUPO SELECCIONADO
+  const gradeDetails = obtenerNotasRC(studentCode, groupId);
+
+  if (!gradeDetails || !gradeDetails.totalEvaluaciones) {
+    alert("Este grupo todavía no tiene evaluaciones calendarizadas.");
+    return;
+  }
+
+  if (!gradeDetails.evaluacionesConNota) {
+    alert("El alumno todavía no tiene calificaciones registradas.");
+    return;
+  }
+
+  // 2. EXTRAER ASISTENCIA DEL MISMO GRUPO
+  const asistencia = obtenerAsistenciaRC(studentCode, groupId);
+
+  // 3. PREPARAR PROMEDIOS POR CRITERIO
+  const gradesObj = {};
+
+  gradeDetails.criterios.forEach(c => {
+    gradesObj[c.id] = c.promedio !== null
+      ? c.promedio
+      : "—";
+  });
+
+  const average = gradeDetails.promedio !== null
+    ? gradeDetails.promedio.toFixed(2)
+    : "—";
+
+  // 4. DATOS DEL REPORT CARD
   const date = new Date().toISOString().slice(0, 10);
-  const groupObj = state.groups.find(g => g.id === groupId);
-  const ciclo = groupObj ? (groupObj.programa || groupObj.nombre) : "";
-  currentRcData = { id: "rc_" + Date.now(), studentCode, teacherCode: currentTeacherCode, date, comment, grades: gradesObj, average, signature, ciclo };
-  const preview = document.getElementById("rcPreviewContainer"); preview.classList.add("visible");
-document.getElementById("modalPreviewRC")?.classList.add("visible");
-  const lhImg = document.getElementById("rcLetterheadImg"); if (state.letterhead) { lhImg.src = state.letterhead; lhImg.style.display = "inline-block"; } else lhImg.style.display = "none";
-  document.getElementById("rcDate").textContent = formatearFecha(date);
-  document.getElementById("rcStudentName").textContent = student.nombre;
-  document.getElementById("rcStudentUser").textContent = studentCode;
-  document.getElementById("rcStudentGroup").textContent = getStudentGroups(studentCode).map(g => g.nombre).join(", ") || "—";
-  document.getElementById("rcStudentProgram").textContent = student.programa || "—";
-  document.getElementById("rcTeacherName").textContent = teacher.nombre;
-  document.getElementById("rcCommentDisplay").textContent = comment;
-  document.getElementById("rcSignatureImg").src = signature; document.getElementById("rcSignatureImg").style.display = "block";
-  document.getElementById("rcTeacherSignatureName").textContent = teacher.nombre;
-  document.getElementById("rcAverage").textContent = average;
-  const est = getRcEstado(currentRcData);
-  document.getElementById("rcStatusBanner").className = "rc-status-banner " + est.clase;
-  document.getElementById("rcStatusValue").textContent = est.texto;
-  const tbody = document.getElementById("rcGradesBody"); tbody.innerHTML = "";
-  CRITERIOS.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${c.nombre}</td><td style="text-align:right;"><strong>${gradesObj[c.id]}</strong></td>`; tbody.appendChild(tr); });
-  const ctx = document.getElementById("rcChart").getContext('2d'); if (rcChartInstance) rcChartInstance.destroy();
-  rcChartInstance = new Chart(ctx, { type: 'bar', data: { labels: CRITERIOS.map(c => c.nombre), datasets: [{ label: 'Nota', data: CRITERIOS.map(c => gradesObj[c.id] === "—" ? 0 : gradesObj[c.id]), backgroundColor: CRITERIOS.map(c => c.color), borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 20 } } } });
+
+  currentRcData = {
+    id: "rc_" + Date.now(),
+
+    studentCode,
+    teacherCode: currentTeacherCode,
+
+    groupId,
+    groupName: groupObj.nombre || "—",
+    ciclo: groupObj.programa || groupObj.nombre || "",
+
+    date,
+    comment,
+    signature,
+
+    grades: gradesObj,
+    gradeDetails,
+    average,
+
+    asistencia,
+
+    fechaGeneracion: new Date().toISOString()
+  };
+
+  // 5. MOSTRAR EL MISMO HTML EN LA VISTA PREVIA
+  const printable = document.getElementById("rcPrintableArea");
+  const preview = document.getElementById("rcPreviewContainer");
+
+  if (!printable || !preview) {
+    alert("No se encontró el área de vista previa del Report Card.");
+    currentRcData = null;
+    return;
+  }
+
+  printable.innerHTML = buildReportCardHTML(currentRcData);
+
+  preview.classList.add("visible");
+  document.getElementById("modalPreviewRC")?.classList.add("visible");
+
+  console.log("✅ Report Card generado:", currentRcData);
 });
+
 let lastRcNotifyStudent = null;
 
 function normalizarTelefonoWA(tel) {
