@@ -1279,8 +1279,21 @@ body.en-dashboard .slider-flecha, body.en-dashboard .slider-dots { display: none
     </div>
   </div>
 </div>
-        </div>
+
+     </div> <!-- cierra #rcPrintableArea -->
+
+      <div class="tform-acciones rc-actions-print" style="margin-top:30px; justify-content:flex-end; border-top:1px solid #e2e8f0; padding-top:20px;">
+        <button type="button" class="btn btn-slate" id="btnCancelarRC">Cancelar</button>
+        <button type="button" class="btn btn-verde" id="btnConfirmSendRC">Confirmar RC</button>
+      </div>
+    </div> <!-- cierra #rcPreviewContainer -->
+  </div> <!-- cierra .modal-box -->
+</div> <!-- cierra #modalPreviewRC -->
+
+        </div> <!-- cierra #dpanel-reportcard -->
+
         <div class="panel" id="dpanel-historial">
+     
           <h4 style="color:var(--morado);margin-bottom:14px;font-size:1rem;font-weight:800;">📚 Historial de Reportes de Notas</h4>
           <p style="color:var(--gris);font-size:.88rem;margin-bottom:18px;">Resumen de todos los Report Cards que has generado.</p>
           <div id="dHistorialRCLista"></div>
