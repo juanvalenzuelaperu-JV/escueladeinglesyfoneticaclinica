@@ -21158,8 +21158,7 @@ if (correcta === -1) {
      3. LECTURA ROBUSTA (busca en 3 esquemas de ID + examResults)
      ────────────────────────────────────────────────────────── */
   window.getNotaDeAlumno = function (studentCode, gid, col) {
-    if (!state.grades || !state.grades[studentCode]) return null;
-    const grades = state.grades[studentCode];
+    const grades = (state.grades && state.grades[studentCode]) || {};
     const crit = window.notasCritNormalizado(col.tipo);
 
     // 1) ID canónico nuevo
@@ -21291,6 +21290,160 @@ if (correcta === -1) {
         });
       });
     });
+
+   
+/* ============================================================
+   REPORT CARD — EXTRACCIÓN DE CALIFICACIONES POR GRUPO
+   ============================================================ */
+
+window.obtenerDetalleNotasRC = function (studentCode, groupId) {
+  if (!studentCode || !groupId) {
+    return null;
+  }
+
+  const criterios = [
+    ...(CRITERIOS || []),
+    ...(state.customCriterios || [])
+  ];
+
+  const criteriosMap = {};
+
+  criterios.forEach(c => {
+    criteriosMap[c.id] = {
+      id: c.id,
+      nombre: c.nombre,
+      evaluaciones: [],
+      promedio: null
+    };
+  });
+
+  const tiposOficiales = [
+    'class_participation',
+    'online_workbook',
+    'online_homework',
+    'readers',
+    'writing',
+    'speaking',
+    'final_exam',
+    'intl_exam'
+  ];
+
+  const eventos = [];
+  const vistos = new Set();
+
+  Object.entries(state.calendarEvents || {}).forEach(([fecha, lista]) => {
+    (lista || []).forEach(ev => {
+
+      // Solo eventos del grupo seleccionado.
+      // No mezclar eventos sin grupo identificado.
+      if (String(ev.grupoId || '') !== String(groupId)) return;
+
+      const esPersonalizado =
+        (state.customCriterios || []).some(c => c.id === ev.tipo);
+
+      if (!tiposOficiales.includes(ev.tipo) && !esPersonalizado) {
+        return;
+      }
+
+      const criterioId = window.notasCritNormalizado(ev.tipo);
+
+      if (!criteriosMap[criterioId]) {
+        const personalizado = criterios.find(c => c.id === criterioId);
+
+        criteriosMap[criterioId] = {
+          id: criterioId,
+          nombre: personalizado?.nombre || criterioId,
+          evaluaciones: [],
+          promedio: null
+        };
+      }
+
+      // Evitar duplicar el mismo evento, sin eliminar
+      // evaluaciones distintas que tengan el mismo nombre.
+      const clave = ev.id
+        ? `${groupId}_${ev.id}`
+        : `${groupId}_${fecha}_${ev.tipo}_${ev.nombre || ''}`;
+
+      if (vistos.has(clave)) return;
+      vistos.add(clave);
+
+      const columna = {
+        id: ev.id,
+        fecha,
+        tipo: ev.tipo,
+        nombre: ev.nombre || ev.tipo
+      };
+
+      const info = window.getNotaDeAlumno(
+        studentCode,
+        groupId,
+        columna
+      );
+
+      eventos.push({
+        id: ev.id || clave,
+        fecha,
+        nombre: ev.nombre || ev.tipo,
+        criterioId,
+        grupoId: groupId,
+        nota: info && Number.isFinite(info.nota)
+          ? info.nota
+          : null
+      });
+    });
+  });
+
+  // Orden cronológico
+  eventos.sort((a, b) =>
+    String(a.fecha).localeCompare(String(b.fecha))
+  );
+
+  // Distribuir evaluaciones por criterio
+  eventos.forEach(ev => {
+    criteriosMap[ev.criterioId].evaluaciones.push(ev);
+  });
+
+  // Calcular promedio de cada criterio
+  let sumaPromedios = 0;
+  let cantidadCriterios = 0;
+
+  Object.values(criteriosMap).forEach(c => {
+    const notas = c.evaluaciones
+      .map(e => e.nota)
+      .filter(n => Number.isFinite(n));
+
+    c.promedio = notas.length
+      ? Number((
+          notas.reduce((s, n) => s + n, 0) / notas.length
+        ).toFixed(2))
+      : null;
+
+    if (c.promedio !== null) {
+      sumaPromedios += c.promedio;
+      cantidadCriterios++;
+    }
+  });
+
+  // Promedio general: media simple de los criterios evaluados
+  const promedioGeneralRC = cantidadCriterios
+    ? Number((sumaPromedios / cantidadCriterios).toFixed(2))
+    : null;
+
+  const resultado = {
+    studentCode,
+    groupId,
+    criterios: Object.values(criteriosMap),
+    totalEvaluaciones: eventos.length,
+    evaluacionesConNota: eventos.filter(e => e.nota !== null).length,
+    promedio: promedioGeneralRC,
+    fechaGeneracion: new Date().toISOString()
+  };
+
+  return resultado;
+};
+
+console.log('✅ Extractor de calificaciones del Report Card listo');
+
 
     // ── Timeline ──
     timeline.innerHTML = '';
