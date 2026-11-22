@@ -5605,64 +5605,148 @@ document.getElementById("rcGroupSelect").addEventListener("change", (e) => {
    REPORT CARD — EXTRACCIÓN EXCLUSIVA DE NOTAS DEL DOCENTE
    ============================================================ */
 
+
 function obtenerDetalleNotasRC(studentCode, groupId, teacherCode) {
   const grades = (state.grades || {})[studentCode] || {};
   const assignments = state.assignments || [];
+  const exams = state.exams || [];
+
+  const normalizarCriterio = tipo =>
+    (tipo === 'online_workbook' || tipo === 'online_homework')
+      ? 'online_homework'
+      : tipo;
 
   const criterios = [
     ...(CRITERIOS || []),
     ...(state.customCriterios || [])
   ];
 
-  // Evitar criterios duplicados.
   const criteriosUnicos = [
     ...new Map(criterios.map(c => [c.id, c])).values()
   ];
 
-  const resultado = [];
+  // Recupera una nota sin depender de un único formato de ID.
+  function obtenerNotaAsignacion(a) {
+    const criterio = normalizarCriterio(a.criterio);
+    const fecha = a.fechaInicio || a.fecha || '';
 
-  criteriosUnicos.forEach(criterio => {
-    const evaluaciones = assignments.filter(a => {
-      const criterioAsignado =
-        a.criterio === criterio.id ||
+    const posiblesIds = [
+      a.id,
+      a.calendarEventId
+        ? `asg_${groupId}_${a.calendarEventId}`
+        : null,
+      fecha
+        ? `asg_${groupId}_${fecha}_${criterio}`
+        : null
+    ].filter(Boolean);
+
+    // IDs exactos y formatos conocidos.
+    for (const id of posiblesIds) {
+      const valor = grades[id];
+
+      if (
+        valor !== undefined &&
+        valor !== null &&
+        valor !== '' &&
+        Number.isFinite(Number(valor)) &&
+        Number(valor) >= 0 &&
+        Number(valor) <= 20
+      ) {
+        return Number(valor);
+      }
+    }
+
+    // Compatibilidad con IDs antiguos que llevan índice.
+    if (fecha) {
+      for (let n = 1; n <= 20; n++) {
+        const idAntiguo =
+          `asg_${groupId}_${fecha}_${criterio}_${n}`;
+
+        const valor = grades[idAntiguo];
+
+        if (
+          valor !== undefined &&
+          valor !== null &&
+          valor !== '' &&
+          Number.isFinite(Number(valor)) &&
+          Number(valor) >= 0 &&
+          Number(valor) <= 20
+        ) {
+          return Number(valor);
+        }
+      }
+    }
+
+    // Recuperar también notas de exámenes online.
+    const examen = exams.find(ex =>
+      (
+        ex.assignmentId === a.id ||
+        ex.id === a.examId ||
         (
-          criterio.id === 'online_homework' &&
-          a.criterio === 'online_workbook'
-        );
+          a.calendarEventId &&
+          ex.calendarEventId === a.calendarEventId
+        )
+      ) &&
+      (!ex.grupoId || ex.grupoId === groupId)
+    );
 
-      // Exclusivamente asignaciones del grupo seleccionado.
-      if (!criterioAsignado || a.grupoId !== groupId) return false;
+    if (examen) {
+      const resultado = state.examResults?.[examen.id]?.[studentCode];
+      const nota = resultado?.nota;
 
-      // Si la asignación identifica a un docente, debe coincidir.
-      if (a.teacherCode && a.teacherCode !== teacherCode) return false;
-
-      // La calificación debe existir en el registro del docente.
-      const nota = grades[a.id];
-
-      return nota !== undefined &&
+      if (
+        nota !== undefined &&
         nota !== null &&
         nota !== '' &&
         Number.isFinite(Number(nota)) &&
         Number(nota) >= 0 &&
-        Number(nota) <= 20;
+        Number(nota) <= 20
+      ) {
+        return Number(nota);
+      }
+    }
+
+    return null;
+  }
+
+  const resultado = [];
+
+  criteriosUnicos.forEach(criterio => {
+    const evaluaciones = [];
+
+    assignments.forEach(a => {
+      if (a.grupoId !== groupId) return;
+
+      // Si la asignación tiene docente, comprobar que corresponda.
+      if (a.teacherCode && a.teacherCode !== teacherCode) return;
+
+      if (
+        normalizarCriterio(a.criterio) !==
+        normalizarCriterio(criterio.id)
+      ) return;
+
+      const nota = obtenerNotaAsignacion(a);
+
+      if (nota === null) return;
+
+      evaluaciones.push({
+        id: a.id,
+        nombre: a.nombre || criterio.nombre,
+        nota
+      });
     });
 
     if (!evaluaciones.length) return;
 
-    const detalle = evaluaciones.map(a => ({
-      id: a.id,
-      nombre: a.nombre || criterio.nombre,
-      nota: Number(grades[a.id])
-    }));
-
     const promedio =
-      detalle.reduce((s, e) => s + e.nota, 0) / detalle.length;
+      evaluaciones.reduce((s, e) => s + e.nota, 0) /
+      evaluaciones.length;
 
     resultado.push({
       id: criterio.id,
       nombre: criterio.nombre,
       promedio: Number(promedio.toFixed(2)),
-      evaluaciones: detalle
+      evaluaciones
     });
   });
 
