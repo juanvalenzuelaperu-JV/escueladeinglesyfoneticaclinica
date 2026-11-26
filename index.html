@@ -9609,7 +9609,7 @@ document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
 
   const grupoId = document.getElementById('calGrupoSel').value;
   const selTipo = document.getElementById('calTipoSel');
-  const tipo = selTipo.value;
+  let tipo = selTipo.value;
   const nota = (document.getElementById('calNotaEvento')?.value || '').trim();
 
   // Nombre específico desde data-nombre
@@ -9617,10 +9617,23 @@ document.getElementById('btnAddCalEvent')?.addEventListener('click', () => {
   const nombreDesdeData = optSeleccionada?.dataset?.nombre || null;
   let nombre = nombreDesdeData || calTipoLabel(tipo);
 
-  if (tipo === 'otro') {
-    nombre = (document.getElementById('calOtroEvento').value || '').trim();
-    if (!nombre) { alert('Escribe el nombre del nuevo evento.'); return; }
+if (!tipo) { alert('Selecciona el tipo de evento.'); return; }
+if (!grupoId) { alert('Selecciona un grupo.'); return; }
+
+if (tipo === 'otro') {
+  nombre = (document.getElementById('calOtroEvento').value || '').trim();
+  if (!nombre) { alert('Escribe el nombre del nuevo evento.'); return; }
+
+  // Reutiliza el criterio si ya existe uno con ese nombre; si no, lo crea
+  if (!state.customCriterios) state.customCriterios = [];
+  let crit = state.customCriterios.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+  if (!crit) {
+    crit = { id: 'custom_' + Date.now(), nombre, color: '#6366f1' };
+    state.customCriterios.push(crit);
   }
+  tipo = crit.id;
+}
+ 
   if (!tipo) { alert('Selecciona el tipo de evento.'); return; }
   if (!grupoId && tipo !== 'otro') { alert('Selecciona un grupo.'); return; }
 
